@@ -1,0 +1,9 @@
+{
+  "name": "local/php-invitation-system",
+  "description": "Invitation and OTP verification system for XAMPP localhost",
+  "type": "project",
+  "require": {
+    "php": "^8.1",
+    "phpmailer/phpmailer": "^6.10"
+  }
+}
