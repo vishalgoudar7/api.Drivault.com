@@ -264,8 +264,8 @@ $statement->bind_param(
         $mail->addEmbeddedImage($googlePlayImagePath, 'google-play-badge', 'googlePlay.png');
     }
     if (is_file($appStoreImagePath)) {
-        $mail->addEmbeddedImage($appStoreImagePath, 'app-store-badge', 'Apple store.png');
-    }
+    $mail->addEmbeddedImage($appStoreImagePath, 'app-store-badge', 'Apple-store.png');
+}
    $mail->Subject = "Your Friend Invited You to Join Drivault";
 
 $mail->Body = sprintf(
@@ -291,7 +291,7 @@ Welcome to Drivault
 Your friend
 <strong>%2$s</strong>
 has invited you to join
-<strong>Drivault</strong> 🎉
+<strong>Drivault</strong> &#127881;
 
 </p>
 
@@ -305,14 +305,10 @@ Store, access and share your files securely from anywhere.
 
 <ul>
 
-<li>☁ Secure cloud storage</li>
-
-<li>📁 Access anywhere</li>
-
-<li>🔒 Safe file sharing</li>
-
-<li>🎁 Earn free storage rewards</li>
-
+<li>&#9729; Secure cloud storage</li>
+<li>&#128193; Access anywhere</li>
+<li>&#128274; Safe file sharing</li>
+<li>&#127873; Earn free storage rewards</li>
 </ul>
 
 <div style="
@@ -401,7 +397,11 @@ Install the Drivault mobile app to access your files anytime.
 </td>
 <td style="vertical-align:middle;">
 <a href="%5$s" style="display:inline-block;text-decoration:none;">
-%11$s
+    <img
+        src="cid:app-store-badge"
+        alt="Download on the App Store"
+        width="180"
+        style="display:block;border:none;">
 </a>
 </td>
 </tr>
@@ -439,11 +439,6 @@ is_file($brandIconPath)
 is_file($googlePlayImagePath)
 ? '<img src="cid:google-play-badge" style="width:180px;">'
 : 'Google Play'
-,
-
-is_file($appStoreImagePath)
-? '<img src="cid:app-store-badge" style="width:180px;">'
-: 'Download on the App Store'
 
 );
     $mail->AltBody = sprintf(

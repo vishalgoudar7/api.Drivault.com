@@ -118,15 +118,6 @@ Main Flow
 8. System creates Drivault account using:
 - config\drivault.php
 
-Current Dummy Testing Values
-
-Configured in:
-- config\testing.php
-
-Current values:
-- Dummy phone: 9876543210
-- Dummy OTP: 123456
-
 Password Rules
 - Minimum 8 characters
 - At least 1 uppercase letter
