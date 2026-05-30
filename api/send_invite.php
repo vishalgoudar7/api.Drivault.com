@@ -266,161 +266,80 @@ $statement->bind_param(
     if (is_file($appStoreImagePath)) {
     $mail->addEmbeddedImage($appStoreImagePath, 'app-store-badge', 'Apple-store.png');
 }
-   $mail->Subject = "Your Friend Invited You to Join Drivault";
+   $mail->Subject = "You've Been Invited to Join Drivault";
 
 $mail->Body = sprintf(
 
-'<div style="font-family:Arial,sans-serif;padding:30px;background:#f5f7fa;">
-
-<div style="max-width:650px;margin:auto;background:#fff;border-radius:12px;padding:35px;">
-
-<div style="text-align:center;">
-
+'<div style="font-family:Arial,sans-serif;padding:30px;background:#f5f7fa;color:#111827;">
+<div style="max-width:650px;margin:auto;background:#ffffff;border-radius:12px;padding:35px;">
+<div style="text-align:center;margin-bottom:24px;">
 %9$s
-
-<h2 style="color:#43E08B;">
-Welcome to Drivault 
-</h2>
-
 </div>
 
-<p>Hi <strong>%1$s</strong>,</p>
+<p style="margin:0 0 16px;">Hello <strong>%1$s</strong>,</p>
 
-<p>
-
-Your friend
-<strong>%2$s</strong>
-has invited you to join
-<strong>Drivault</strong> &#127881;
-
+<p style="margin:0 0 16px;">
+<strong>%2$s</strong> has invited you to join <strong>Drivault</strong>, a secure cloud storage and file-sharing platform designed to help you store, access, manage, and share your files securely from anywhere.
 </p>
 
-<p>
-
-Store, access and share your files securely from anywhere.
-
+<p style="margin:0 0 24px;">
+To activate your account and start using Drivault, please accept the invitation by clicking the button below.
 </p>
 
-<h3>Benefits:</h3>
+<div style="text-align:center;margin:28px 0;">
+<a href="%3$s" style="background:#43E08B;padding:15px 30px;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:bold;display:inline-block;">
+Accept Invitation
+</a>
+</div>
 
-<ul>
+<div style="background:#eefbf4;padding:18px;margin:0 0 24px;border-left:4px solid #43E08B;border-radius:8px;">
+<h3 style="margin:0 0 12px;color:#111827;">Account Information</h3>
+<p style="margin:0 0 8px;">Username: <strong>%6$s</strong></p>
+<p style="margin:0;">Password: Create during account activation</p>
+</div>
 
-<li>&#9729; Secure cloud storage</li>
-<li>&#128193; Access anywhere</li>
-<li>&#128274; Safe file sharing</li>
-<li>&#127873; Earn free storage rewards</li>
+<h3 style="margin:0 0 12px;color:#111827;">Why Use Drivault?</h3>
+<ul style="margin:0 0 24px;padding-left:0;list-style:none;">
+<li style="margin:0 0 6px;">Secure cloud file storage</li>
+<li style="margin:0 0 6px;">Access files from any device</li>
+<li style="margin:0 0 6px;">Safe file sharing and collaboration</li>
+<li style="margin:0 0 6px;">Protected user authentication</li>
+<li style="margin:0;">Reliable file synchronization</li>
 </ul>
 
-<div style="
-background:#eefbf4;
-padding:15px;
-margin-top:20px;
-border-left:4px solid #43E08B;
-">
-
-<b>Your Account Details</b>
-
-<p>
-
-Username:
-<strong>%6$s</strong>
-
+<p style="margin:0 0 16px;">
+For security purposes, your mobile number will be verified using a One-Time Password (OTP) during account activation.
 </p>
 
-<p>
-
-Password:
-Create during setup
-
+<p style="margin:0 0 24px;">
+If you were not expecting this invitation, you may safely ignore this email.
 </p>
 
-</div>
-
-<div style="
-text-align:center;
-margin-top:30px;
-">
-
-<a href="%3$s"
-
-style="
-background:#43E08B;
-padding:15px 30px;
-color:white;
-text-decoration:none;
-border-radius:8px;
-font-weight:bold;
-">
-
-Accept Invitation
-
-</a>
-
-</div>
-
-<p style="margin-top:30px;">
-
-Please verify your mobile number using OTP.
-
-</p>
-
-<p>
-
-If you were not expecting this invitation,
-you can safely ignore this email.
-
-</p>
-
-<div style="
-background:#f8fafc;
-border:1px solid #e5e7eb;
-border-radius:12px;
-padding:20px;
-margin-top:28px;
-text-align:center;
-">
-
-<h3 style="margin:0 0 8px;color:#111827;">
-Download Drivault App
-</h3>
-
-<p style="margin:0 0 18px;color:#475569;">
-Install the Drivault mobile app to access your files anytime.
-</p>
-
+<div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:28px 0;text-align:center;">
+<h3 style="margin:0 0 8px;color:#111827;">Download Drivault App</h3>
+<p style="margin:0 0 18px;color:#475569;">Install the Drivault mobile app to access your files anytime.</p>
 <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto;border-collapse:separate;border-spacing:12px 0;">
 <tr>
 <td style="vertical-align:middle;">
-<a href="%4$s" style="display:inline-block;text-decoration:none;">
-%10$s
-</a>
+<a href="%4$s" style="display:inline-block;text-decoration:none;">%10$s</a>
 </td>
 <td style="vertical-align:middle;">
-<a href="%5$s" style="display:inline-block;text-decoration:none;">
-    <img
-        src="cid:app-store-badge"
-        alt="Download on the App Store"
-        width="180"
-        style="display:block;border:none;">
-</a>
+<a href="%5$s" style="display:inline-block;text-decoration:none;">%11$s</a>
 </td>
 </tr>
 </table>
-
 </div>
 
-<hr>
+<p style="margin:0 0 16px;">Thank you,</p>
 
-<p>
-
-Thanks,<br>
-
-Team Drivault
-
+<p style="margin:0;">
+<strong>Drivault Team</strong><br>
+Secure Cloud Storage &amp; File Sharing Platform
 </p>
 
+<hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0 14px;">
+<p style="margin:0;color:#6b7280;font-size:12px;text-align:center;">&copy; 2026 Drivault. All rights reserved.</p>
 </div>
-
 </div>',
 
 htmlspecialchars($name,ENT_QUOTES,'UTF-8'),
@@ -438,19 +357,36 @@ is_file($brandIconPath)
 
 is_file($googlePlayImagePath)
 ? '<img src="cid:google-play-badge" style="width:180px;">'
-: 'Google Play'
+: 'Google Play',
+
+is_file($appStoreImagePath)
+? '<img src="cid:app-store-badge" alt="Download on the App Store" width="180" style="display:block;border:none;">'
+: 'App Store'
 
 );
     $mail->AltBody = sprintf(
-        "Hi %s,\n\n"
-        . "Your friend %s has invited you to join Drivault.\n\n"
-        . "Accept invitation:\n%s\n\n"
-        . "Your login username: %s\n"
-        . "Password: Create during setup\n\n"
+        "Hello %s,\n\n"
+        . "%s has invited you to join Drivault, a secure cloud storage and file-sharing platform designed to help you store, access, manage, and share your files securely from anywhere.\n\n"
+        . "To activate your account and start using Drivault, please accept the invitation by clicking the link below.\n\n"
+        . "Accept Invitation:\n%s\n\n"
+        . "Account Information\n\n"
+        . "Username: %s\n"
+        . "Password: Create during account activation\n\n"
+        . "Why Use Drivault?\n"
+        . "- Secure cloud file storage\n"
+        . "- Access files from any device\n"
+        . "- Safe file sharing and collaboration\n"
+        . "- Protected user authentication\n"
+        . "- Reliable file synchronization\n\n"
+        . "For security purposes, your mobile number will be verified using a One-Time Password (OTP) during account activation.\n\n"
+        . "If you were not expecting this invitation, you may safely ignore this email.\n\n"
         . "Download Drivault App:\n"
         . "Google Play: %s\n"
         . "App Store: %s\n\n"
-        . "Thanks,\nTeam Drivault",
+        . "Thank you,\n\n"
+        . "Drivault Team\n"
+        . "Secure Cloud Storage & File Sharing Platform\n\n"
+        . "(c) 2026 Drivault. All rights reserved.",
         $name,
         $inviterName,
         $verificationLink,

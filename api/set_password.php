@@ -34,6 +34,7 @@ function extractDrivaultErrorMessage(string $responseBody): string
 $plainPassword = (string) ($_POST['password'] ?? '');
 $confirmPassword = (string) ($_POST['confirm_password'] ?? '');
 $token = trim((string) ($_POST['token'] ?? ''));
+$wantsJsonResponse = strtolower((string) ($_POST['response_type'] ?? '')) === 'json';
 $verifiedUserId = isset($_SESSION['verified_user_id']) ? (int) $_SESSION['verified_user_id'] : 0;
 $verifiedInviteToken = (string) ($_SESSION['verified_invite_token'] ?? '');
 
@@ -567,7 +568,19 @@ if ($getUserResponse !== false) {
 
     $conn->commit();
 
-    header('Location: ../pages/set-password.php?token=' . urlencode((string) ($user['invite_token'] ?? $token)) . '&created=1');
+    $successRedirect = '../pages/set-password.php?token=' . urlencode((string) ($user['invite_token'] ?? $token));
+
+    if ($wantsJsonResponse) {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'message' => 'Account created successfully.',
+            'redirect' => $successRedirect,
+        ]);
+        exit;
+    }
+
+    header('Location: ' . $successRedirect);
     exit;
 } catch (Throwable $exception) {
     $conn->rollback();

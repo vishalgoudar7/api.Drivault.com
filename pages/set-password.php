@@ -5,13 +5,23 @@ $token = (string) ($_GET['token'] ?? ($_SESSION['verified_invite_token'] ?? ''))
 
 $accountCreatedDetails = $_SESSION['account_created_details'] ?? null;
 
+$showAccountCreated = is_array($accountCreatedDetails);
+
 $mailConfig = require __DIR__ . '/../config/mail.php';
+
+$testingConfig = require __DIR__ . '/../config/testing.php';
+
+$useDummyValues = (bool) ($testingConfig['use_dummy_values'] ?? false);
+
+$dummyPassword = (string) ($testingConfig['dummy_password'] ?? 'Test@12345');
 
 $googlePlayLink = (string) ($mailConfig['google_play_link'] ?? 'https://play.google.com/store');
 
 $appStoreLink = (string) ($mailConfig['app_store_link'] ?? 'https://www.apple.com/app-store/');
 
 $googlePlayImagePath = __DIR__ . '/../assets/Photos/googlePlay.png';
+
+$appStoreImagePath = __DIR__ . '/../assets/Photos/Apple store.png';
 
 if ($accountCreatedDetails !== null) {
     unset($_SESSION['account_created_details']);
@@ -29,7 +39,7 @@ if ($accountCreatedDetails !== null) {
 
 <title>Set Password</title>
 
-<link rel="icon" type="image/x-icon" href="/assets/Photos/favicon.ico">
+<link rel="icon" type="image/x-icon" href="../assets/Photos/favicon.ico">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 
@@ -209,6 +219,30 @@ input:focus{
     margin-bottom:0;
 }
 
+.testing-password{
+    background:#f8fafc;
+    border:1px dashed #86efac;
+    border-radius:16px;
+    padding:16px;
+    margin-bottom:22px;
+}
+
+.testing-password p{
+    color:#475569;
+    font-size:14px;
+    margin-bottom:12px;
+}
+
+.testing-password strong{
+    color:#0f172a;
+}
+
+.testing-password button{
+    padding:11px 14px;
+    border-radius:12px;
+    font-size:14px;
+}
+
 .password-strength{
     margin-top:10px;
     font-size:14px;
@@ -296,12 +330,17 @@ button:disabled{
 
 .download-links a{
     display:inline-block;
-    margin:10px;
+    margin:8px;
+    vertical-align:middle;
 }
 
 .download-links img{
-    width:180px;
+    width:190px;
+    height:62px;
     max-width:100%;
+    object-fit:contain;
+    border:0;
+    display:block;
 }
 
 .app-store-btn{
@@ -350,14 +389,14 @@ button:disabled{
         <div class="logo">
 
             <div class="logo-box">
-                <img src="/assets/Photos/icon-192.png" alt="Drivault logo">
+                <img src="../assets/Photos/icon-192.png" alt="Drivault logo">
             </div>
 
             <h1>Drivault</h1>
 
         </div>
 
-        <?php if (!is_array($accountCreatedDetails)) { ?>
+        <?php if (!$showAccountCreated) { ?>
 
         <h2 class="title">
             Create <span>Password</span>
@@ -366,6 +405,23 @@ button:disabled{
         <p class="subtitle">
             Set a secure password to complete your account setup.
         </p>
+
+        <?php if ($useDummyValues) { ?>
+
+        <div class="testing-password">
+            <p>
+                Testing Password : <strong id="testingPassword"><?php echo htmlspecialchars($dummyPassword, ENT_QUOTES, 'UTF-8'); ?></strong>
+            </p>
+
+            <button
+                type="button"
+                onclick="useTestingPassword()"
+            >
+                Use Testing Password
+            </button>
+        </div>
+
+        <?php } ?>
 
         <form
             id="set-password-form"
@@ -477,17 +533,21 @@ button:disabled{
 
         <?php } ?>
 
-        <?php if (is_array($accountCreatedDetails)) { ?>
+        <?php if ($showAccountCreated) { ?>
 
         <div class="success-box">
 
             <div class="success-icon">
-                ✅
+                &#10003;
             </div>
 
             <h3>
                 Account Created Successfully
             </h3>
+
+            <p>
+                Your Drivault account is ready to use.
+            </p>
         
         </div>
 
@@ -508,7 +568,7 @@ button:disabled{
                 >
 
                     <img
-                        src="/assets/Photos/googlePlay.png"
+                        src="../assets/Photos/googlePlay.png"
                         alt="Get it on Google Play"
                     >
 
@@ -527,7 +587,22 @@ button:disabled{
 
                 <?php } ?>
 
-                <br><br>
+                <?php if (is_file($appStoreImagePath)) { ?>
+
+                <a
+                    href="<?php echo htmlspecialchars($appStoreLink, ENT_QUOTES, 'UTF-8'); ?>"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+
+                    <img
+                        src="../assets/Photos/Apple store.png"
+                        alt="Download on the App Store"
+                    >
+
+                </a>
+
+                <?php } else { ?>
 
                 <a
                     class="app-store-btn"
@@ -538,6 +613,8 @@ button:disabled{
                     Download on App Store
                 </a>
 
+                <?php } ?>
+
             </div>
 
         </div>
@@ -545,7 +622,7 @@ button:disabled{
         <?php } ?>
 
         <div class="footer">
-            © 2026 Drivault
+            &#169; 2026 Drivault
         </div>
 
     </div>
@@ -642,6 +719,23 @@ const loader = document.getElementById('loader');
 
 const createAccountBtn = document.getElementById('createAccountBtn');
 
+function useTestingPassword() {
+
+    const testingPassword = document.getElementById('testingPassword')?.innerText || '';
+
+    if(!testingPassword || !passwordInput || !confirmPasswordInput) {
+        return;
+    }
+
+    passwordInput.value = testingPassword;
+    confirmPasswordInput.value = testingPassword;
+    passwordInput.classList.remove('input-error');
+    confirmPasswordInput.classList.remove('input-error');
+    checkPasswordStrength(testingPassword);
+    validatePasswordMatch();
+    togglePasswordRules(false);
+}
+
 function checkPasswordStrength(password) {
     passwordStrength.innerHTML = '';
 }
@@ -672,7 +766,7 @@ if(passwordRules) {
     `;
 }
 
-passwordInput.addEventListener('input', () => {
+passwordInput?.addEventListener('input', () => {
 
     checkPasswordStrength(passwordInput.value);
 
@@ -713,15 +807,15 @@ function validatePasswordMatch() {
     }
 }
 
-form?.addEventListener('submit', function(event) {
+form?.addEventListener('submit', async function(event) {
+
+    event.preventDefault();
 
     const password = passwordInput.value;
 
     const confirmPassword = confirmPasswordInput.value;
 
     if(!isPasswordValid(password)) {
-
-        event.preventDefault();
 
         togglePasswordRules(true);
         passwordInput.classList.add('input-error');
@@ -735,8 +829,6 @@ form?.addEventListener('submit', function(event) {
     }
 
     if(password !== confirmPassword) {
-
-    event.preventDefault();
 
     matchMessage.innerHTML = 'Passwords Do Not Match';
     matchMessage.style.color = '#ef4444';
@@ -752,6 +844,42 @@ form?.addEventListener('submit', function(event) {
     loader.style.display = 'block';
 
     showToast('Creating Account...');
+
+    try {
+
+        const formData = new FormData(form);
+        formData.append('response_type', 'json');
+
+        const response = await fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin',
+        });
+
+        if(!response.ok) {
+            const message = (await response.text()).trim();
+            showToast(message || 'Unable to create account.', 'error');
+            createAccountBtn.disabled = false;
+            createAccountBtn.style.display = 'block';
+            loader.style.display = 'none';
+            return;
+        }
+
+        const result = await response.json();
+
+        showToast(result.message || 'Account created successfully.');
+
+        if(result.redirect) {
+            window.location.href = result.redirect;
+        }
+
+    } catch (error) {
+
+        showToast('Unable to create account. Please try again.', 'error');
+        createAccountBtn.disabled = false;
+        createAccountBtn.style.display = 'block';
+        loader.style.display = 'none';
+    }
 
 });
 

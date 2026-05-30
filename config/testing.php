@@ -5,4 +5,5 @@ return [
     'use_dummy_values' => false,
     'dummy_phone' => '9876543210',
     'dummy_otp' => '1234',
+    'dummy_password' => 'Test@12345',
 ];
