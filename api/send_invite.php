@@ -156,6 +156,9 @@ $websiteUrl = trim((string) ($mailConfig['website_url'] ?? 'https://drivault.exa
 $supportEmail = trim((string) ($mailConfig['support_email'] ?? 'support@drivault.example.com'));
 $googlePlayLink = trim((string) ($mailConfig['google_play_link'] ?? 'https://play.google.com/store'));
 $appStoreLink = trim((string) ($mailConfig['app_store_link'] ?? 'https://www.apple.com/app-store/'));
+$logoUrl = "http://103.174.148.208/assets/Photos/icon-192.png";
+$googlePlayBadgeUrl = "http://103.174.148.208/assets/Photos/googlePlay.png";
+$appStoreBadgeUrl = "http://103.174.148.208/assets/Photos/Apple%20store.png";
 $brandIconPath = __DIR__ . '/../assets/Photos/icon-192.png';
 $googlePlayImagePath = __DIR__ . '/../assets/Photos/googlePlay.png';
 $appStoreImagePath = __DIR__ . '/../assets/Photos/Apple store.png';
@@ -257,15 +260,7 @@ $statement->bind_param(
     $mail->setFrom($smtpUsername, $smtpFromName);
     $mail->addAddress($email, $name);
     $mail->isHTML(true);
-    if (is_file($brandIconPath)) {
-        $mail->addEmbeddedImage($brandIconPath, 'drivault-brand-icon', 'icon-192.png');
-    }
-    if (is_file($googlePlayImagePath)) {
-        $mail->addEmbeddedImage($googlePlayImagePath, 'google-play-badge', 'googlePlay.png');
-    }
-    if (is_file($appStoreImagePath)) {
-    $mail->addEmbeddedImage($appStoreImagePath, 'app-store-badge', 'Apple-store.png');
-}
+  
    $mail->Subject = "You've Been Invited to Join Drivault";
 
 $mail->Body = sprintf(
@@ -351,17 +346,11 @@ htmlspecialchars($phone,ENT_QUOTES,'UTF-8'),
 htmlspecialchars($websiteUrl,ENT_QUOTES,'UTF-8'),
 htmlspecialchars($supportEmail,ENT_QUOTES,'UTF-8'),
 
-is_file($brandIconPath)
-? '<img src="cid:drivault-brand-icon" style="width:70px;">'
-: '<strong>Drivault</strong>',
+'<img src="' . $logoUrl . '" width="70" alt="Drivault">',
 
-is_file($googlePlayImagePath)
-? '<img src="cid:google-play-badge" style="width:180px;">'
-: 'Google Play',
+'<img src="' . $googlePlayBadgeUrl . '" width="180" alt="Google Play">',
 
-is_file($appStoreImagePath)
-? '<img src="cid:app-store-badge" alt="Download on the App Store" width="180" style="display:block;border:none;">'
-: 'App Store'
+'<img src="' . $appStoreBadgeUrl . '" width="180" alt="App Store">'
 
 );
     $mail->AltBody = sprintf(
