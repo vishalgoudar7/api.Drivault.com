@@ -1,10 +1,88 @@
 <?php
+declare(strict_types=1);
+
 session_start();
 
+require __DIR__ . '/../config/db.php';
+
 $adminCreateMessage = $_SESSION['admin_create_message'] ?? '';
+$message = '';
 
 if ($adminCreateMessage !== '') {
     unset($_SESSION['admin_create_message']);
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    $email = trim((string) ($_POST['email'] ?? ''));
+    $password = (string) ($_POST['password'] ?? '');
+    $adminCount = 0;
+
+    $adminCountResult = $conn->query(
+        "SELECT COUNT(*) AS admin_count FROM users WHERE role = 'admin'"
+    );
+
+    if ($adminCountResult instanceof mysqli_result) {
+        $adminCountRow = $adminCountResult->fetch_assoc();
+        $adminCount = (int) ($adminCountRow['admin_count'] ?? 0);
+        $adminCountResult->free();
+    }
+
+    if ($email === '' || $password === '') {
+
+        $message = 'Email and password are required.';
+
+    } else {
+
+        $statement = $conn->prepare(
+            'SELECT id, name, email, password, role, is_active
+             FROM users
+             WHERE email = ?
+             LIMIT 1'
+        );
+
+        $statement->bind_param('s', $email);
+        $statement->execute();
+
+        $result = $statement->get_result();
+        $user = $result->fetch_assoc();
+
+        $statement->close();
+
+        if (!$user) {
+
+            $message = 'Account not found for that email address.';
+
+        } elseif ((string) ($user['role'] ?? '') !== 'admin') {
+
+            $message = $adminCount === 0
+                ? 'No admin account exists yet. Create an admin account first.'
+                : 'This account does not have admin access.';
+
+        } elseif ((int) ($user['is_active'] ?? 0) !== 1) {
+
+            $message = 'Admin account is inactive.';
+
+        } elseif (
+            !password_verify(
+                $password,
+                (string) ($user['password'] ?? '')
+            )
+        ) {
+
+            $message = 'Wrong password.';
+
+        } else {
+
+            $_SESSION['admin_user_id'] = (int) $user['id'];
+            $_SESSION['admin_name'] = (string) ($user['name'] ?? '');
+            $_SESSION['admin_email'] = (string) ($user['email'] ?? '');
+            $_SESSION['admin_role'] = 'admin';
+
+            header('Location: admin-dashboard.php');
+            exit;
+        }
+    }
 }
 ?>
 
@@ -29,89 +107,37 @@ if ($adminCreateMessage !== '') {
 >
 
 <style>
-
 *{
     margin:0;
     padding:0;
     box-sizing:border-box;
-    font-family:'Segoe UI',sans-serif;
+    font-family:'Inter',sans-serif;
 }
 
 body{
-    height:100vh;
+    background:#f5f7f9;
     display:flex;
     justify-content:center;
     align-items:center;
-
-    /* DriveVault Dark Theme */
-    background:
-    linear-gradient(
-        135deg,
-        #0f172a,
-        #111827,
-        #1e293b
-    );
-
-    overflow:hidden;
-}
-
-/* Background Glow Effect */
-
-body::before{
-    content:'';
-    position:absolute;
-    width:500px;
-    height:500px;
-    background:#2563eb;
-    border-radius:50%;
-    top:-150px;
-    left:-150px;
-    opacity:0.15;
-    filter:blur(120px);
-}
-
-body::after{
-    content:'';
-    position:absolute;
-    width:400px;
-    height:400px;
-    background:#06b6d4;
-    border-radius:50%;
-    bottom:-120px;
-    right:-120px;
-    opacity:0.12;
-    filter:blur(120px);
+    min-height:100vh;
+    padding:20px;
 }
 
 .container{
     width:100%;
-    max-width:420px;
-    padding:20px;
-    position:relative;
-    z-index:1;
+    max-width:440px;
 }
 
 .login-box{
-    background:rgba(17,24,39,0.95);
-
-    border:1px solid rgba(255,255,255,0.08);
-
-    backdrop-filter:blur(10px);
-
+    background:#ffffff;
+    border-radius:24px;
     padding:40px;
-
-    border-radius:22px;
-
-    box-shadow:
-    0 10px 40px rgba(0,0,0,0.4);
-
-    color:white;
+    box-shadow:0 4px 20px rgba(0,0,0,0.05);
 }
 
 .brand{
     display:flex;
     align-items:center;
-    justify-content:center;
     gap:12px;
     margin-bottom:24px;
 }
@@ -120,8 +146,8 @@ body::after{
     width:52px;
     height:52px;
     border-radius:16px;
-    background:rgba(236,253,245,0.96);
-    border:1px solid rgba(209,250,229,0.9);
+    background:#ecfdf5;
+    border:1px solid #d1fae5;
     box-shadow:0 10px 24px rgba(74,222,128,0.18);
     display:flex;
     align-items:center;
@@ -136,28 +162,34 @@ body::after{
 }
 
 .brand span{
-    font-size:28px;
+    font-size:24px;
+    color:#0f172a;
     font-weight:700;
-    color:#ffffff;
-    letter-spacing:-0.4px;
 }
 
 .login-box h2{
-    text-align:center;
-    margin-bottom:30px;
     font-size:30px;
     font-weight:700;
-    color:#ffffff;
+    color:#0f172a;
+    margin-bottom:10px;
 }
 
 .message{
-    background:rgba(34,197,94,0.15);
-    color:#4ade80;
-    padding:14px;
-    border-radius:10px;
+    background:#ecfdf5;
+    color:#166534;
+    border:1px solid #bbf7d0;
+    padding:12px;
+    border-radius:12px;
     margin-bottom:20px;
-    text-align:center;
-    border:1px solid rgba(74,222,128,0.3);
+}
+
+.error-message{
+    background:#fef2f2;
+    color:#dc2626;
+    border:1px solid #fecaca;
+    padding:12px;
+    border-radius:12px;
+    margin-bottom:20px;
 }
 
 .form-group{
@@ -167,92 +199,53 @@ body::after{
 .form-group label{
     display:block;
     margin-bottom:8px;
-    color:#cbd5e1;
+    color:#0f172a;
     font-size:14px;
-    font-weight:500;
+    font-weight:600;
 }
 
 .form-group input{
     width:100%;
-    padding:15px;
-
-    background:#0f172a;
-
-    border:1px solid #334155;
-
-    border-radius:12px;
-
-    color:white;
-
+    padding:14px 16px;
+    border:1px solid #e2e8f0;
+    border-radius:14px;
+    outline:none;
     font-size:15px;
-
-    transition:0.3s;
-}
-
-.form-group input::placeholder{
-    color:#64748b;
+    background:#ffffff;
 }
 
 .form-group input:focus{
-
-    border-color:#2563eb;
-
-    box-shadow:
-    0 0 0 4px rgba(37,99,235,0.2);
-
-    outline:none;
+    border-color:#4ade80;
+    box-shadow:0 0 0 4px rgba(74,222,128,0.15);
 }
 
 button{
     width:100%;
     padding:15px;
-
     border:none;
-
-    border-radius:12px;
-
-    background:
-    linear-gradient(
-        135deg,
-        #2563eb,
-        #06b6d4
-    );
-
-    color:white;
-
+    border-radius:14px;
+    background:#4ade80;
+    color:#ffffff;
     font-size:16px;
-
     font-weight:600;
-
     cursor:pointer;
-
-    transition:0.3s;
 }
 
 button:hover{
-    transform:translateY(-2px);
-
-    box-shadow:
-    0 10px 20px rgba(37,99,235,0.35);
+    background:#22c55e;
 }
 
 .create-link{
-    margin-top:22px;
     text-align:center;
+    margin-top:20px;
+    color:#64748b;
+    font-size:14px;
+    line-height:1.7;
 }
 
-.create-link a{
-    color:#38bdf8;
-    text-decoration:none;
-    font-weight:500;
-    transition:0.3s;
+.create-link strong{
+    color:#0f172a;
 }
-
-.create-link a:hover{
-    color:#7dd3fc;
-    text-decoration:underline;
-}
-
 </style>
 
 </head>
@@ -265,7 +258,7 @@ button:hover{
 
         <div class="brand">
             <div class="brand-badge">
-                <img src="/php_invitation_system/assets/Photos/icon-192.png" alt="Drivault logo">
+                <img src="/assets/Photos/icon-192.png" alt="Drivault logo">
             </div>
             <span>Drivault</span>
         </div>
@@ -288,7 +281,23 @@ button:hover{
 
         <?php } ?>
 
-        <form action="admin_login.php" method="POST">
+        <?php if ($message !== '') { ?>
+
+        <div class="error-message">
+
+            <?php
+            echo htmlspecialchars(
+                $message,
+                ENT_QUOTES,
+                'UTF-8'
+            );
+            ?>
+
+        </div>
+
+        <?php } ?>
+
+        <form method="POST">
 
             <div class="form-group">
 

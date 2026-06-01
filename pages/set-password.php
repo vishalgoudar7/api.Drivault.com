@@ -19,9 +19,9 @@ $googlePlayLink = (string) ($mailConfig['google_play_link'] ?? 'https://play.goo
 
 $appStoreLink = (string) ($mailConfig['app_store_link'] ?? 'https://www.apple.com/app-store/');
 
-$googlePlayImagePath = __DIR__ . '/../assets/Photos/googlePlay.png';
+$googlePlayImagePath = __DIR__ . '/assets/Photos/googlePlay.png';
 
-$appStoreImagePath = __DIR__ . '/../assets/Photos/Apple store.png';
+$appStoreImagePath = __DIR__ . '/assets/Photos/Apple store.png';
 
 if ($accountCreatedDetails !== null) {
     unset($_SESSION['account_created_details']);
@@ -39,7 +39,7 @@ if ($accountCreatedDetails !== null) {
 
 <title>Set Password</title>
 
-<link rel="icon" type="image/x-icon" href="../assets/Photos/favicon.ico">
+<link rel="icon" type="image/x-icon" href="/assets/Photos/favicon.ico">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 
@@ -389,7 +389,7 @@ button:disabled{
         <div class="logo">
 
             <div class="logo-box">
-                <img src="../assets/Photos/icon-192.png" alt="Drivault logo">
+                <img src="/assets/Photos/icon-192.png" alt="Drivault logo">
             </div>
 
             <h1>Drivault</h1>
@@ -559,63 +559,27 @@ button:disabled{
 
             <div class="download-links">
 
-                <?php if (is_file($googlePlayImagePath)) { ?>
+    <a href="<?php echo htmlspecialchars($googlePlayLink, ENT_QUOTES, 'UTF-8'); ?>"
+       target="_blank"
+       rel="noopener noreferrer">
+        <img
+            src="/assets/Photos/googlePlay.png"
+            alt="Get it on Google Play"
+            style="width:190px;height:auto;"
+        >
+    </a>
 
-                <a
-                    href="<?php echo htmlspecialchars($googlePlayLink, ENT_QUOTES, 'UTF-8'); ?>"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
+    <a href="<?php echo htmlspecialchars($appStoreLink, ENT_QUOTES, 'UTF-8'); ?>"
+       target="_blank"
+       rel="noopener noreferrer">
+        <img
+            src="/assets/Photos/Apple store.png"
+            alt="Download on the App Store"
+            style="width:190px;height:auto;"
+        >
+    </a>
 
-                    <img
-                        src="../assets/Photos/googlePlay.png"
-                        alt="Get it on Google Play"
-                    >
-
-                </a>
-
-                <?php } else { ?>
-
-                <a
-                    class="app-store-btn"
-                    href="<?php echo htmlspecialchars($googlePlayLink, ENT_QUOTES, 'UTF-8'); ?>"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
-                    Download on Google Play
-                </a>
-
-                <?php } ?>
-
-                <?php if (is_file($appStoreImagePath)) { ?>
-
-                <a
-                    href="<?php echo htmlspecialchars($appStoreLink, ENT_QUOTES, 'UTF-8'); ?>"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
-
-                    <img
-                        src="../assets/Photos/Apple store.png"
-                        alt="Download on the App Store"
-                    >
-
-                </a>
-
-                <?php } else { ?>
-
-                <a
-                    class="app-store-btn"
-                    href="<?php echo htmlspecialchars($appStoreLink, ENT_QUOTES, 'UTF-8'); ?>"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
-                    Download on App Store
-                </a>
-
-                <?php } ?>
-
-            </div>
+</div>
 
         </div>
 
