@@ -316,7 +316,7 @@ button:disabled{
         </h2>
 
         <p class="subtitle">
-            Generate OTP and verify your account securely.
+            Verify your mobile number securely using an OTP
         </p>
 
         <?php if ($name !== '' || $email !== '' || $phone !== '') { ?>

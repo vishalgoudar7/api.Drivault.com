@@ -1,6 +1,14 @@
 <?php
 declare(strict_types=1);
 
+header('Content-Type: application/json');
+
+echo json_encode([
+    "status" => "success",
+    "message" => "send_invite.php called",
+    "post_data" => $_POST
+]);
+
 session_start();
 
 use PHPMailer\PHPMailer\Exception as MailerException;
@@ -105,50 +113,119 @@ if($inviterUserId !== ''){
 
     curl_setopt_array($curlHandle,[
 
-        CURLOPT_URL =>
-        'http://login.drivault.com/ocs/v1.php/cloud/users/' .
-        rawurlencode($inviterUserId),
+    CURLOPT_URL =>
+    'https://login.drivault.com/ocs/v1.php/cloud/users/' .
+    rawurlencode($inviterUserId),
 
-        CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_RETURNTRANSFER => true,
 
-        CURLOPT_HTTPAUTH =>
-        CURLAUTH_BASIC,
+    CURLOPT_FOLLOWLOCATION => true,
 
-        CURLOPT_USERPWD =>
-        'admin:kuRsef-gobno8-gankux',
+    CURLOPT_HTTPAUTH => CURLAUTH_BASIC,
 
-        CURLOPT_HTTPHEADER => [
+    CURLOPT_USERPWD =>
+    'admin:kuRsef-gobno8-gankux',
 
-            'OCS-APIRequest: true',
-            'Accept: application/json'
+    CURLOPT_HTTPHEADER => [
+        'OCS-APIRequest: true',
+        'Accept: application/json'
+    ]
+]);
 
-        ]
+    // curl_setopt_array($curlHandle,[
 
-    ]);
+    //     CURLOPT_URL =>
+    //     'http://login.drivault.com/ocs/v1.php/cloud/users/' .
+    //     rawurlencode($inviterUserId),
+
+    //     CURLOPT_RETURNTRANSFER => true,
+
+    //     CURLOPT_HTTPAUTH =>
+    //     CURLAUTH_BASIC,
+
+    //     CURLOPT_USERPWD =>
+    //     'admin:kuRsef-gobno8-gankux',
+
+    //     CURLOPT_HTTPHEADER => [
+
+    //         'OCS-APIRequest: true',
+    //         'Accept: application/json'
+
+    //     ]
+
+    // ]);
 
     $responseBody =
         curl_exec($curlHandle);
 
     curl_close($curlHandle);
 
-    if($responseBody){
+//     if($responseBody){
 
-        $userData =
-            json_decode(
-                $responseBody,
-                true
-            );
+//         $userData =
+//             json_decode(
+//                 $responseBody,
+//                 true
+//             );
 
-        $displayName =
-            trim(
-                (string)(
-                    $userData['ocs']
-                    ['data']
-                    ['displayname']
-                    ?? $inviterName
-                )
-            );
-    }
+//         $displayName =
+//             trim(
+//                 (string)(
+//                     $userData['ocs']
+//                     ['data']
+//                     ['displayname']
+//                     ?? $inviterName
+//                 )
+//             );
+//             error_log("INVITER USER ID: " . $inviterUserId);
+// error_log("INVITER DISPLAY NAME: " . $displayName);
+// error_log("INVITER EMAIL/PHONE: " . $inviter_email);
+
+// $inviterName = $displayName;
+//     }
+
+if($responseBody){
+
+    error_log("NEXTCLOUD RESPONSE = " . $responseBody);
+    error_log(
+    "DISPLAYNAME FROM API = " .
+    ($userData['ocs']['data']['displayname'] ?? 'NOT FOUND')
+);
+
+    $userData =
+        json_decode(
+            $responseBody,
+            true
+        );
+
+    error_log(
+        "DISPLAYNAME FROM API = " .
+        ($userData['ocs']['data']['displayname'] ?? 'NOT FOUND')
+    );
+
+    $displayName =
+        trim(
+            (string)(
+                $userData['ocs']
+                ['data']
+                ['displayname']
+                ?? $inviterName
+            )
+        );
+
+    error_log("INVITER USER ID: " . $inviterUserId);
+    error_log("INVITER DISPLAY NAME: " . $displayName);
+    error_log("INVITER EMAIL/PHONE: " . $inviter_email);
+
+    $inviterName = $displayName;
+}
+$userData = json_decode($responseBody, true);
+
+error_log(
+    "DISPLAYNAME = " .
+    ($userData['ocs']['data']['displayname'] ?? 'NOT FOUND')
+);
+
 }
 
 $inviterName = $displayName;
@@ -383,10 +460,25 @@ htmlspecialchars($supportEmail,ENT_QUOTES,'UTF-8'),
         $googlePlayLink,
         $appStoreLink
     );
+    // $mail->send();
+
+    // $conn->commit();
+    // exit('Invitation sent successfully.');
+
     $mail->send();
 
-    $conn->commit();
-    exit('Invitation sent successfully.');
+$conn->commit();
+
+header('Content-Type: application/json');
+
+echo json_encode([
+    'status' => true,
+    'message' => 'Invitation sent successfully.',
+    'inviter_name' => $inviterName,
+    'inviter_email' => $inviter_email
+]);
+
+exit;
 } catch (mysqli_sql_exception $exception) {
     if (!empty($transactionStarted)) {
         $conn->rollback();
