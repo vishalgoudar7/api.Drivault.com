@@ -375,6 +375,24 @@ button:disabled{
     opacity:0;
     transition:0.3s;
 }
+#createAccountBtn{
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.btn-loader{
+    width:18px;
+    height:18px;
+    border:2px solid rgba(255,255,255,0.4);
+    border-top:2px solid #fff;
+    border-radius:50%;
+    animation:spin 1s linear infinite;
+    display:none;
+}
+
 
 </style>
 
@@ -517,12 +535,10 @@ button:disabled{
 
             </div>
 
-            <button
-                id="createAccountBtn"
-                type="submit"
-            >
-                Create Account
-            </button>
+            <button id="createAccountBtn" type="submit">
+    <span id="btnText">Create Account</span>
+    <span id="btnLoader" class="btn-loader"></span>
+</button>
 
             <div
                 class="loader"
@@ -546,7 +562,7 @@ button:disabled{
             </h3>
 
             <p>
-                Your Drivault account is ready to use.
+                Your password has been set successfully. Your Drivault account is now ready to use.
             </p>
         
         </div>
@@ -682,6 +698,8 @@ const form = document.getElementById('set-password-form');
 const loader = document.getElementById('loader');
 
 const createAccountBtn = document.getElementById('createAccountBtn');
+const btnText = document.getElementById('btnText');
+const btnLoader = document.getElementById('btnLoader');
 
 function useTestingPassword() {
 
@@ -701,8 +719,48 @@ function useTestingPassword() {
 }
 
 function checkPasswordStrength(password) {
-    passwordStrength.innerHTML = '';
+
+    if (password.length === 0) {
+        passwordStrength.innerHTML = '';
+        return;
+    }
+
+    if (password.length < 10) {
+
+        passwordStrength.innerHTML =
+            'Password must be at least 10 characters';
+
+        passwordStrength.style.color = '#ef4444';
+
+    } else {
+
+        passwordStrength.innerHTML = '';
+
+    }
 }
+// function checkPasswordStrength(password) {
+
+//     if (password.length === 0) {
+
+//         passwordStrength.innerHTML = '';
+//         return;
+//     }
+
+//     if (password.length < 10) {
+
+//         passwordStrength.innerHTML =
+//             '? Password must be at least 10 characters';
+
+//         passwordStrength.style.color = '#ef4444';
+
+//     } else {
+
+//         passwordStrength.innerHTML =
+//             '? Minimum 10 characters completed';
+
+//         passwordStrength.style.color = '#22c55e';
+//     }
+// }
 
 function isPasswordValid(password) {
     return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{10,}$/.test(password);
@@ -729,16 +787,25 @@ if(passwordRules) {
         </ul>
     `;
 }
-
 passwordInput?.addEventListener('input', () => {
 
     checkPasswordStrength(passwordInput.value);
 
-    if(passwordInput.value === '' || isPasswordValid(passwordInput.value)) {
-        togglePasswordRules(false);
-        passwordInput.classList.remove('input-error');
-    }
+    validatePasswordMatch();
+});
+// passwordInput?.addEventListener('input', () => {
 
+//     checkPasswordStrength(passwordInput.value);
+
+//     if(passwordInput.value === '' || isPasswordValid(passwordInput.value)) {
+//         togglePasswordRules(false);
+//         passwordInput.classList.remove('input-error');
+//     }
+
+//     validatePasswordMatch();
+// });
+
+confirmPasswordInput?.addEventListener('input', () => {
     validatePasswordMatch();
 });
 
@@ -746,30 +813,31 @@ passwordInput?.addEventListener('input', () => {
 
 function validatePasswordMatch() {
 
-    if(confirmPasswordInput.value === '') {
+   const password = passwordInput.value;
+    const confirmPassword = confirmPasswordInput.value;
 
+    if (confirmPassword === '') {
         matchMessage.innerHTML = '';
-
         confirmPasswordInput.classList.remove('input-error');
-
         return;
     }
 
-    if(passwordInput.value !== confirmPasswordInput.value) {
+    if (password === confirmPassword) {
 
-        matchMessage.innerHTML = 'Passwords Do Not Match';
+        matchMessage.innerHTML = '';
+        matchMessage.style.color = '#22c55e';
 
-        matchMessage.style.color = '#ef4444';
-
-        confirmPasswordInput.classList.add('input-error');
+        confirmPasswordInput.classList.remove('input-error');
 
     } else {
 
-        matchMessage.innerHTML = '';
+        matchMessage.innerHTML = ' Passwords Do Not Match';
+        matchMessage.style.color = '#ef4444';
 
-        confirmPasswordInput.classList.remove('input-error');
+        confirmPasswordInput.classList.add('input-error');
     }
 }
+
 
 form?.addEventListener('submit', async function(event) {
 
@@ -801,11 +869,11 @@ form?.addEventListener('submit', async function(event) {
     return;
 }
 
-    createAccountBtn.disabled = true;
+   createAccountBtn.disabled = true;
 
-    createAccountBtn.style.display = 'none';
+btnText.textContent = 'Creating Account...';
 
-    loader.style.display = 'block';
+btnLoader.style.display = 'inline-block';
 
     showToast('Creating Account...');
 
@@ -823,9 +891,11 @@ form?.addEventListener('submit', async function(event) {
         if(!response.ok) {
             const message = (await response.text()).trim();
             showToast(message || 'Unable to create account.', 'error');
-            createAccountBtn.disabled = false;
-            createAccountBtn.style.display = 'block';
-            loader.style.display = 'none';
+           createAccountBtn.disabled = false;
+
+btnText.textContent = 'Create Account';
+
+btnLoader.style.display = 'none';
             return;
         }
 

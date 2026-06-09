@@ -316,7 +316,7 @@ button:disabled{
         </h2>
 
         <p class="subtitle">
-            Verify your mobile number securely using an OTP
+           Congratulations! You've received an invitation to join Drivault. Verify your mobile number to continue with your account setup.
         </p>
 
         <?php if ($name !== '' || $email !== '' || $phone !== '') { ?>
@@ -413,7 +413,7 @@ button:disabled{
         >
 
             <span id="timerText">
-                Resend OTP in <span class="timer" id="countdown">30</span>s
+                Resend OTP in <span class="timer" id="countdown">90</span>s
             </span>
 
             <button
@@ -428,7 +428,7 @@ button:disabled{
         </div>
 
         <div class="footer">
-            © 2026 Drivault
+            Â© 2026 Drivault
         </div>
 
     </div>
@@ -475,7 +475,7 @@ function showToast(message, type = 'success') {
 
 function startCountdown() {
 
-    let timeLeft = 30;
+    let timeLeft = 90;
 
     const countdown = document.getElementById('countdown');
 
@@ -615,7 +615,7 @@ document.getElementById('otpForm').addEventListener('submit', async function(eve
     });
 
     if (!response.ok) {
-        throw new Error('Server error. Please try again.');
+        throw new Error('Invalid OTP. Please try again.');
     }
 
     const result = await response.json();
