@@ -89,7 +89,7 @@ $smtpPort = (int) ($mailConfig['port'] ?? 0);
 $smtpEncryption = (string) ($mailConfig['encryption'] ?? '');
 $smtpUsername = trim((string) ($mailConfig['username'] ?? ''));
 $smtpPassword = trim((string) ($mailConfig['password'] ?? ''));
-$smtpFromName = trim((string) ($mailConfig['from_name'] ?? 'Team Drivault'));
+$smtpFromName = trim((string) ($mailConfig['from_name'] ?? 'Drivault'));
 $sessionInviterName = trim((string) ($_SESSION['admin_name'] ?? ''));
 $inviterName = trim((string) ($_POST['inviter_name'] ?? ($sessionInviterName !== '' ? $sessionInviterName : ($mailConfig['inviter_name'] ?? $smtpFromName))));
 $displayName = $inviterName;

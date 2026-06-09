@@ -12,9 +12,9 @@ return [
     'password' => getenv('SMTP_PASSWORD') ?: 'C5p48xm>y',
 
     'from_address' => getenv('SMTP_FROM_ADDRESS') ?: 'contacts@drivault.com',
-    'from_name' => getenv('SMTP_FROM_NAME') ?: 'Team Drivault',
+    'from_name' => getenv('SMTP_FROM_NAME') ?: 'Drivault',
 
-    'inviter_name' => getenv('SMTP_INVITER_NAME') ?: 'Team Drivault',
+    'inviter_name' => getenv('SMTP_INVITER_NAME') ?: 'Drivault',
 
     'website_url' => getenv('WEBSITE_URL') ?: $appConfig['base_url'],
     'support_email' => getenv('SUPPORT_EMAIL') ?: 'support@drivault.com',
