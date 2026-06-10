@@ -20,8 +20,8 @@ return [
     'support_email' => getenv('SUPPORT_EMAIL') ?: 'support@drivault.com',
 
     'google_play_link' => getenv('GOOGLE_PLAY_LINK')
-        ?: 'https://play.google.com/store/apps/details?id=com.drivault&pcampaignid=web_share',
+        ?: 'https://play.google.com/store/search?q=Drivault&c=apps',
 
     'app_store_link' => getenv('APP_STORE_LINK')
-        ?: 'https://www.apple.com/app-store/',
+        ?: 'https://www.apple.com/in/search/drivault?src=globalnav',
 ];
