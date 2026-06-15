@@ -277,18 +277,39 @@ button:disabled{
 
 .toast{
     position:fixed;
-    bottom:30px;
+    bottom:20px;
     left:50%;
     transform:translateX(-50%);
+
+    width:90%;
+    max-width:320px;
+
     color:#ffffff;
-    padding:14px 22px;
+    padding:14px 16px;
     border-radius:12px;
+
     font-size:14px;
     font-weight:600;
+    text-align:center;
+    line-height:1.4;
+    word-break:break-word;
+
+    box-sizing:border-box;
+
     box-shadow:0 8px 20px rgba(0,0,0,0.15);
     z-index:9999;
     opacity:0;
     transition:0.3s;
+}
+
+@media (max-width: 480px) {
+    .toast {
+        width: fit-content;
+        max-width: 90%;
+        white-space: nowrap;   /* Keeps text on one line */
+        padding: 10px 14px;
+        font-size: 13px;
+    }
 }
 
 </style>

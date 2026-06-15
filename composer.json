@@ -4,6 +4,7 @@
   "type": "project",
   "require": {
     "php": "^8.1",
-    "phpmailer/phpmailer": "^6.10"
+    "phpmailer/phpmailer": "^6.10",
+    "razorpay/razorpay": "^2.9"
   }
 }

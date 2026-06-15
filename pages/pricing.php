@@ -1,31 +1,14 @@
 <?php
-$plans = [
-    [
-        "storage" => "100 GB",
-        "price" => "50",
-        "popular" => false
-    ],
-    [
-        "storage" => "200 GB",
-        "price" => "95",
-        "popular" => false
-    ],
-    [
-        "storage" => "300 GB",
-        "price" => "270",
-        "popular" => true
-    ],
-    [
-        "storage" => "500 GB",
-        "price" => "425",
-        "popular" => false
-    ],
-    [
-        "storage" => "1000 GB",
-        "price" => "800",
-        "popular" => false
-    ]
-];
+require '../config/db.php';
+
+$result = $conn->query("
+    SELECT *
+    FROM plans
+    WHERE status = 1
+    ORDER BY monthly_price ASC
+");
+
+$plans = $result->fetch_all(MYSQLI_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -47,7 +30,7 @@ body{
 }
 
 .section-title{
-    font-size:42px;
+    font-size:30px;
     font-weight:700;
     color:#0f172a;
     line-height:1.2;
@@ -55,7 +38,7 @@ body{
 
 .section-subtitle{
     color:#64748b;
-    font-size:22px;
+    font-size:20px;
 }
 .feature-box{
     background:#f4fcf8;
@@ -159,6 +142,23 @@ body{
 .btn-popular{
     background:#38d989;
     color:#fff;
+}
+.pricing-card{
+    border:2px solid transparent;
+    transition:all 0.3s ease;
+}
+
+.pricing-card:hover{
+    border:2px solid #38d989;
+    transform:translateY(-8px);
+    box-shadow:0 12px 30px rgba(56,217,137,0.15);
+}
+.pricing-card:hover .btn-plan{
+    background:#38d989;
+    color:#fff;
+}
+.pricing-card:hover .storage-icon{
+    background:#dff8ea;
 }
 
 .check-icon{
@@ -438,9 +438,9 @@ body{
         <?php foreach($plans as $plan): ?>
 
        <div>
-            <div class="pricing-card <?= $plan['popular'] ? 'popular' : '' ?>">
+            <div class="pricing-card <?= ($plan['id'] == 3) ? 'popular' : '' ?>">
 
-                <?php if($plan['popular']): ?>
+              <?php if($plan['id'] == 3): ?>
                     <div class="popular-badge">
                         ⭐ MOST POPULAR
                     </div>
@@ -456,7 +456,7 @@ body{
 </div>
 
                     <div class="storage">
-                        <?= $plan['storage']; ?>
+                        <?= $plan['quota']; ?>
                     </div>
 
                     <p class="text-muted">More Storage</p>
@@ -464,7 +464,7 @@ body{
                     <hr>
 
                     <div class="price">
-                        ₹<?= $plan['price']; ?>
+                        ₹<?= $plan['monthly_price']; ?>
                         <small>/month</small>
                     </div>
 
@@ -473,7 +473,7 @@ body{
         <span class="check-icon">
             <i class="bi bi-check"></i>
         </span>
-        Adds <?= $plan['storage']; ?> to account
+       Adds <?= $plan['quota']; ?> to account
     </li>
 
     <li>
@@ -491,9 +491,13 @@ body{
     </li>
 </ul>
 
-                    <button class="btn btn-plan <?= $plan['popular'] ? 'btn-popular' : '' ?>">
+                    <!-- <button class="btn btn-plan <?= $plan['popular'] ? 'btn-popular' : '' ?>">
                         Choose Plan
-                    </button>
+                    </button> -->
+  <a href="checkout.php?plan_id=<?= $plan['id'] ?>"
+   class="btn btn-plan <?= $plan['id']==4 ? 'btn-popular' : '' ?>">
+    Choose Plan
+</a>
 
                 </div>
             </div>
