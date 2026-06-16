@@ -3,12 +3,6 @@ declare(strict_types=1);
 
 header('Content-Type: application/json');
 
-echo json_encode([
-    "status" => "success",
-    "message" => "send_invite.php called",
-    "post_data" => $_POST
-]);
-
 session_start();
 
 use PHPMailer\PHPMailer\Exception as MailerException;
@@ -184,47 +178,27 @@ if($inviterUserId !== ''){
 // $inviterName = $displayName;
 //     }
 
-if($responseBody){
+    if (is_string($responseBody) && $responseBody !== '') {
+        $userData = json_decode($responseBody, true);
 
-    error_log("NEXTCLOUD RESPONSE = " . $responseBody);
-    error_log(
-    "DISPLAYNAME FROM API = " .
-    ($userData['ocs']['data']['displayname'] ?? 'NOT FOUND')
-);
+        if (is_array($userData)) {
+            $displayName =
+                trim(
+                    (string)(
+                        $userData['ocs']
+                        ['data']
+                        ['displayname']
+                        ?? $inviterName
+                    )
+                );
 
-    $userData =
-        json_decode(
-            $responseBody,
-            true
-        );
+            error_log("INVITER USER ID: " . $inviterUserId);
+            error_log("INVITER DISPLAY NAME: " . $displayName);
+            error_log("INVITER EMAIL/PHONE: " . $inviter_email);
 
-    error_log(
-        "DISPLAYNAME FROM API = " .
-        ($userData['ocs']['data']['displayname'] ?? 'NOT FOUND')
-    );
-
-    $displayName =
-        trim(
-            (string)(
-                $userData['ocs']
-                ['data']
-                ['displayname']
-                ?? $inviterName
-            )
-        );
-
-    error_log("INVITER USER ID: " . $inviterUserId);
-    error_log("INVITER DISPLAY NAME: " . $displayName);
-    error_log("INVITER EMAIL/PHONE: " . $inviter_email);
-
-    $inviterName = $displayName;
-}
-$userData = json_decode($responseBody, true);
-
-error_log(
-    "DISPLAYNAME = " .
-    ($userData['ocs']['data']['displayname'] ?? 'NOT FOUND')
-);
+            $inviterName = $displayName;
+        }
+    }
 
 }
 
@@ -342,8 +316,8 @@ $statement->bind_param(
 
 $mail->Body = sprintf(
 
-'<div style="font-family:Arial,sans-serif;padding:30px;background:#f5f7fa;color:#111827;">
-<div style="max-width:650px;margin:auto;background:#ffffff;border-radius:12px;padding:35px;">
+'<div style="font-family:Arial,sans-serif;padding:16px;background:#f5f7fa;color:#111827;">
+<div style="width:100%%;max-width:650px;margin:0 auto;background:#ffffff;border-radius:12px;padding:24px;box-sizing:border-box;">
 <div style="text-align:center;margin-bottom:24px;">
 %9$s
 </div>
@@ -359,12 +333,12 @@ To activate your account and start using Drivault, please accept the invitation 
 </p>
 
 <div style="text-align:center;margin:28px 0;">
-<a href="%3$s" style="background:#43E08B;padding:15px 30px;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:bold;display:inline-block;">
+<a href="%3$s" style="background:#43E08B;padding:15px 24px;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:bold;display:inline-block;max-width:100%%;box-sizing:border-box;">
 Accept Invitation
 </a>
 </div>
 
-<div style="background:#eefbf4;padding:18px;margin:0 0 24px;border-left:4px solid #43E08B;border-radius:8px;">
+<div style="background:#eefbf4;padding:18px;margin:0 0 24px;border-left:4px solid #43E08B;border-radius:8px;box-sizing:border-box;">
 <h3 style="margin:0 0 12px;color:#111827;">Account Information</h3>
 <p style="margin:0 0 8px;">Username: <strong>%6$s</strong></p>
 <p style="margin:0;">Password: Create during account activation</p>
@@ -387,15 +361,15 @@ For security purposes, your mobile number will be verified using a One-Time Pass
 If you were not expecting this invitation, you may safely ignore this email.
 </p>
 
-<div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:28px 0;text-align:center;">
+<div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:18px;margin:28px 0;text-align:center;box-sizing:border-box;">
 <h3 style="margin:0 0 8px;color:#111827;">Download Drivault App</h3>
 <p style="margin:0 0 18px;color:#475569;">Install the Drivault mobile app to access your files anytime.</p>
-<table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto;border-collapse:separate;border-spacing:12px 0;">
+<table role="presentation" cellspacing="0" cellpadding="0" style="width:auto;max-width:100%%;margin:0 auto;border-collapse:collapse;">
 <tr>
-<td style="vertical-align:middle;">
+<td style="padding:0 6px 0 0;text-align:center;">
 <a href="%4$s" style="display:inline-block;text-decoration:none;">%10$s</a>
 </td>
-<td style="vertical-align:middle;">
+<td style="padding:0 0 0 6px;text-align:center;">
 <a href="%5$s" style="display:inline-block;text-decoration:none;">%11$s</a>
 </td>
 </tr>
@@ -423,11 +397,11 @@ htmlspecialchars($phone,ENT_QUOTES,'UTF-8'),
 htmlspecialchars($websiteUrl,ENT_QUOTES,'UTF-8'),
 htmlspecialchars($supportEmail,ENT_QUOTES,'UTF-8'),
 
-'<img src="' . $logoUrl . '" width="70" alt="Drivault">',
+'<img src="' . $logoUrl . '" width="70" alt="Drivault" style="display:inline-block;border:0;max-width:70px;height:auto;">',
 
-'<img src="' . $googlePlayBadgeUrl . '" width="180" alt="Google Play">',
+'<img src="' . $googlePlayBadgeUrl . '" width="160" alt="Google Play" style="display:block;border:0;width:160px;max-width:100%;height:auto;">',
 
-'<img src="' . $appStoreBadgeUrl . '" width="180" alt="App Store">'
+'<img src="' . $appStoreBadgeUrl . '" width="160" alt="App Store" style="display:block;border:0;width:160px;max-width:100%;height:auto;">'
 
 );
     $mail->AltBody = sprintf(
