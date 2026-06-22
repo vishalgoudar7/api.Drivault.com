@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require __DIR__ . '/../config/db.php';
@@ -8,20 +9,37 @@ $testingConfig = require __DIR__ . '/../config/testing.php';
 $smsConfig = [
     'enabled' => true,
 
-    'gateway_url' => 'http://107.20.199.106/sms/1/text/query',
+    'gateway_url' => 'https://api.kapsystem.com/sms/1/text/query',
 
-    'username' => 'rivotm',
+    'username' => 'outofboxcloud',
 
-    'password' => 'Kap@user!123',
+    'password' => '0utofboX!211',
 
-    'from' => 'RIVOTM',
+    'from' => 'DRVULT',
 
-    'india_dlt_content_template_id' => '1207175698749929450',
+    'india_dlt_content_template_id' => '1607100000000384119',
 
-    'india_dlt_principal_entity_id' => '1201168265801749840',
+    'india_dlt_principal_entity_id' => '1601483163299673613',
 
     'india_dlt_telemarketer_id' => '1602100000000004471',
 ];
+
+
+
+
+$logFile = '/var/www/html/api/logs/app.log';
+
+function writeLog(string $message): void
+{
+    global $logFile;
+
+    file_put_contents(
+        $logFile,
+        '[' . date('Y-m-d H:i:s') . '] ' . $message . PHP_EOL,
+        FILE_APPEND
+    );
+}
+
 function jsonResponse(int $statusCode, array $payload): void
 {
     http_response_code($statusCode);
@@ -45,9 +63,12 @@ function findInvitePhone(mysqli $conn, string $token): ?string
 
     return trim((string) ($user['phone'] ?? ''));
 }
-
 function sendOtpSms(string $phone, string $otp, array $smsConfig): array
 {
+writeLog('sendOtpSms() called');
+writeLog('Phone: ' . $phone);
+writeLog('OTP: ' . $otp);
+
     if (empty($smsConfig['enabled'])) {
         return [
             'sent' => false,
@@ -67,26 +88,51 @@ function sendOtpSms(string $phone, string $otp, array $smsConfig): array
         throw new RuntimeException('SMS gateway is not configured.');
     }
 
-    $message =
-        'Dear Customer, ' . $otp .
-        ' is the OTP to pair your RIVOT One app with your RIVOT nx100. ' .
-        'Do not share this code. Thank you - RIVOT';
+    // $message =
+    //     'Dear Customer, ' . $otp .
+    //     ' is the OTP to pair your RIVOT One app with your RIVOT nx100. ' .
+    //     'Do not share this code. Thank you - RIVOT';
+//     $message =
+// 'Welcome to Drivault. Your OTP is ' . $otp .
+// '. Use this code to verify your identity and complete your account registration. ' .
+// 'Do not share this OTP with anyone. – Drivault';
+$message =
+    'Welcome to Drivault. Your OTP is ' . $otp .
+    '. Use this code to verify your identity and complete your account registration. Drivault';
+
 
     $mobile = '91' . preg_replace('/[^0-9]/', '', $phone);
+writeLog('Mobile: ' . $mobile);
+writeLog('Gateway URL: ' . $gatewayUrl);
+writeLog('Username: ' . $username);
 
-    $url =
-        $gatewayUrl .
-        '?username=' . urlencode($username) .
-        '&password=' . urlencode($password) .
-        '&from=' . urlencode($smsConfig['from']) .
-        '&to=' . $mobile .
-        '&text=' . urlencode($message) .
-        '&indiaDltContentTemplateId=' . urlencode($smsConfig['india_dlt_content_template_id']) .
-        '&indiaDltPrincipalEntityId=' . urlencode($smsConfig['india_dlt_principal_entity_id']) .
-        '&indiaDltTelemarketerId=' . urlencode($smsConfig['india_dlt_telemarketer_id']);
+   $url =
+    $gatewayUrl .
+    '?username=' . urlencode($username) .
+    '&password=' . urlencode($password) .
+    '&from=' . urlencode($smsConfig['from']) .
+    '&to=' . $mobile .
+    '&text=' . urlencode($message) .
+    '&indiaDltContentTemplateId=' . urlencode($smsConfig['india_dlt_content_template_id']) .
+    '&indiaDltPrincipalEntityId=' . urlencode($smsConfig['india_dlt_principal_entity_id']) .
+    '&indiaDltTelemarketerId=' . urlencode($smsConfig['india_dlt_telemarketer_id']);
 
+writeLog('SMS URL: ' . $url);
     // Send SMS
-    $response = @file_get_contents($url);
+ $response = @file_get_contents($url);
+
+if ($response === false) {
+    writeLog('file_get_contents FAILED');
+
+    $error = error_get_last();
+    if ($error) {
+        writeLog('PHP Error: ' . $error['message']);
+    }
+
+    throw new RuntimeException('Unable to send OTP SMS.');
+}
+
+writeLog('SMS Response: ' . $response);
 
     if ($response === false) {
         throw new RuntimeException('Unable to send OTP SMS.');

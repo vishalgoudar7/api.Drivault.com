@@ -495,7 +495,7 @@ body{
                         Choose Plan
                     </button> -->
   <a href="checkout.php?plan_id=<?= $plan['id'] ?>"
-   class="btn btn-plan <?= $plan['id']==4 ? 'btn-popular' : '' ?>">
+   class="btn btn-plan <?= $plan['id']==3 ? 'btn-popular' : '' ?>">
     Choose Plan
 </a>
 
