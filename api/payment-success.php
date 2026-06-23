@@ -138,11 +138,17 @@ if (strpos($quotaText, 'TB') !== false) {
 $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
 $stmt->bind_param("i", $userId);
 $stmt->execute();
-// $user = $stmt->get_result()->fetch_assoc();
-
 $user = $stmt->get_result()->fetch_assoc();
 
-$username = $phone; // or $email or $name
+$username = $phone ?: ($user['phone'] ?? '');
+
+if (!$username) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'User phone number not found'
+    ]);
+    exit;
+}
 
 $purchasedGB = $planQuotaGB;
 
@@ -161,9 +167,26 @@ curl_setopt_array($ch, [
 ]);
 
 $response = curl_exec($ch);
+
+if (curl_errno($ch)) {
+    echo json_encode([
+        'success' => false,
+        'message' => curl_error($ch)
+    ]);
+    exit;
+}
+
 curl_close($ch);
 
 $xml = simplexml_load_string($response);
+
+if (!$xml || !isset($xml->data->quota->quota)) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Unable to read current storage quota'
+    ]);
+    exit;
+}
 
 $currentQuotaBytes = (int)$xml->data->quota->quota;
 
@@ -205,15 +228,6 @@ if (curl_errno($ch)) {
 
 curl_close($ch);
 
-echo json_encode([
-    'debug' => true,
-    'username' => $username,
-    'currentGB' => $currentGB,
-    'purchasedGB' => $purchasedGB,
-    'newQuota' => $newQuota,
-    'nextcloud_response' => $updateResponse
-]);
-exit;
 $quotaResult = [
     'username' => $username,
     'old_quota' => $currentGB,
@@ -285,5 +299,7 @@ echo json_encode([
     'message' => 'Payment successful. Storage upgraded.',
     'payment_id' => $paymentId,
     'order_id' => $orderId,
+    'subscription_id' => $subscription['id'],
+    'plan_id' => $planId,
     'quota' => $quotaResult
 ]);

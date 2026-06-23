@@ -97,6 +97,30 @@ body{
 .btn-pay:hover{
     background:#2ec477;
 }
+
+.btn-pay:disabled{
+    background:#38d989;
+    border:none;
+    opacity:.8;
+}
+
+.pay-spinner{
+    width:1rem;
+    height:1rem;
+    border:2px solid rgba(255,255,255,.45);
+    border-top-color:#fff;
+    border-radius:50%;
+    display:inline-block;
+    margin-right:8px;
+    vertical-align:-2px;
+    animation:paySpin .8s linear infinite;
+}
+
+@keyframes paySpin{
+    to{
+        transform:rotate(360deg);
+    }
+}
 </style>
 
 </head>
@@ -159,39 +183,41 @@ body{
 
 <div class="mb-3">
 <label>Name</label>
-<!-- <input type="text"
-       class="form-control"
-       value="<?= htmlspecialchars($user['name']) ?>"
-       name="name"> -->
-       <input type="text"
+<input type="text"
        class="form-control"
        id="name"
-       value="<?= htmlspecialchars($user['name']) ?>">
+       value="<?= htmlspecialchars($user['name'] ?? '') ?>"
+       autocomplete="off"
+       required>
+
+<div id="nameError" class="text-danger small mt-1"></div>
 </div>
 
 <div class="mb-3">
 <label>Email</label>
-<!-- <input type="text"
-       class="form-control"
-       value="<?= htmlspecialchars($user['email']) ?>"
-       name="email"> -->
-       <input type="text"
+<input type="email"
        class="form-control"
        id="email"
-       value="<?= htmlspecialchars($user['email']) ?>">
+       value="<?= htmlspecialchars($user['email'] ?? '') ?>"
+       autocomplete="off"
+       required>
+
+<div id="emailError" class="text-danger small mt-1"></div>
 </div>
 
 <div class="mb-3">
 <label>Phone</label>
-<!-- <input type="text"
-       class="form-control"
-       value="<?= htmlspecialchars($user['phone']) ?>"
-       name="phone"> -->
-       <input type="text"
+<input type="text"
        class="form-control"
        id="phone"
-       value="<?= htmlspecialchars($user['phone']) ?>">
-</div>
+       value="<?= htmlspecialchars($user['phone'] ?? '') ?>"
+       maxlength="10"
+       autocomplete="off"
+       oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+       required>
+
+<div id="phoneError" class="text-danger small mt-1"></div>
+
 
 </div>
 
@@ -222,50 +248,119 @@ body{
 <script>
 
 document.getElementById('payBtn')
-.addEventListener('click', async () => {
+.addEventListener('click', async function() {
 
-console.log("Sending Request");
+    const btn = this;
+    const defaultText = 'Pay with Razorpay';
 
-let response = await fetch(
-    '../api/create-order.php',
-        {
-            method:'POST',
-            headers:{
-                'Content-Type':
-                'application/x-www-form-urlencoded'
-            },
-            body:new URLSearchParams({
+    function setLoading(text) {
+        btn.innerHTML = '<span class="pay-spinner"></span>' + text;
+        btn.disabled = true;
+    }
+
+    function resetButton() {
+        btn.innerHTML = defaultText;
+        btn.disabled = false;
+    }
+
+    let customerName = document.getElementById("name").value.trim();
+let customerEmail = document.getElementById("email").value.trim();
+let customerPhone = document.getElementById("phone").value.trim();
+
+document.getElementById("nameError").innerText = "";
+document.getElementById("emailError").innerText = "";
+document.getElementById("phoneError").innerText = "";
+
+/* Validation */
+
+if (customerName === '') {
+    document.getElementById("nameError").innerText =
+        "Please enter your name";
+    return;
+}
+
+if (!/^[A-Za-z ]+$/.test(customerName)) {
+    document.getElementById("nameError").innerText =
+        "Name should contain only letters";
+    return;
+}
+
+if (customerName.length < 3) {
+    document.getElementById("nameError").innerText =
+        "Name must be at least 3 characters";
+    return;
+}
+
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+if (!emailRegex.test(customerEmail)) {
+    document.getElementById("emailError").innerText =
+        "Please enter a valid email address";
+    return;
+}
+
+const phoneRegex = /^[6-9]\d{9}$/;
+
+if (!phoneRegex.test(customerPhone)) {
+    document.getElementById("phoneError").innerText =
+        "Please enter a valid 10-digit mobile number";
+    return;
+}
+
+setLoading('Creating order...');
+
+    let data;
+
+    try {
+        let response = await fetch(
+            '../api/create-order.php',
+            {
+                method:'POST',
+                headers:{
+                    'Content-Type':
+                    'application/x-www-form-urlencoded'
+                },
+               body:new URLSearchParams({
     user_id:'<?= $userId ?>',
     plan_id:'<?= $planId ?>',
-    billing_cycle:'monthly'
+    billing_cycle:'monthly',
+    name: document.getElementById('name').value,
+    email: document.getElementById('email').value,
+    phone: document.getElementById('phone').value
 })
-        }
-    );
-    console.log(response);
+            }
+        );
 
-let data = await response.json();
-console.log("Order Created:", data);
-console.log(data);
+        data = await response.json();
+    } catch(error) {
+        resetButton();
+        console.error(error);
+        alert('Something went wrong while creating the order.');
+        return;
+    }
 
-if(!data.success){
-    alert(data.message);
-    return;
-}
+    if(!data.success){
+        resetButton();
+        alert(data.message);
+        return;
+    }
 
-  if(!data.success){
-    alert(data.message);
-    return;
-}
+    // let customerName =
+    // document.getElementById("name").value;
 
-let customerName =
-document.getElementById("name").value;
+    // let customerEmail =
+    // document.getElementById("email").value;
 
-let customerEmail =
-document.getElementById("email").value;
+    // let customerPhone =
+    // document.getElementById("phone").value;
 
-let customerPhone =
-document.getElementById("phone").value;
     let options = {
+
+        modal: {
+            ondismiss: function() {
+                resetButton();
+            }
+        },
 
         key:data.key,
 
@@ -280,14 +375,15 @@ document.getElementById("phone").value;
 
         order_id:data.order_id,
 
- prefill:{
-    name: customerName,
-    email: customerEmail,
-    contact: customerPhone
-},
-
+        prefill:{
+            name: customerName,
+            email: customerEmail,
+            contact: customerPhone
+        },
 
         handler:function(payment){
+
+            setLoading('Verifying payment...');
 
             fetch(
                 '../api/payment-success.php',
@@ -298,60 +394,68 @@ document.getElementById("phone").value;
                         'application/x-www-form-urlencoded'
                     },
                     body:new URLSearchParams({
-    razorpay_order_id:
-    payment.razorpay_order_id,
+                        razorpay_order_id:
+                        payment.razorpay_order_id,
 
-    razorpay_payment_id:
-    payment.razorpay_payment_id,
+                        razorpay_payment_id:
+                        payment.razorpay_payment_id,
 
-    razorpay_signature:
-    payment.razorpay_signature,
+                        razorpay_signature:
+                        payment.razorpay_signature,
 
-    name: customerName,
-    email: customerEmail,
-    phone: customerPhone
-})
-                    // body:new URLSearchParams({
-                    //     razorpay_order_id:
-                    //     payment.razorpay_order_id,
-
-                    //     razorpay_payment_id:
-                    //     payment.razorpay_payment_id,
-
-                    //     razorpay_signature:
-                    //     payment.razorpay_signature
-                    // })
+                        name: customerName,
+                        email: customerEmail,
+                        phone: customerPhone
+                    })
                 }
             )
-           .then(r=>r.text())
-           .then(res=>{
-    alert(res);
-})
-//             .then(res=>{
+            .then(r=>r.json())
+            .then(res=>{
+                if(res.success){
+                    window.location =
+                        "payment-success.php?payment_id=" +
+                        encodeURIComponent(res.payment_id) +
+                        "&order_id=" +
+                        encodeURIComponent(res.order_id) +
+                        "&subscription_id=" +
+                        encodeURIComponent(res.subscription_id) +
+                        "&plan_id=<?= $planId ?>";
+                    return;
+                }
 
-//                 if(res.success){
-
-//                     alert(
-//                      "Payment Successful! Storage upgraded."
-//                     );
-
-//                   window.location =
-// "success.php?payment_id=" +
-// res.payment_id;
-
-//                 }else{
-
-//                     alert(res.message);
-
-//                 }
-
-//             });
+                window.location =
+                    "payment-failed.php?plan_id=<?= $planId ?>" +
+                    "&order_id=" +
+                    encodeURIComponent(payment.razorpay_order_id || data.order_id) +
+                    "&reason=" +
+                    encodeURIComponent(res.message || "Payment verification failed");
+            })
+            .catch(()=>{
+                window.location =
+                    "payment-failed.php?plan_id=<?= $planId ?>&reason=" +
+                    encodeURIComponent("Unable to verify payment. Please try again.");
+            });
 
         }
 
     };
 
     let rzp = new Razorpay(options);
+
+    rzp.on('payment.failed', function(response){
+        let message = response.error && response.error.description
+            ? response.error.description
+            : "Payment failed. Please try again.";
+
+        window.location =
+            "payment-failed.php?plan_id=<?= $planId ?>" +
+            "&order_id=" +
+            encodeURIComponent(data.order_id) +
+            "&reason=" +
+            encodeURIComponent(message);
+    });
+
+    setLoading('Complete payment in Razorpay...');
 
     rzp.open();
 

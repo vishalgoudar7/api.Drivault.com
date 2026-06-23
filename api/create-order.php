@@ -16,6 +16,9 @@ session_start();
 $user_id = $_POST['user_id'] ?? 0;
 $plan_id = $_POST['plan_id'] ?? 0;
 $billing_cycle = $_POST['billing_cycle'] ?? 'monthly';
+$name  = $_POST['name'] ?? '';
+$email = $_POST['email'] ?? '';
+$phone = $_POST['phone'] ?? '';
 
 
 if (!$user_id || !$plan_id) {
@@ -53,11 +56,26 @@ if (!$plan) {
 |--------------------------------------------------------------------------
 */
 
-$amount = $billing_cycle === 'yearly'
+// $amount = $billing_cycle === 'yearly'
+//     ? $plan['yearly_price']
+//     : $plan['monthly_price'];
+
+// $amountPaise = $amount * 100;
+
+$price = $billing_cycle === 'yearly'
     ? $plan['yearly_price']
     : $plan['monthly_price'];
 
-$amountPaise = $amount * 100;
+$gstPercent = 18; // or $plan['gst_percent']
+
+$gst = round(
+    $price * ($gstPercent / 100),
+    2
+);
+
+$totalAmount = $price + $gst;
+
+$amountPaise = round($totalAmount * 100);
 
 /*
 |--------------------------------------------------------------------------
@@ -87,21 +105,27 @@ $stmt = $conn->prepare(
         billing_cycle,
         amount,
         razorpay_order_id,
+        customer_name,
+        customer_email,
+        customer_phone,
         status
     )
     VALUES
     (
-        ?, ?, ?, ?, ?, 'pending'
+        ?, ?, ?, ?, ?, ?, ?, ?, 'pending'
     )"
 );
 
 $stmt->bind_param(
-    "iisds",
+    "iisdssss",
     $user_id,
     $plan_id,
     $billing_cycle,
-    $amount,
-    $orderId
+    $totalAmount,
+    $orderId,
+    $name,
+    $email,
+    $phone
 );
 
 $stmt->execute();

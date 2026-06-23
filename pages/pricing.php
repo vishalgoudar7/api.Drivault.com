@@ -494,8 +494,9 @@ body{
                     <!-- <button class="btn btn-plan <?= $plan['popular'] ? 'btn-popular' : '' ?>">
                         Choose Plan
                     </button> -->
-  <a href="checkout.php?plan_id=<?= $plan['id'] ?>"
-   class="btn btn-plan <?= $plan['id']==3 ? 'btn-popular' : '' ?>">
+ <a href="checkout.php?plan_id=<?= $plan['id'] ?>"
+   class="btn btn-plan <?= $plan['id']==3 ? 'btn-popular' : '' ?>"
+   onclick="showLoading(event,this)">
     Choose Plan
 </a>
 
@@ -560,7 +561,26 @@ body{
 </div>
 
 </div>
+<script>
+function showLoading(event, btn) {
+    event.preventDefault();
 
+    const url = btn.href;
+
+    btn.innerHTML = `
+        <span class="spinner-border spinner-border-sm me-2"
+              role="status"
+              aria-hidden="true"></span>
+        Processing...
+    `;
+
+    btn.style.pointerEvents = "none";
+
+    setTimeout(() => {
+        window.location.href = url;
+    }, 1000);
+}
+</script>
 </body>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </html>
