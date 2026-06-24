@@ -5,6 +5,7 @@
   "require": {
     "php": "^8.1",
     "phpmailer/phpmailer": "^6.10",
-    "razorpay/razorpay": "^2.9"
+    "razorpay/razorpay": "^2.9",
+    "dompdf/dompdf": "^3.1"
   }
 }

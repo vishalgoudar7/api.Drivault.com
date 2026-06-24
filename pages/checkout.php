@@ -182,37 +182,55 @@ body{
 <h5>User Details</h5>
 
 <div class="mb-3">
-<label>Name</label>
+<label class="form-label">
+    Name <span class="text-danger">*</span>
+</label>
 <input type="text"
        class="form-control"
        id="name"
-       value="<?= htmlspecialchars($user['name'] ?? '') ?>"
-       autocomplete="off"
+         placeholder="Enter your full name"
+       name="checkout_name_blank"
+       value=""
+       autocomplete="new-password"
+       data-lpignore="true"
+       data-form-type="other"
        required>
 
 <div id="nameError" class="text-danger small mt-1"></div>
 </div>
 
 <div class="mb-3">
-<label>Email</label>
+<label class="form-label">
+    Email <span class="text-danger">*</span>
+</label>
 <input type="email"
        class="form-control"
        id="email"
-       value="<?= htmlspecialchars($user['email'] ?? '') ?>"
-       autocomplete="off"
+       name="checkout_email_blank"
+       value=""
+       placeholder="Enter your email address"
+       autocomplete="new-password"
+       data-lpignore="true"
+       data-form-type="other"
        required>
 
 <div id="emailError" class="text-danger small mt-1"></div>
 </div>
 
 <div class="mb-3">
-<label>Phone</label>
+<label class="form-label">
+    Phone <span class="text-danger">*</span>
+</label>
 <input type="text"
        class="form-control"
        id="phone"
-       value="<?= htmlspecialchars($user['phone'] ?? '') ?>"
+       name="checkout_phone_blank"
+       value=""
        maxlength="10"
-       autocomplete="off"
+       autocomplete="new-password"
+       data-lpignore="true"
+       data-form-type="other"
+       placeholder="Enter your mobile number"
        oninput="this.value=this.value.replace(/[^0-9]/g,'')"
        required>
 
@@ -236,6 +254,9 @@ body{
     id="payBtn">
     Pay with Razorpay
 </button>
+<p class="text-muted mt-3">
+    🔒 Secure payments powered by Razorpay
+</p>
 
 </div>
 

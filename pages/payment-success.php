@@ -134,11 +134,28 @@ body{
         <?php endif; ?>
 
         <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-4">
-            <a href="pricing.php" class="btn btn-success px-4">View Packages</a>
-            <?php if ($planId > 0): ?>
-                <a href="checkout.php?plan_id=<?= $planId ?>" class="btn btn-outline-secondary px-4">Buy Again</a>
-            <?php endif; ?>
-        </div>
+
+    <a href="pricing.php"
+       class="btn btn-success px-4">
+       View Packages
+    </a>
+
+    <?php if ($planId > 0): ?>
+        <a href="checkout.php?plan_id=<?= $planId ?>"
+           class="btn btn-outline-secondary px-4">
+           Buy Again
+        </a>
+    <?php endif; ?>
+
+    <?php if ($subscription): ?>
+        <a href="../payment/generate-invoice.php?payment_id=<?= $subscription['id'] ?>"
+           class="btn btn-outline-primary px-4">
+            <i class="bi bi-download"></i>
+            Download Invoice
+        </a>
+    <?php endif; ?>
+
+</div>
     </div>
 </div>
 </body>
