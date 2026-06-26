@@ -60,6 +60,24 @@ body{
     border-radius:20px;
     padding:34px;
     box-shadow:0 5px 25px rgba(0,0,0,.08);
+    position:relative;
+}
+.brand-logo{
+    position:absolute;
+    top:24px;
+    left:28px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    color:#111827;
+    font-weight:700;
+    font-size:22px;
+    text-decoration:none;
+}
+.brand-logo img{
+    width:34px;
+    height:34px;
+    object-fit:contain;
 }
 .status-icon{
     width:74px;
@@ -89,11 +107,28 @@ body{
     background:#2ec477;
     border-color:#2ec477;
 }
+.btn-loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.8;
+}
+
+.btn-loading .spinner-border {
+    width: 1rem;
+    height: 1rem;
+    margin-right: 8px;
+    vertical-align: middle;
+}
 </style>
 </head>
 <body>
 <div class="container py-5">
     <div class="result-card">
+        <a href="pricing.php" class="brand-logo" aria-label="Drivault">
+            <img src="../assets/Photos/icon-192.png" alt="">
+            <span>Drivault</span>
+        </a>
+
         <div class="text-center">
             <div class="status-icon">
                 <i class="bi bi-check-lg"></i>
@@ -158,5 +193,30 @@ body{
 </div>
     </div>
 </div>
+<script>
+document.querySelectorAll('.action-btn').forEach(button => {
+
+    button.addEventListener('click', function () {
+
+        const originalText = this.innerHTML;
+
+        this.classList.add('btn-loading');
+
+        this.innerHTML = `
+            <span class="spinner-border spinner-border-sm"
+                  role="status"
+                  aria-hidden="true"></span>
+            Loading...
+        `;
+
+        // Optional: restore if navigation doesn't happen
+        setTimeout(() => {
+            this.innerHTML = originalText;
+            this.classList.remove('btn-loading');
+        }, 5000);
+    });
+
+});
+</script>
 </body>
 </html>

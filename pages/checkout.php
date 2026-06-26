@@ -71,6 +71,50 @@ body{
     box-shadow:0 5px 25px rgba(0,0,0,.08);
 }
 
+.checkout-header{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:16px;
+    margin-bottom:24px;
+}
+
+.checkout-title-row{
+    position:relative;
+    width:100%;
+    min-height:48px;
+    display:flex;
+    align-items:center;
+}
+
+.brand-logo{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    color:#111827;
+    font-weight:700;
+    font-size:22px;
+    text-decoration:none;
+}
+
+.brand-logo img{
+    width:34px;
+    height:34px;
+    object-fit:contain;
+}
+
+.checkout-content{
+    padding-top:0;
+}
+
+.checkout-title{
+    position:absolute;
+    left:50%;
+    transform:translateX(-50%);
+    text-align:center;
+    margin:0;
+}
+
 .plan-badge{
     background:#38d989;
     color:#fff;
@@ -130,14 +174,29 @@ body{
 
 <div class="checkout-card">
 
+<div class="checkout-header">
+
+<a href="pricing.php" class="brand-logo" aria-label="Drivault">
+    <img src="../assets/Photos/icon-192.png" alt="">
+    <span>Drivault</span>
+</a>
+
+<div class="checkout-title-row">
+
+<h2 class="fw-bold checkout-title">
+    Checkout
+</h2>
+
 <a href="pricing.php"
-   class="btn btn-light mb-4">
+   class="btn btn-light">
    ← Back
 </a>
 
-<h2 class="fw-bold mb-4">
-    Checkout
-</h2>
+</div>
+
+</div>
+
+<div class="checkout-content">
 
 <div class="row">
 
@@ -257,6 +316,8 @@ body{
 <p class="text-muted mt-3">
     🔒 Secure payments powered by Razorpay
 </p>
+
+</div>
 
 </div>
 
