@@ -165,12 +165,239 @@ body{
         transform:rotate(360deg);
     }
 }
+
+.custom-toast {
+    visibility: hidden;
+    min-width: 350px;
+    max-width: 450px;
+    background: #dc3545;
+    color: #fff;
+    text-align: center;
+    border-radius: 8px;
+    padding: 16px 24px;
+    position: fixed;
+    z-index: 99999;
+
+    /* Top center position */
+    top: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.3);
+
+    opacity: 0;
+    transition: all .4s ease;
+}
+
+.custom-toast.show {
+    visibility: visible;
+    opacity: 1;
+}
+/* Mobile Responsive */
+@media (max-width: 768px) {
+
+    .container {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    .checkout-card {
+        padding: 20px;
+        border-radius: 15px;
+    }
+
+    .checkout-header {
+        gap: 12px;
+    }
+
+    .checkout-title-row {
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+        min-height: auto;
+    }
+
+    .checkout-title{
+    position:static;
+    transform:none;
+    font-size:34px; /* Reduced size */
+    font-weight:700;
+    margin:10px 0 0;
+}
+
+    .brand-logo {
+        justify-content: center;
+        width: 100%;
+        font-size: 24px;
+    }
+
+    .brand-logo img {
+        width: 30px;
+        height: 30px;
+    }
+
+    .table td {
+        padding: 10px 5px;
+        font-size: 14px;
+    }
+
+    .plan-badge {
+        width: 100%;
+        text-align: center;
+        padding: 12px;
+    }
+
+    .total {
+        font-size: 28px;
+    }
+
+    .btn-pay {
+        width: 100%;
+        font-size: 16px;
+        padding: 12px;
+    }
+
+    .custom-toast {
+        min-width: auto;
+        width: 90%;
+        max-width: 90%;
+        font-size: 13px;
+        padding: 14px;
+    }
+
+    .form-control {
+        font-size: 16px;
+    }
+}
+@media (max-width:768px){
+
+    .container{
+        padding-left:12px;
+        padding-right:12px;
+    }
+
+    .checkout-card{
+        padding:20px;
+        border-radius:20px;
+    }
+
+    .checkout-header{
+    position:relative;
+    text-align:center;
+    align-items:center;
+    padding-top:10px;
+}
+    .brand-logo{
+        justify-content:center;
+        width:100%;
+        font-size:32px;
+        font-weight:700;
+    }
+
+    .brand-logo img{
+        width:40px;
+        height:40px;
+    }
+
+    .checkout-title-row{
+        width:100%;
+        min-height:auto;
+        flex-direction:column;
+        gap:12px;
+    }
+
+    .checkout-title{
+        position:static;
+        transform:none;
+        font-size:35px;
+        font-weight:800;
+        margin:0;
+    }
+
+    .checkout-title::after{
+        content:"Review your selected plan and complete your payment securely.";
+        display:block;
+        font-size:15px;
+        font-weight:400;
+        color:#64748b;
+        margin-top:12px;
+        line-height:1.5;
+    }
+
+    .checkout-title-row .btn{
+    position:absolute;
+    top:-15px;
+    left:-5px;
+    width:46px;
+    height:46px;
+    padding:0;
+    border-radius:12px;
+    font-size:22px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+    h5{
+        font-size:28px;
+        margin-bottom:20px;
+        font-weight:700;
+    }
+
+    .plan-badge{
+        width:100%;
+        text-align:center;
+        padding:16px;
+        font-size:22px;
+        border-radius:14px;
+    }
+
+    .table td{
+        padding:16px 0;
+        font-size:17px;
+    }
+
+    .table td:last-child{
+        text-align:right;
+        font-weight:600;
+    }
+
+    .total{
+        font-size:34px;
+        text-align:center;
+        margin:20px 0;
+    }
+
+    .form-control{
+        border-radius:14px;
+        padding:14px;
+        font-size:16px;
+    }
+
+    .btn-pay{
+        width:100%;
+        padding:16px;
+        font-size:18px;
+        border-radius:16px;
+    }
+
+    .custom-toast{
+        width:90%;
+        min-width:auto;
+        max-width:90%;
+    }
+
+    .row .col-md-6:first-child{
+        margin-bottom:30px;
+    }
+}
 </style>
 
 </head>
 <body>
 
-<div class="container py-5">
+<div class="container py-3 py-md-5">
 
 <div class="checkout-card">
 
@@ -188,8 +415,8 @@ body{
 </h2>
 
 <a href="pricing.php"
-   class="btn btn-light">
-   ← Back
+   class="btn btn-light shadow-sm">
+   ←
 </a>
 
 </div>
@@ -198,8 +425,7 @@ body{
 
 <div class="checkout-content">
 
-<div class="row">
-
+<div class="row"><div class="row">
 <div class="col-md-6">
 
 <h5>Selected Plan</h5>
@@ -238,7 +464,7 @@ body{
 
 <div class="col-md-6">
 
-<h5>User Details</h5>
+<h5>Personal Details</h5>
 
 <div class="mb-3">
 <label class="form-label">
@@ -278,7 +504,7 @@ body{
 
 <div class="mb-3">
 <label class="form-label">
-    Phone <span class="text-danger">*</span>
+    Mobile Number <span class="text-danger">*</span>
 </label>
 <input type="text"
        class="form-control"
@@ -311,8 +537,7 @@ body{
 <button
     class="btn btn-pay btn-success w-100"
     id="payBtn">
-    Pay with Razorpay
-</button>
+Proceed to Pay</button>
 <p class="text-muted mt-3">
     🔒 Secure payments powered by Razorpay
 </p>
@@ -389,43 +614,91 @@ if (!phoneRegex.test(customerPhone)) {
     return;
 }
 
+/* Verify Drivault account before creating order */
+
+setLoading('Verifying account...');
+
+try {
+
+    let verifyResponse = await fetch(
+        '../api/verify-drivault-user.php',
+        {
+            method: 'POST',
+            headers: {
+                'Content-Type':
+                    'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+                email: customerEmail,
+                phone: customerPhone
+            })
+        }
+    );
+
+    let verifyData = await verifyResponse.json();
+
+    if (!verifyData.success) {
+    resetButton();
+
+    showToast(
+        verifyData.message ||
+        'You do not have a Drivault account. Please create an account first.'
+    );
+
+    return;
+}
+
+} catch (error) {
+    resetButton();
+    console.error(error);
+
+    showToast('Unable to verify Drivault account.');
+
+    return;
+}
+
 setLoading('Creating order...');
 
-    let data;
+let data;
 
-    try {
-        let response = await fetch(
-            '../api/create-order.php',
-            {
-                method:'POST',
-                headers:{
-                    'Content-Type':
+try {
+
+    let response = await fetch(
+        '../api/create-order.php',
+        {
+            method: 'POST',
+            headers: {
+                'Content-Type':
                     'application/x-www-form-urlencoded'
-                },
-               body:new URLSearchParams({
-    user_id:'<?= $userId ?>',
-    plan_id:'<?= $planId ?>',
-    billing_cycle:'monthly',
-    name: document.getElementById('name').value,
-    email: document.getElementById('email').value,
-    phone: document.getElementById('phone').value
-})
-            }
-        );
+            },
+            body: new URLSearchParams({
+                user_id: '<?= $userId ?>',
+                plan_id: '<?= $planId ?>',
+                billing_cycle: 'monthly',
+                name: customerName,
+                email: customerEmail,
+                phone: customerPhone
+            })
+        }
+    );
 
-        data = await response.json();
-    } catch(error) {
-        resetButton();
-        console.error(error);
-        alert('Something went wrong while creating the order.');
-        return;
-    }
+    data = await response.json();
+
+} catch (error) {
+
+    resetButton();
+    console.error(error);
+    alert('Something went wrong while creating the order.');
+    return;
+}
 
     if(!data.success){
-        resetButton();
-        alert(data.message);
-        return;
-    }
+    resetButton();
+
+    showToast(data.message);
+
+    return;
+}
 
     // let customerName =
     // document.getElementById("name").value;
@@ -542,8 +815,43 @@ setLoading('Creating order...');
     rzp.open();
 
 });
+function showToast(message, type = 'error') {
+
+    const toast = document.getElementById('toast');
+
+    toast.innerText = message;
+
+    if (type === 'success') {
+        toast.style.background = '#28a745';
+    } else {
+        toast.style.background = '#dc3545';
+    }
+
+    toast.classList.add('show');
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+document.getElementById('payBtn')
+
+function showToast(message, type = 'error') {
+
+    const toast = document.getElementById('toast');
+
+    toast.innerText = message;
+
+    toast.style.background =
+        type === 'success' ? '#28a745' : '#dc3545';
+
+    toast.classList.add('show');
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
 
 </script>
-
+<div id="toast" class="custom-toast"></div>
 </body>
 </html>

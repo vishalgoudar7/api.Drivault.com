@@ -347,13 +347,13 @@ style="border-collapse: collapse;">
     <table class="terms-table">
 
         <tr>
-            <td>• Non-refundable after activation</td>
-            <td>• Renewal subject to plan availability</td>
+            <td>• Storage plans are non-refundable once activated.</td>
+            <td>• Subscription renewal is subject to plan availability.</td>
         </tr>
 
         <tr>
             <td colspan="2">
-                • Contact support for billing issues.
+                • For billing or payment queries, please contact Drivault Support.
             </td>
         </tr>
 
