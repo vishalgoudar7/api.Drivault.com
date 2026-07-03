@@ -447,17 +447,42 @@ button:disabled{
             method="POST"
         >
 
-            <input
-                type="hidden"
-                name="token"
-                value="<?php echo htmlspecialchars($token, ENT_QUOTES, 'UTF-8'); ?>"
-            >
+       <input
+    type="hidden"
+    name="token"
+    value="<?php echo htmlspecialchars($token, ENT_QUOTES, 'UTF-8'); ?>"
+>
 
-            <div class="form-group">
+<!-- Username -->
 
-                <label for="password">
-                    Password
-                </label>
+<div class="form-group">
+
+    <label for="username">
+        Username
+    </label>
+
+    <input
+    id="username"
+    type="text"
+    name="username"
+    placeholder="Choose a username"
+    minlength="4"
+    maxlength="20"
+    required
+>
+<div
+    class="match-message"
+    id="usernameMessage"
+></div>
+</div>
+
+<!-- Password -->
+
+<div class="form-group">
+
+    <label for="password">
+        Password
+    </label>
 
                 <input
                     id="password"
@@ -558,12 +583,11 @@ button:disabled{
             </div>
 
             <h3>
-                Account Created Successfully
+                Congratulations! 
             </h3>
 
             <p>
-                Your password has been set successfully. Your Drivault account is now ready to use.
-            </p>
+Your username and password have been set successfully. Your Drivault account is now ready to use.            </p>
         
         </div>
 
@@ -682,6 +706,9 @@ function togglePassword(inputId, element) {
         element.setAttribute('title', 'Show password');
     }
 }
+
+const usernameInput = document.getElementById('username');
+const usernameMessage = document.getElementById('usernameMessage');
 
 const passwordInput = document.getElementById('password');
 
@@ -808,7 +835,7 @@ passwordInput?.addEventListener('input', () => {
 confirmPasswordInput?.addEventListener('input', () => {
     validatePasswordMatch();
 });
-
+usernameInput?.addEventListener('input', validateUsername);
 //confirmPasswordInput.addEventListener('input', validatePasswordMatch);
 
 function validatePasswordMatch() {
@@ -838,10 +865,46 @@ function validatePasswordMatch() {
     }
 }
 
+function validateUsername() {
 
+    const username = usernameInput.value.trim();
+
+    if (username.length === 0) {
+
+        usernameMessage.innerHTML = '';
+        usernameInput.classList.remove('input-error');
+        return false;
+    }
+
+    if (username.length < 4) {
+
+        usernameMessage.innerHTML =
+            'Username must be at least 4 characters';
+
+        usernameMessage.style.color = '#ef4444';
+
+        usernameInput.classList.add('input-error');
+
+        return false;
+    }
+
+    usernameMessage.innerHTML = '';
+    usernameInput.classList.remove('input-error');
+
+    return true;
+}
 form?.addEventListener('submit', async function(event) {
 
     event.preventDefault();
+    if (!validateUsername()) {
+
+    showToast(
+        'Username must be at least 4 characters',
+        'error'
+    );
+
+    return;
+}
 
     const password = passwordInput.value;
 

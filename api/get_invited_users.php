@@ -41,23 +41,18 @@ if ($inviterEmail === '') {
 //     exit;
 // }
 
-$isEmail = filter_var(
-    $inviterEmail,
-    FILTER_VALIDATE_EMAIL
-);
-
-$isPhone = preg_match(
-    '/^[0-9]{10}$/',
-    $inviterEmail
-);
-
-if (!$isEmail && !$isPhone) {
+if (
+    preg_match(
+        '/^[A-Za-z0-9@._-]{3,100}$/',
+        $inviterEmail
+    ) !== 1
+) {
 
     http_response_code(422);
 
     echo json_encode([
         'status' => false,
-        'message' => 'Enter valid email or mobile number.',
+        'message' => 'Invalid inviter value.',
     ]);
 
     exit;
@@ -72,11 +67,18 @@ $statement = $conn->prepare(
         invite_accepted AS accepted
      FROM users
      WHERE role = 'user'
-       AND inviter_email = ?
+       AND (
+            inviter_email = ?
+            OR inviter = ?
+       )
      ORDER BY id DESC"
 );
 
-$statement->bind_param('s', $inviterEmail);
+$statement->bind_param(
+    'ss',
+    $inviterEmail,
+    $inviterEmail
+);
 $statement->execute();
 $result = $statement->get_result();
 $invitedUsers = $result->fetch_all(MYSQLI_ASSOC);

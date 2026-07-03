@@ -340,7 +340,7 @@ Accept Invitation
 
 <div style="background:#eefbf4;padding:18px;margin:0 0 24px;border-left:4px solid #43E08B;border-radius:8px;box-sizing:border-box;">
 <h3 style="margin:0 0 12px;color:#111827;">Account Information</h3>
-<p style="margin:0 0 8px;">Username: <strong>%6$s</strong></p>
+<p style="margin:0 0 8px;">Username: Create during account activation</p>
 <p style="margin:0;">Password: Create during account activation</p>
 </div>
 
