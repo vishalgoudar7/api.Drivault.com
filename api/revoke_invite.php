@@ -14,60 +14,131 @@ function jsonResponse(int $statusCode, array $payload): void
     exit;
 }
 
-function findPendingInvite(mysqli $conn, int $id, string $email, string $inviterEmail): ?array
-{
+function findPendingInvite(
+    mysqli $conn,
+    int $id,
+    string $email,
+    string $inviterEmail
+): ?array {
+
     if ($id > 0) {
+
         if ($inviterEmail !== '') {
+
             $statement = $conn->prepare(
-                "SELECT id, name, email, phone, inviter, inviter_email, invite_accepted
+                "SELECT
+                    id,
+                    name,
+                    email,
+                    phone,
+                    inviter,
+                    inviter_email,
+                    invite_accepted
                  FROM users
                  WHERE id = ?
                    AND role = 'user'
-                   AND inviter_email = ?
+                   AND (
+                        inviter_email = ?
+                        OR inviter = ?
+                   )
                  LIMIT 1"
             );
-            $statement->bind_param('is', $id, $inviterEmail);
+
+            $statement->bind_param(
+                'iss',
+                $id,
+                $inviterEmail,
+                $inviterEmail
+            );
+
         } else {
+
             $statement = $conn->prepare(
-                "SELECT id, name, email, phone, inviter, inviter_email, invite_accepted
+                "SELECT
+                    id,
+                    name,
+                    email,
+                    phone,
+                    inviter,
+                    inviter_email,
+                    invite_accepted
                  FROM users
                  WHERE id = ?
                    AND role = 'user'
                  LIMIT 1"
             );
+
             $statement->bind_param('i', $id);
         }
+
     } elseif ($email !== '') {
+
         if ($inviterEmail !== '') {
+
             $statement = $conn->prepare(
-                "SELECT id, name, email, phone, inviter, inviter_email, invite_accepted
+                "SELECT
+                    id,
+                    name,
+                    email,
+                    phone,
+                    inviter,
+                    inviter_email,
+                    invite_accepted
                  FROM users
                  WHERE email = ?
                    AND role = 'user'
-                   AND inviter_email = ?
+                   AND (
+                        inviter_email = ?
+                        OR inviter = ?
+                   )
                  LIMIT 1"
             );
-            $statement->bind_param('ss', $email, $inviterEmail);
+
+            $statement->bind_param(
+                'sss',
+                $email,
+                $inviterEmail,
+                $inviterEmail
+            );
+
         } else {
+
             $statement = $conn->prepare(
-                "SELECT id, name, email, phone, inviter, inviter_email, invite_accepted
+                "SELECT
+                    id,
+                    name,
+                    email,
+                    phone,
+                    inviter,
+                    inviter_email,
+                    invite_accepted
                  FROM users
                  WHERE email = ?
                    AND role = 'user'
                  LIMIT 1"
             );
-            $statement->bind_param('s', $email);
+
+            $statement->bind_param(
+                's',
+                $email
+            );
         }
+
     } else {
         return null;
     }
 
     $statement->execute();
+
     $result = $statement->get_result();
+
     $invite = $result->fetch_assoc();
+
     $statement->close();
 
-    return is_array($invite) ? $invite : null;
+    return is_array($invite)
+        ? $invite
+        : null;
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -105,25 +176,18 @@ if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
     ]);
 }
 
-if ($inviterEmail !== '') {
-
-    $isEmail = filter_var(
-        $inviterEmail,
-        FILTER_VALIDATE_EMAIL
-    );
-
-    $isPhone = preg_match(
-        '/^[0-9]{10}$/',
+if (
+    $inviterEmail !== '' &&
+    preg_match(
+        '/^[A-Za-z0-9@._-]{3,100}$/',
         $inviterEmail
-    );
+    ) !== 1
+) {
 
-    if (!$isEmail && !$isPhone) {
-
-        jsonResponse(422, [
-            'status' => false,
-            'message' => 'Enter valid email or mobile number.',
-        ]);
-    }
+    jsonResponse(422, [
+        'status' => false,
+        'message' => 'Invalid inviter value.',
+    ]);
 }
 
 $existingInvite = findPendingInvite($conn, $id, $email, $inviterEmail);
@@ -199,19 +263,19 @@ try {
         ]);
     }
 
-    if ($newInviterEmail !== '' && filter_var($newInviterEmail, FILTER_VALIDATE_EMAIL) === false) {
-        jsonResponse(422, [
-            'status' => false,
-            'message' => 'Invalid new_inviter_email value.',
-        ]);
-    }
+   if (
+    $newInviterEmail !== '' &&
+    preg_match(
+        '/^[A-Za-z0-9@._-]{3,100}$/',
+        $newInviterEmail
+    ) !== 1
+) {
 
-    if (preg_match('/^[0-9+\-\s()]{7,20}$/', $phone) !== 1) {
-        jsonResponse(422, [
-            'status' => false,
-            'message' => 'Invalid phone value.',
-        ]);
-    }
+    jsonResponse(422, [
+        'status' => false,
+        'message' => 'Invalid new_inviter_email value.',
+    ]);
+}
 
     $newToken = bin2hex(random_bytes(32));
 
