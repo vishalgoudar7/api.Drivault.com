@@ -194,15 +194,25 @@ input:focus{
 
 button{
     width:100%;
-    padding:15px;
+    height:54px;
+
     border:none;
     border-radius:14px;
+
     background:#4ade80;
-    color:white;
-    font-size:16px;
+    color:#fff;
+
+    font-size:17px;
     font-weight:600;
+
     cursor:pointer;
-    transition:0.3s;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:10px;
+
+    transition:all .25s ease;
 }
 
 button:hover{
@@ -210,8 +220,20 @@ button:hover{
 }
 
 button:disabled{
-    opacity:0.7;
+    background:#4ade80;
     cursor:not-allowed;
+    opacity:.85;
+}
+.btn-spinner{
+    width:20px;
+    height:20px;
+
+    border:3px solid rgba(255,255,255,.35);
+    border-top:3px solid #ffffff;
+
+    border-radius:50%;
+
+    animation:spin .7s linear infinite;
 }
 
 .footer{
@@ -363,22 +385,20 @@ button:disabled{
 
         <?php } ?>
 
-        <button
-            id="generateOtpBtn"
-            type="button"
-            onclick="generateOtp()"
-        >
-            Generate OTP
-        </button>
+        <button id="generateOtpBtn"
+        type="button"
+        onclick="generateOtp()">
 
-        <div class="loader-wrapper">
+    <span id="generateSpinner"
+          class="btn-spinner hidden"></span>
 
-            <div
-                class="loader"
-                id="loader"
-            ></div>
+    <span id="generateText">
+        Generate OTP
+    </span>
 
-        </div>
+</button>
+
+       
 
         <form
             id="otpForm"
@@ -419,12 +439,15 @@ button:disabled{
 
             <?php } ?>
 
-            <button
-                id="verifyBtn"
-                type="submit"
-            >
-                Verify OTP
-            </button>
+           <button id="verifyBtn" type="submit">
+
+    <span id="verifySpinner" class="btn-spinner hidden"></span>
+
+    <span id="verifyText">
+        Verify OTP
+    </span>
+
+</button>
 
         </form>
 
@@ -532,17 +555,25 @@ function startCountdown() {
 
 function generateOtp() {
 
-    const generateBtn = document.getElementById('generateOtpBtn');
+   const generateBtn = document.getElementById('generateOtpBtn');
 
-    const loader = document.getElementById('loader');
+const spinner = document.getElementById('generateSpinner');
 
-    const otpForm = document.getElementById('otpForm');
+const text = document.getElementById('generateText');
 
-    const resendSection = document.getElementById('resendSection');
+const otpForm = document.getElementById('otpForm');
+
+const resendSection = document.getElementById('resendSection');
+
+generateBtn.disabled = true;
+
+spinner.classList.remove('hidden');
+
+text.innerHTML = "Generating OTP...";
 
     generateBtn.disabled = true;
 
-    loader.style.display = 'block';
+    // loader.style.display = 'block';
 
     const formData = new FormData();
     formData.append('token', <?php echo json_encode($token, JSON_UNESCAPED_UNICODE); ?>);
@@ -559,8 +590,12 @@ function generateOtp() {
             throw new Error(payload.message || 'Unable to generate OTP');
         }
 
-        loader.style.display = 'none';
-        generateBtn.style.display = 'none';
+        // loader.style.display = 'none';
+        spinner.classList.add('hidden');
+
+text.innerHTML = "Generate OTP";
+
+generateBtn.style.display = "none";
 
         showToast(payload.message || "OTP has been sent to your mobile number");
 
@@ -571,8 +606,12 @@ function generateOtp() {
         startCountdown();
     })
     .catch((error) => {
-        loader.style.display = 'none';
-        generateBtn.disabled = false;
+        // loader.style.display = 'none';
+        spinner.classList.add('hidden');
+
+text.innerHTML = "Generate OTP";
+
+generateBtn.disabled = false;
         showToast(error.message || "Unable to generate OTP", "error");
     });
 }
@@ -611,13 +650,17 @@ document.getElementById('otpForm').addEventListener('submit', async function(eve
 
     event.preventDefault();
 
-    const verifyBtn = document.getElementById('verifyBtn');
+   const verifyBtn = document.getElementById('verifyBtn');
+const verifySpinner = document.getElementById('verifySpinner');
+const verifyText = document.getElementById('verifyText');
 
-    const otp = document.getElementById('otp').value;
-
+const otp = document.getElementById('otp').value;
     verifyBtn.disabled = true;
 
-    verifyBtn.innerHTML = 'Verifying...';
+verifySpinner.classList.remove('hidden');
+verifyText.textContent = 'Verifying OTP...';
+
+    // verifyBtn.innerHTML = 'Verifying...';
 
     const formData = new FormData();
 
@@ -630,10 +673,12 @@ document.getElementById('otpForm').addEventListener('submit', async function(eve
 
     try {
 
-    const response = await fetch('../api/verify_otp.php', {
-        method: 'POST',
-        body: formData
-    });
+   await new Promise(resolve => setTimeout(resolve, 2000));
+
+const response = await fetch('../api/verify_otp.php', {
+    method: 'POST',
+    body: formData
+});
 
     if (!response.ok) {
         throw new Error('Invalid OTP. Please try again.');
@@ -649,7 +694,9 @@ document.getElementById('otpForm').addEventListener('submit', async function(eve
         );
 
         verifyBtn.disabled = false;
-        verifyBtn.innerHTML = 'Verify OTP';
+
+verifySpinner.classList.add('hidden');
+verifyText.textContent = 'Verify OTP';
 
         document.getElementById('otp').focus();
 
@@ -660,7 +707,8 @@ document.getElementById('otpForm').addEventListener('submit', async function(eve
         result.message || 'OTP verified successfully'
     );
 
-    verifyBtn.innerHTML = 'Verified';
+    verifySpinner.classList.add('hidden');
+verifyText.textContent = 'Verifying OTP...';
 
     setTimeout(() => {
 
@@ -672,8 +720,10 @@ document.getElementById('otpForm').addEventListener('submit', async function(eve
                 'error'
             );
 
-            verifyBtn.disabled = false;
-            verifyBtn.innerHTML = 'Verify OTP';
+           verifyBtn.disabled = false;
+
+verifySpinner.classList.add('hidden');
+verifyText.textContent = 'Verify OTP';
         }
 
     }, 1000);
@@ -688,7 +738,9 @@ document.getElementById('otpForm').addEventListener('submit', async function(eve
     );
 
     verifyBtn.disabled = false;
-    verifyBtn.innerHTML = 'Verify OTP';
+
+verifySpinner.classList.add('hidden');
+verifyText.textContent = 'Verify OTP';
 
     document.getElementById('otp').focus();
 }});

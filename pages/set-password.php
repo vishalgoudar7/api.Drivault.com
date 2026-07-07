@@ -466,7 +466,7 @@ button:disabled{
     type="text"
     name="username"
     placeholder="Choose a username"
-    minlength="4"
+    minlength="6"
     maxlength="20"
     required
 >
@@ -878,10 +878,10 @@ function validateUsername() {
         return false;
     }
 
-    if (username.length < 4) {
+    if (username.length < 6) {
 
         usernameMessage.innerHTML =
-            'Username must be at least 4 characters';
+            'Username must be at least 6 characters';
 
         usernameMessage.style.color = '#ef4444';
 
@@ -903,10 +903,28 @@ usernameInput.addEventListener('input', function () {
 
     const username = this.value.trim();
 
-    if (username.length < 4) {
-        usernameMessage.innerHTML = '';
-        return;
-    }
+    if (username.length === 0) {
+
+    usernameMessage.innerHTML = '';
+    usernameInput.classList.remove('input-error');
+    return;
+}
+
+if (username.length < 6) {
+
+    usernameAvailable = false;
+
+    usernameMessage.innerHTML =
+        'Username must be at least 6 characters';
+
+    usernameMessage.style.color = '#ef4444';
+
+    usernameInput.classList.add('input-error');
+
+    return;
+}
+
+usernameInput.classList.remove('input-error');
 
     usernameMessage.innerHTML = 'Checking username availability...';
     usernameMessage.style.color = '#666';
