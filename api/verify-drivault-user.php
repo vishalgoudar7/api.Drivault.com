@@ -62,16 +62,22 @@ function searchDrivaultUsers(string $endpoint, string $apiUsername, string $apiP
     return extractDrivaultUsers((string) $responseBody);
 }
 
+$username = trim((string) ($_POST['username'] ?? $_GET['username'] ?? ''));
 $email = trim((string) ($_POST['email'] ?? $_GET['email'] ?? ''));
 $phone = trim((string) ($_POST['phone'] ?? $_GET['phone'] ?? ''));
 
-if ($email === '' && $phone === '') {
+if ($username === '' && $email === '' && $phone === '') {
     jsonResponse(422, [
         'success' => false,
-        'message' => 'Email or mobile number is required.',
+        'message' => 'Username, email or mobile number is required.',
     ]);
 }
-
+if ($username !== '' && !preg_match('/^[a-zA-Z0-9._]{3,30}$/', $username)) {
+    jsonResponse(422, [
+        'success' => false,
+        'message' => 'Invalid username.',
+    ]);
+}
 if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
     jsonResponse(422, [
         'success' => false,
@@ -97,9 +103,13 @@ if ($endpoint === '' || $apiUsername === '' || $apiPassword === '') {
     ]);
 }
 
-$searchTerm = $email !== ''
-    ? $email
-    : preg_replace('/[^0-9]/', '', $phone);
+if ($username !== '') {
+    $searchTerm = $username;
+} elseif ($email !== '') {
+    $searchTerm = $email;
+} else {
+    $searchTerm = preg_replace('/[^0-9]/', '', $phone);
+}
 try {
     $users = searchDrivaultUsers(
     $endpoint,
@@ -107,19 +117,50 @@ try {
     $apiPassword,
     $searchTerm
 );
+// echo "<pre>";
+// print_r($users);
+// exit;
 
-if (!empty($users)) {
-    jsonResponse(200, [
-        'success' => true,
-        'message' => 'Drivault account found.',
-        'matched_by' => $email !== '' ? 'email' : 'phone',
-        'users' => $users,
-    ]);
+foreach ($users as $user) {
+
+    // Convert every value to string
+    $user = (string) $user;
+
+    if ($username !== '') {
+
+        if (strcasecmp(trim($user), trim($username)) === 0) {
+
+            jsonResponse(200, [
+                'success' => true,
+                'available' => false,
+                'message' => 'Username already exists.'
+            ]);
+        }
+
+    } else {
+
+        jsonResponse(200, [
+            'success' => true,
+            'available' => false,
+            'message' => 'Drivault account found.',
+            'matched_by' => $email !== '' ? 'email' : 'phone',
+            'users' => $users
+        ]);
+    }
 }
 } catch (Throwable $exception) {
     jsonResponse(502, [
         'success' => false,
         'message' => $exception->getMessage(),
+    ]);
+}
+
+if ($username !== '') {
+
+    jsonResponse(200, [
+        'success' => true,
+        'available' => true,
+        'message' => 'Username available.'
     ]);
 }
 

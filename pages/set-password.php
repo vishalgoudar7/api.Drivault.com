@@ -709,6 +709,8 @@ function togglePassword(inputId, element) {
 
 const usernameInput = document.getElementById('username');
 const usernameMessage = document.getElementById('usernameMessage');
+let usernameTimer = null;
+let usernameAvailable = false;
 
 const passwordInput = document.getElementById('password');
 
@@ -835,7 +837,7 @@ passwordInput?.addEventListener('input', () => {
 confirmPasswordInput?.addEventListener('input', () => {
     validatePasswordMatch();
 });
-usernameInput?.addEventListener('input', validateUsername);
+// usernameInput?.addEventListener('input', validateUsername);
 //confirmPasswordInput.addEventListener('input', validatePasswordMatch);
 
 function validatePasswordMatch() {
@@ -888,18 +890,70 @@ function validateUsername() {
         return false;
     }
 
-    usernameMessage.innerHTML = '';
+    // usernameMessage.innerHTML = '';
     usernameInput.classList.remove('input-error');
 
     return true;
 }
+usernameInput.addEventListener('input', function () {
+
+    clearTimeout(usernameTimer);
+
+    usernameAvailable = false;
+
+    const username = this.value.trim();
+
+    if (username.length < 4) {
+        usernameMessage.innerHTML = '';
+        return;
+    }
+
+    usernameMessage.innerHTML = 'Checking username availability...';
+    usernameMessage.style.color = '#666';
+
+    usernameTimer = setTimeout(async () => {
+
+        try {
+
+            const response = await fetch("../api/verify-drivault-user.php?username=" + encodeURIComponent(username));
+
+            const data = await response.json();
+
+            if (data.available) {
+
+                usernameAvailable = true;
+
+                usernameMessage.innerHTML = 'This username is available.';
+                usernameMessage.style.color = '#16a34a';
+
+            } else {
+
+                usernameAvailable = false;
+
+                usernameMessage.innerHTML = 'This username is unavailable. ';
+                usernameMessage.style.color = '#ef4444';
+
+            }
+
+        } catch (e) {
+
+            usernameAvailable = false;
+
+            usernameMessage.innerHTML = 'Connection error';
+            usernameMessage.style.color = '#ef4444';
+
+        }
+
+    }, 500);
+
+});
 form?.addEventListener('submit', async function(event) {
 
     event.preventDefault();
-    if (!validateUsername()) {
+   if (!validateUsername() || !usernameAvailable) {
 
     showToast(
-        'Username must be at least 4 characters',
+        'Please choose an available username.',
         'error'
     );
 
