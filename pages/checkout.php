@@ -62,7 +62,7 @@ function fetchDrivaultUserForCheckout(string $username): array
     ];
 }
 
-function formatBytesToGb($value): string
+function formatBytesToGb(mixed $value): string
 {
     if ($value === null || $value === '') {
         return '-';
@@ -85,6 +85,11 @@ if (!isset($_GET['plan_id'])) {
 
 $planId = (int)$_GET['plan_id'];
 $username = trim((string) ($_GET['username'] ?? ''));
+$billingCycle = strtolower(trim((string) ($_GET['billing_cycle'] ?? 'monthly')));
+
+if (!in_array($billingCycle, ['monthly', 'yearly'], true)) {
+    $billingCycle = 'monthly';
+}
 
 if ($username === '') {
     die("Username not found");
@@ -109,7 +114,10 @@ try {
     die("Unable to verify Drivault user: " . htmlspecialchars($exception->getMessage(), ENT_QUOTES, 'UTF-8'));
 }
 
-$price = $plan['monthly_price'];
+$price = $billingCycle === 'yearly'
+    ? (float) $plan['yearly_price']
+    : (float) $plan['monthly_price'];
+$billingLabel = $billingCycle === 'yearly' ? 'Yearly Price' : 'Monthly Price';
 $gst = round($price * 0.18, 2);
 $total = $price + $gst;
 
@@ -812,7 +820,7 @@ body{
 
     <div class="order-lines">
         <div class="order-row">
-            <span>Monthly Price</span>
+            <span><?= htmlspecialchars($billingLabel, ENT_QUOTES, 'UTF-8') ?></span>
             <span class="order-value">&#8377;<?= number_format((float)$price,2) ?></span>
         </div>
 
@@ -941,7 +949,7 @@ payBtn.addEventListener('click', async function() {
                 body: new URLSearchParams({
                     user_id: customerUserId,
                     plan_id: '<?= $planId ?>',
-                    billing_cycle: 'monthly',
+                    billing_cycle: '<?= $billingCycle ?>',
                     name: customerName,
                     email: customerEmail,
                     phone: customerPhone || storageAccountId
@@ -1023,26 +1031,30 @@ payBtn.addEventListener('click', async function() {
                 }
             )
             .then(r=>r.json())
-            .then(res=>{
-                if(res.success){
-                    window.location =
-                        "payment-success.php?payment_id=" +
-                        encodeURIComponent(res.payment_id) +
-                        "&order_id=" +
-                        encodeURIComponent(res.order_id) +
-                        "&subscription_id=" +
-                        encodeURIComponent(res.subscription_id) +
-                        "&plan_id=<?= $planId ?>";
-                    return;
-                }
+           .then(res=>{
+    if(res.success){
 
-                window.location =
-                    "payment-failed.php?plan_id=<?= $planId ?>" +
-                    "&order_id=" +
-                    encodeURIComponent(payment.razorpay_order_id || data.order_id) +
-                    "&reason=" +
-                    encodeURIComponent(res.message || "Payment verification failed");
-            })
+        window.location =
+            "payment-success.php?payment_id=" +
+            encodeURIComponent(res.payment_id) +
+            "&order_id=" +
+            encodeURIComponent(res.order_id) +
+            "&subscription_id=" +
+            encodeURIComponent(res.subscription_id) +
+            "&signature=" +
+            encodeURIComponent(payment.razorpay_signature) +
+            "&plan_id=<?= $planId ?>";
+
+        return;
+    }
+
+    window.location =
+        "payment-failed.php?plan_id=<?= $planId ?>" +
+        "&order_id=" +
+        encodeURIComponent(payment.razorpay_order_id || data.order_id) +
+        "&reason=" +
+        encodeURIComponent(res.message || "Payment verification failed");
+})
             .catch(()=>{
                 window.location =
                     "payment-failed.php?plan_id=<?= $planId ?>&reason=" +

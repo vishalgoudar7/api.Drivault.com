@@ -37,8 +37,8 @@ function getInvoiceLogoSrc(): string
 function buildInvoiceHtml(array $payment): string
 {
     $logoSrc = getInvoiceLogoSrc();
-    $planAmount = ((float) $payment['amount']) / 1.18;
-    $gstAmount = ((float) $payment['amount']) - $planAmount;
+    $planAmount = ((float) $payment['paid_amount']) / 1.18;
+    $gstAmount = ((float) $payment['paid_amount']) - $planAmount;
     $invoiceNumber = 'INV-' . date('Ymd') . '-' . $payment['id'];
 
     $logoImage = $logoSrc !== ''
@@ -243,11 +243,11 @@ body{
 
 <h3>Bill To</h3>
 
-<b>Name:</b> '.htmlspecialchars((string) $payment['customer_name'], ENT_QUOTES, 'UTF-8').'<br><br>
+<b>Name:</b> '.htmlspecialchars((string) $payment['drivault_display_name'], ENT_QUOTES, 'UTF-8').'<br><br>
 
-<b>Email:</b> '.htmlspecialchars((string) $payment['customer_email'], ENT_QUOTES, 'UTF-8').'<br><br>
+<b>Email:</b> '.htmlspecialchars((string) $payment['drivault_email'], ENT_QUOTES, 'UTF-8').'<br><br>
 
-<b>Phone:</b> '.htmlspecialchars((string) $payment['customer_phone'], ENT_QUOTES, 'UTF-8').'
+<b>Phone:</b> '.htmlspecialchars((string) $payment['drivault_phone'], ENT_QUOTES, 'UTF-8').'
 
 <br>
 </div>
@@ -266,7 +266,7 @@ body{
 <td>'.htmlspecialchars((string) $payment['plan_name'], ENT_QUOTES, 'UTF-8').'</td>
 <td>'.htmlspecialchars((string) $payment['quota'], ENT_QUOTES, 'UTF-8').'</td>
 <td>'.htmlspecialchars(ucfirst((string) $payment['billing_cycle']), ENT_QUOTES, 'UTF-8').'</td>
-<td>₹'.number_format((float) $payment['amount'],2).'</td>
+<td>₹'.number_format((float) $payment['paid_amount'],2).'</td>
 <td>'.htmlspecialchars(ucfirst((string) $payment['status']), ENT_QUOTES, 'UTF-8').'</td>
 </tr>
 
@@ -293,7 +293,7 @@ style="border-collapse: collapse;">
 <tr style="background:#f3f4f6;">
 <td><b>Total</b></td>
 <td align="right">
-<b>₹'.number_format((float) $payment['amount'],2).'</b>
+<b>₹'.number_format((float) $payment['paid_amount'],2).'</b>
 </td>
 </tr>
 

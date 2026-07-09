@@ -23,7 +23,7 @@ $api = new Api(
 
 function sendPaymentSuccessEmail(array $subscription, array $plan, array $mailConfig): bool
 {
-    $customerEmail = trim((string) ($subscription['customer_email'] ?? ''));
+    $customerEmail = trim((string) ($subscription['drivault_email'] ?? ''));
 
     if ($customerEmail === '' || filter_var($customerEmail, FILTER_VALIDATE_EMAIL) === false) {
         return false;
@@ -41,11 +41,11 @@ function sendPaymentSuccessEmail(array $subscription, array $plan, array $mailCo
         return false;
     }
 
-    $customerName = trim((string) ($subscription['customer_name'] ?? 'Customer'));
+    $customerName = trim((string) ($subscription['drivault_display_name'] ?? 'Customer'));
     $planName = (string) ($plan['name'] ?? $subscription['plan_name'] ?? 'Drivault Plan');
     $quota = (string) ($plan['quota'] ?? '');
     $billingCycle = ucfirst((string) ($subscription['billing_cycle'] ?? ''));
-    $amount = number_format((float) ($subscription['amount'] ?? 0), 2);
+    $amount = number_format((float) ($subscription['paid_amount'] ?? 0), 2);
     $paymentId = (string) ($subscription['razorpay_payment_id'] ?? '');
     $invoiceNumber = 'INV-' . date('Ymd') . '-' . $subscription['id'];
     $supportEmail = trim((string) ($mailConfig['support_email'] ?? 'support@drivault.com'));
@@ -313,13 +313,13 @@ if (strpos($quotaText, 'TB') !== false) {
 */
 // Use the verified Drivault account identifier. It can be a username, email, or phone-style username.
 $usernameCandidates = [
-    trim((string) ($subscription['user_id'] ?? '')),
-    trim((string) ($subscription['customer_phone'] ?? '')),
+    trim((string) ($subscription['drivault_phone'] ?? '')),
     trim((string) $phone),
-    trim((string) ($subscription['customer_email'] ?? '')),
+    trim((string) ($subscription['drivault_email'] ?? '')),
     trim((string) $email),
-    trim((string) ($subscription['customer_name'] ?? '')),
+    trim((string) ($subscription['drivault_display_name'] ?? '')),
     trim((string) $name),
+    trim((string) ($subscription['user_id'] ?? '')),
 ];
 
 $username = '';
@@ -467,17 +467,31 @@ $stmt = $conn->prepare(
     "UPDATE subscriptions
      SET
         status = 'active',
-        razorpay_payment_id = ?
+        payment_status = 'Success',
+        razorpay_payment_id = ?,
+        razorpay_signature = ?,
+        start_date = NOW(),
+        expiry_date = CASE
+            WHEN billing_cycle = 'yearly' THEN DATE_ADD(NOW(), INTERVAL 1 YEAR)
+            ELSE DATE_ADD(NOW(), INTERVAL 1 MONTH)
+        END
      WHERE id = ?"
 );
 
 $stmt->bind_param(
-    "si",
+    "ssi",
     $paymentId,
+    $signature,
     $subscription['id']
 );
 
-$stmt->execute();
+if (!$stmt->execute()) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Unable to update subscription: ' . $stmt->error
+    ]);
+    exit;
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -507,10 +521,16 @@ $stmt->bind_param(
     $subscription['id'],
     $orderId,
     $paymentId,
-    $subscription['amount']
+    $subscription['paid_amount']
 );
 
-$stmt->execute();
+if (!$stmt->execute()) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Unable to save payment: ' . $stmt->error
+    ]);
+    exit;
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -521,7 +541,9 @@ $stmt->execute();
 $emailSent = false;
 $subscriptionForEmail = $subscription;
 $subscriptionForEmail['status'] = 'active';
+$subscriptionForEmail['payment_status'] = 'Success';
 $subscriptionForEmail['razorpay_payment_id'] = $paymentId;
+$subscriptionForEmail['razorpay_signature'] = $signature;
 $subscriptionForEmail['plan_name'] = $plan['name'] ?? '';
 $subscriptionForEmail['quota'] = $plan['quota'] ?? '';
 

@@ -974,6 +974,7 @@ const continueVerifyBtn = document.getElementById('continueVerifyBtn');
 let verifyPlanModal = null;
 let selectedPlanId = '';
 let selectedPlanButton = null;
+let selectedBillingCycle = 'monthly';
 let isVerifying = false;
 let planPopupTimer = null;
 
@@ -1106,7 +1107,9 @@ async function verifySelectedPlan() {
             'checkout.php?plan_id=' +
             encodeURIComponent(selectedPlanId) +
             '&username=' +
-            encodeURIComponent(verifiedUsername);
+            encodeURIComponent(verifiedUsername) +
+            '&billing_cycle=' +
+            encodeURIComponent(selectedBillingCycle);
 
         shouldRedirect = true;
         continueVerifyBtn.disabled = true;
@@ -1175,6 +1178,7 @@ const monthlyBtn=document.getElementById("monthlyBtn");
 const yearlyBtn=document.getElementById("yearlyBtn");
 
 monthlyBtn.onclick=function(){
+    selectedBillingCycle = "monthly";
 
     monthlyBtn.classList.add("active");
     yearlyBtn.classList.remove("active");
@@ -1188,6 +1192,7 @@ monthlyBtn.onclick=function(){
 }
 
 yearlyBtn.onclick=function(){
+    selectedBillingCycle = "yearly";
 
     yearlyBtn.classList.add("active");
     monthlyBtn.classList.remove("active");

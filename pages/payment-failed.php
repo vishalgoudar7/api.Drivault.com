@@ -27,7 +27,7 @@ if ($planId > 0) {
     $plan = $stmt->get_result()->fetch_assoc();
 }
 
-$amount = $subscription['amount'] ?? ($plan['monthly_price'] ?? 0);
+$amount = $subscription['paid_amount'] ?? ($plan['monthly_price'] ?? 0);
 $billingCycle = $subscription['billing_cycle'] ?? 'monthly';
 ?>
 <!DOCTYPE html>

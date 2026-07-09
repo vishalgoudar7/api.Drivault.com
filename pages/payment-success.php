@@ -23,21 +23,95 @@ if (!$subscription && $orderId !== '') {
 }
 
 if ($subscription) {
+
     $planId = (int)$subscription['plan_id'];
+
     $orderId = $orderId ?: ($subscription['razorpay_order_id'] ?? '');
+
     $paymentId = $paymentId ?: ($subscription['razorpay_payment_id'] ?? '');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Update Subscription
+    |--------------------------------------------------------------------------
+    */
+
+    if ($paymentId != '' && $subscription['payment_status'] != 'Success') {
+
+        $expiryDate = $subscription['billing_cycle'] == 'yearly'
+            ? date('Y-m-d', strtotime('+1 year'))
+            : date('Y-m-d', strtotime('+1 month'));
+
+        $update = $conn->prepare("
+            UPDATE subscriptions
+SET
+
+razorpay_payment_id = ?,
+razorpay_signature = ?,
+
+payment_status = 'Success',
+status = 'Active',
+
+start_date = CURDATE(),
+expiry_date = ?,
+
+updated_at = NOW()
+
+WHERE id = ?
+        ");
+
+        $razorpaySignature = $_GET['signature'] ?? '';
+
+$update->bind_param(
+    "sssi",
+    $paymentId,
+    $razorpaySignature,
+    $expiryDate,
+    $subscription['id']
+);
+
+        $update->execute();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Refresh Subscription Data
+        |--------------------------------------------------------------------------
+        */
+
+        $stmt = $conn->prepare(
+            "SELECT * FROM subscriptions WHERE id=?"
+        );
+
+        $stmt->bind_param(
+            "i",
+            $subscription['id']
+        );
+
+        $stmt->execute();
+
+        $subscription = $stmt->get_result()->fetch_assoc();
+    }
 }
 
 $plan = null;
 
-if ($planId > 0) {
+if ($subscription) {
+
+    $plan = [
+        'name'  => $subscription['plan_name'],
+        'quota' => $subscription['storage_quota']
+    ];
+
+} elseif ($planId > 0) {
+
     $stmt = $conn->prepare("SELECT * FROM plans WHERE id = ?");
     $stmt->bind_param("i", $planId);
     $stmt->execute();
+
     $plan = $stmt->get_result()->fetch_assoc();
 }
 
-$amount = $subscription['amount'] ?? ($plan['monthly_price'] ?? 0);
+$amount = $subscription['paid_amount'] ?? 0;
 $billingCycle = $subscription['billing_cycle'] ?? 'monthly';
 $invoiceUrl = $subscription
     ? '../payment/generate-invoice.php?payment_id=' . urlencode((string) $subscription['id'])

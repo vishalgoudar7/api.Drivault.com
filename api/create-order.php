@@ -5,6 +5,8 @@ require '../vendor/autoload.php';
 
 use Razorpay\Api\Api;
 
+header('Content-Type: application/json');
+
 $config = require '../config/razorpay.php';
 
 $api = new Api(
@@ -15,7 +17,7 @@ session_start();
 
 $user_id = trim((string) ($_POST['user_id'] ?? ''));
 $plan_id = (int) ($_POST['plan_id'] ?? 0);
-$billing_cycle = $_POST['billing_cycle'] ?? 'monthly';
+$billing_cycle = strtolower(trim((string) ($_POST['billing_cycle'] ?? 'monthly')));
 $name  = $_POST['name'] ?? '';
 $email = $_POST['email'] ?? '';
 $phone = trim((string) ($_POST['phone'] ?? ''));
@@ -29,6 +31,13 @@ if ($user_id === '' || !$plan_id) {
     die(json_encode([
         'success' => false,
         'message' => 'Missing user_id or plan_id'
+    ]));
+}
+
+if (!in_array($billing_cycle, ['monthly', 'yearly'], true)) {
+    die(json_encode([
+        'success' => false,
+        'message' => 'Invalid billing cycle'
     ]));
 }
 
@@ -53,6 +62,24 @@ if (!$plan) {
         'message' => 'Plan not found'
     ]));
 }
+/*
+|--------------------------------------------------------------------------
+| Plan Details
+|--------------------------------------------------------------------------
+*/
+
+$planName        = $plan['name'];
+$storageQuota    = $plan['quota'];
+
+$monthlyPrice    = (float)$plan['monthly_price'];
+$yearlyPrice     = (float)$plan['yearly_price'];
+
+$discountPercent = (int)$plan['discount_percent'];
+$saveAmount      = (float)$plan['save_amount'];
+
+$originalPrice = ($billing_cycle === 'yearly')
+    ? ($monthlyPrice * 12)
+    : $monthlyPrice;
 
 /*
 |--------------------------------------------------------------------------
@@ -101,40 +128,86 @@ $orderId = $order['id'];
 |--------------------------------------------------------------------------
 */
 
-$stmt = $conn->prepare(
-    "INSERT INTO subscriptions
-    (
-        user_id,
-        plan_id,
-        billing_cycle,
-        amount,
-        razorpay_order_id,
-        customer_name,
-        customer_email,
-        customer_phone,
-        status
-    )
-    VALUES
-    (
-        ?, ?, ?, ?, ?, ?, ?, ?, 'pending'
-    )"
-);
+$paymentMethod = "Razorpay";
+$paymentStatus = "Pending";
+$subscriptionStatus = "Pending";
+
+$stmt = $conn->prepare("
+INSERT INTO subscriptions
+(
+    user_id,
+    plan_id,
+    plan_name,
+    storage_quota,
+    billing_cycle,
+    paid_amount,
+    razorpay_order_id,
+
+    drivault_display_name,
+    drivault_email,
+    drivault_phone,
+
+    monthly_price,
+    yearly_price,
+    original_price,
+    discount_percent,
+    save_amount,
+
+    payment_method,
+    payment_status,
+    status
+)
+VALUES
+(
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+)
+");
 
 $stmt->bind_param(
-    "sisdssss",
+    "sisssdssssdddidsss",
+
     $user_id,
     $plan_id,
+    $planName,
+    $storageQuota,
     $billing_cycle,
     $totalAmount,
     $orderId,
+
     $name,
     $email,
-    $phone
+    $phone,
+
+    $monthlyPrice,
+    $yearlyPrice,
+    $originalPrice,
+    $discountPercent,
+    $saveAmount,
+
+    $paymentMethod,
+    $paymentStatus,
+    $subscriptionStatus
 );
 
-$stmt->execute();
+if (!$stmt->execute()) {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Unable to save subscription: ' . $stmt->error
+    ]);
+    exit;
+}
 
 $subscriptionId = $conn->insert_id;
+
+if ($subscriptionId <= 0) {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Subscription was not saved'
+    ]);
+    exit;
+}
 
 /*
 |--------------------------------------------------------------------------
