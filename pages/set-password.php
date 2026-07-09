@@ -362,7 +362,7 @@ button:disabled{
 
 .toast{
     position:fixed;
-    bottom:30px;
+    top:30px;
     left:50%;
     transform:translateX(-50%);
     color:#ffffff;

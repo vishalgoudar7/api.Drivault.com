@@ -14,6 +14,7 @@ header('Content-Type: application/json');
 
 $config = require '../config/razorpay.php';
 $mailConfig = require '../config/mail.php';
+$drivaultConfig = require '../config/drivault.php';
 
 $api = new Api(
     $config['key_id'],
@@ -310,25 +311,50 @@ if (strpos($quotaText, 'TB') !== false) {
 | Add Storage To Nextcloud
 |--------------------------------------------------------------------------
 */
-// Get user phone
-$stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
-$stmt->bind_param("i", $userId);
-$stmt->execute();
-$user = $stmt->get_result()->fetch_assoc();
+// Use the verified Drivault account identifier. It can be a username, email, or phone-style username.
+$usernameCandidates = [
+    trim((string) ($subscription['user_id'] ?? '')),
+    trim((string) ($subscription['customer_phone'] ?? '')),
+    trim((string) $phone),
+    trim((string) ($subscription['customer_email'] ?? '')),
+    trim((string) $email),
+    trim((string) ($subscription['customer_name'] ?? '')),
+    trim((string) $name),
+];
 
-$username = $phone ?: ($user['phone'] ?? '');
+$username = '';
+$invalidUsernameValues = ['', '-', '0', '2147483647'];
+
+foreach ($usernameCandidates as $candidate) {
+    if (!in_array($candidate, $invalidUsernameValues, true)) {
+        $username = $candidate;
+        break;
+    }
+}
 
 if (!$username) {
     echo json_encode([
         'success' => false,
-        'message' => 'User phone number not found'
+        'message' => 'Drivault username not found'
     ]);
     exit;
 }
 
 $purchasedGB = $planQuotaGB;
 
-$url = "https://login.drivault.com/ocs/v1.php/cloud/users/$username";
+$drivaultEndpoint = trim((string) ($drivaultConfig['endpoint'] ?? 'https://login.drivault.com/ocs/v1.php/cloud/users'));
+$drivaultApiUsername = trim((string) ($drivaultConfig['username'] ?? ''));
+$drivaultApiPassword = trim((string) ($drivaultConfig['password'] ?? ''));
+
+if ($drivaultEndpoint === '' || $drivaultApiUsername === '' || $drivaultApiPassword === '') {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Drivault API is not configured'
+    ]);
+    exit;
+}
+
+$url = rtrim($drivaultEndpoint, '/') . '/' . rawurlencode($username);
 
 // Get current quota
 $ch = curl_init();
@@ -336,9 +362,10 @@ $ch = curl_init();
 curl_setopt_array($ch, [
     CURLOPT_URL => $url,
     CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_USERPWD => "admin:kuRsef-gobno8-gankux",
+    CURLOPT_USERPWD => $drivaultApiUsername . ':' . $drivaultApiPassword,
     CURLOPT_HTTPHEADER => [
-        "OCS-APIRequest: true"
+        "OCS-APIRequest: true",
+        "Accept: application/json"
     ]
 ]);
 
@@ -354,17 +381,36 @@ if (curl_errno($ch)) {
 
 curl_close($ch);
 
-$xml = simplexml_load_string($response);
+$currentQuotaBytes = null;
+$decodedQuotaResponse = json_decode((string) $response, true);
 
-if (!$xml || !isset($xml->data->quota->quota)) {
+if (is_array($decodedQuotaResponse)) {
+    $quotaData = $decodedQuotaResponse['ocs']['data']['quota'] ?? [];
+
+    if (isset($quotaData['quota']) && is_numeric($quotaData['quota'])) {
+        $currentQuotaBytes = (int) $quotaData['quota'];
+    } elseif (isset($quotaData['total']) && is_numeric($quotaData['total'])) {
+        $currentQuotaBytes = (int) $quotaData['total'];
+    }
+}
+
+if ($currentQuotaBytes === null) {
+    $xml = simplexml_load_string((string) $response);
+
+    if ($xml && isset($xml->data->quota->quota)) {
+        $currentQuotaBytes = (int) $xml->data->quota->quota;
+    } elseif ($xml && isset($xml->data->quota->total)) {
+        $currentQuotaBytes = (int) $xml->data->quota->total;
+    }
+}
+
+if ($currentQuotaBytes === null) {
     echo json_encode([
         'success' => false,
         'message' => 'Unable to read current storage quota'
     ]);
     exit;
 }
-
-$currentQuotaBytes = (int)$xml->data->quota->quota;
 
 $currentGB = round(
     $currentQuotaBytes / 1024 / 1024 / 1024
@@ -381,14 +427,15 @@ $ch = curl_init();
 curl_setopt_array($ch, [
     CURLOPT_URL => $url,
     CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_USERPWD => "admin:kuRsef-gobno8-gankux",
+    CURLOPT_USERPWD => $drivaultApiUsername . ':' . $drivaultApiPassword,
     CURLOPT_POSTFIELDS => http_build_query([
         "key" => "quota",
         "value" => $newQuota
     ]),
     CURLOPT_CUSTOMREQUEST => "PUT",
     CURLOPT_HTTPHEADER => [
-        "OCS-APIRequest: true"
+        "OCS-APIRequest: true",
+        "Accept: application/json"
     ]
 ]);
 
@@ -455,7 +502,7 @@ $stmt = $conn->prepare(
 );
 
 $stmt->bind_param(
-    "iissd",
+    "sissd",
     $userId,
     $subscription['id'],
     $orderId,

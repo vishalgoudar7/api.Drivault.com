@@ -1,6 +1,104 @@
 <?php
 require '../config/db.php';
 
+function pricingJsonResponse(int $statusCode, array $payload): void
+{
+    http_response_code($statusCode);
+    header('Content-Type: application/json; charset=UTF-8');
+    echo json_encode($payload);
+    exit;
+}
+
+function fetchDrivaultUserForPricing(string $username): array
+{
+    $drivaultConfig = require __DIR__ . '/../config/drivault.php';
+    $endpoint = trim((string) ($drivaultConfig['endpoint'] ?? 'https://login.drivault.com/ocs/v1.php/cloud/users'));
+    $apiUsername = trim((string) ($drivaultConfig['username'] ?? ''));
+    $apiPassword = trim((string) ($drivaultConfig['password'] ?? ''));
+
+    if ($endpoint === '' || $apiUsername === '' || $apiPassword === '') {
+        throw new RuntimeException('Drivault API is not configured.');
+    }
+
+    $curlHandle = curl_init(rtrim($endpoint, '/') . '/' . rawurlencode($username));
+
+    curl_setopt_array($curlHandle, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 10,
+        CURLOPT_CONNECTTIMEOUT => 5,
+        CURLOPT_CUSTOMREQUEST => 'GET',
+        CURLOPT_HTTPHEADER => [
+            'OCS-APIRequest: true',
+            'Accept: application/json',
+            'Authorization: Basic ' . base64_encode($apiUsername . ':' . $apiPassword),
+        ],
+    ]);
+
+    $responseBody = curl_exec($curlHandle);
+    $curlError = curl_error($curlHandle);
+    $httpStatus = (int) curl_getinfo($curlHandle, CURLINFO_RESPONSE_CODE);
+    curl_close($curlHandle);
+
+    if ($responseBody === false) {
+        throw new RuntimeException('Unable to connect to Drivault: ' . $curlError);
+    }
+
+    $decoded = json_decode((string) $responseBody, true);
+    $ocsStatusCode = (int) ($decoded['ocs']['meta']['statuscode'] ?? 0);
+    $userData = $decoded['ocs']['data'] ?? [];
+
+    if ($httpStatus === 404 || $ocsStatusCode === 404 || !is_array($userData) || empty($userData)) {
+        throw new RuntimeException('User not found.');
+    }
+
+    if ($httpStatus >= 400 || ($ocsStatusCode !== 0 && $ocsStatusCode !== 100)) {
+        throw new RuntimeException($decoded['ocs']['meta']['message'] ?? 'Unable to fetch user details.');
+    }
+
+    return [
+        'displayname' => (string) ($userData['displayname'] ?? ''),
+        'email' => (string) ($userData['email'] ?? ''),
+        'id' => (string) ($userData['id'] ?? $username),
+        'phone' => (string) ($userData['phone'] ?? ''),
+        'quota' => [
+            'used' => $userData['quota']['used'] ?? '',
+            'total' => $userData['quota']['total'] ?? '',
+        ],
+    ];
+}
+
+if (($_GET['action'] ?? '') === 'get_user_details') {
+    $username = trim((string) ($_GET['username'] ?? ''));
+
+    if ($username === '') {
+        pricingJsonResponse(422, [
+            'success' => false,
+            'message' => 'Please enter your Drivault username or email.',
+        ]);
+    }
+
+    if (!preg_match('/^[a-zA-Z0-9._@+\-]{2,100}$/', $username)) {
+        pricingJsonResponse(422, [
+            'success' => false,
+            'message' => 'Please enter a valid username.',
+        ]);
+    }
+
+    try {
+        pricingJsonResponse(200, [
+            'success' => true,
+            'message' => 'User verified successfully.',
+            'username' => $username,
+            'user' => fetchDrivaultUserForPricing($username),
+        ]);
+    } catch (Throwable $exception) {
+        pricingJsonResponse(404, [
+            'success' => false,
+            'message' => $exception->getMessage(),
+        ]);
+    }
+}
+
 $result = $conn->query("
     SELECT *
     FROM plans
@@ -14,7 +112,7 @@ $plans = $result->fetch_all(MYSQLI_ASSOC);
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Drivault Storage Plans</title>
@@ -27,6 +125,24 @@ href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.m
 body{
     background:#f8fafc;
     font-family:Arial,sans-serif;
+}
+.old-price{
+    color:#999;
+    text-decoration:line-through;
+    font-size:14px;
+    margin:0 8px 0 0;
+}
+
+.save-badge{
+    display:inline-block;
+    margin-top:10px;
+    background:#e8fff2;
+    color:#38d989;
+    padding:7px 11px;
+    border-radius:8px;
+    font-weight:600;
+    font-size:12px;
+    line-height:1.25;
 }
 
 .section-title{
@@ -62,22 +178,10 @@ body{
     font-size:24px;
 }
 
-.pricing-card{
-    background:#fff;
-    border-radius:20px;
-    padding:30px;
-    box-shadow:0 5px 20px rgba(0,0,0,.08);
-    height:100%;
-    position:relative;
-    transition:.3s;
-}
-
-.pricing-card:hover{
-    transform:translateY(-5px);
-}
 
 .popular{
-    border:2px solid #38d989;
+    border-color:#38d989;
+    box-shadow:0 16px 36px rgba(56,217,137,.15);
 }
 
 .popular-badge{
@@ -87,23 +191,24 @@ body{
     transform:translateX(-50%);
     background:#38d989;
     color:#fff;
-    padding:8px 18px;
-    border-radius:12px;
+    padding:8px 20px;
+    border-radius:999px;
     font-size:14px;
     font-weight:600;
     white-space:nowrap;
     z-index:10;
+    box-shadow:0 8px 18px rgba(56,217,137,.25);
 }
 
 .storage-icon{
-    width:75px;
-    height:75px;
+    width:82px;
+    height:82px;
     background:#e8fff2;
-    border-radius:15px;
+    border-radius:18px;
     display:flex;
     align-items:center;
     justify-content:center;
-    margin:auto;
+    margin:0 auto 22px;
     font-size:35px;
 }
 
@@ -111,31 +216,118 @@ body{
     font-size:24px;
     font-weight:700;
     color:#0f172a;
-    margin-top:20px;
+    margin-top:0;
+    margin-bottom:8px;
+}
+
+.pricing-card .text-muted{
+    margin-bottom:20px;
+    color:#64748b !important;
+}
+
+.pricing-card hr{
+    width:100%;
+    margin:0 0 24px;
+    border-color:#e5e7eb;
+    opacity:1;
 }
 
 .price{
-    color:#38d989;
-    font-size:48px;
+    color:#0f172a;
+    font-size:30px;
     font-weight:700;
+    line-height:1;
+    white-space:nowrap;
+    margin:0;
 }
 
 .price small{
-    font-size:20px;
+    font-size:14px;
     color:#64748b;
+    font-weight:600;
+    white-space:nowrap;
 }
 
-.btn-plan{
+.pricing-wrapper{margin-bottom:20px}
+.monthly-price,.yearly-price{padding:0 2px;transition:opacity .2s ease}
+.price-divider{display:flex;align-items:center;gap:10px;margin:12px 0;color:#64748b;font-size:11px;font-weight:700}
+.price-divider::before,.price-divider::after{content:"";height:1px;background:#e5e7eb;flex:1}
+.yearly-price-line{display:flex;align-items:baseline;justify-content:center;flex-wrap:wrap;row-gap:5px}
+.monthly-price .price,
+.yearly-price .price{
+    color:#0f172a !important;
+}
+
+.monthly-price.is-selected .price,
+.yearly-price.is-selected .price{
+    color:#08b957 !important;
+}
+
+.discount-badge{
+    position:absolute;
+    top:17px;
+    right:14px;
+    padding:5px 9px;
+    border-radius:7px;
+    background:#e7fbed;
+    color:#07983f;
+    font-size:11px;
+    font-weight:700;
+    line-height:1;
+}
+
+.btn-plan,
+.btn-verify{
     border:2px solid #38d989;
     color:#38d989;
-    border-radius:10px;
+    border-radius:12px;
+    min-height:52px;
     padding:12px;
     width:100%;
     font-weight:600;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:all .25s ease;
 }
 
+.btn-plan.opening{
+    background:#38d989 !important;
+    border-color:#38d989 !important;
+    color:#fff !important;
+    pointer-events:none;
+}
+
+.btn-plan.opening .spinner-border{
+    color:#fff;
+}
+
+/* Loading state for Choose Plan button */
+.btn-plan.loading{
+    background:#38d989 !important;
+    border-color:#38d989 !important;
+    color:#fff !important;
+    pointer-events:none;
+}
+
+.btn-plan.loading:hover{
+    background:#38d989 !important;
+    border-color:#38d989 !important;
+    color:#fff !important;
+}
+
+.btn-plan.loading .spinner-border{
+    color:#fff;
+}
+.btn-verify,
 .btn-plan:hover{
     background:#38d989;
+    color:#fff;
+}
+
+.btn-verify:hover{
+    background:#2ec477;
+    border-color:#2ec477;
     color:#fff;
 }
 
@@ -144,18 +336,39 @@ body{
     color:#fff;
 }
 .pricing-card{
+    background:#fff;
+    border-radius:20px;
+    padding:26px 20px;
+
     border:2px solid transparent;
-    transition:all 0.3s ease;
+
+    box-shadow:0 10px 25px rgba(0,0,0,.08);
+
+    position:relative;
+
+    transition:all .3s ease;
+
+    display:flex;
+    flex-direction:column;
+
+    height:100%;
+    min-height:520px;
 }
 
 .pricing-card:hover{
-    border:2px solid #38d989;
+    border-color:#38d989;
     transform:translateY(-8px);
-    box-shadow:0 12px 30px rgba(56,217,137,0.15);
+    box-shadow:0 16px 36px rgba(56,217,137,.18);
+}
+.popular .btn-plan{
+    background:#38d989;
+    color:#fff;
+    border:2px solid #38d989;
 }
 .pricing-card:hover .btn-plan{
     background:#38d989;
     color:#fff;
+    border-color:#38d989;
 }
 .pricing-card:hover .storage-icon{
     background:#dff8ea;
@@ -166,7 +379,6 @@ body{
     font-size:18px;
     margin-right:12px;
     flex-shrink:0;
-
     width:auto;
     height:auto;
     background:none;
@@ -175,10 +387,11 @@ body{
 }
 .feature-list li{
     display:flex;
-    align-items:center;
-    margin-bottom:20px; !important
+    align-items:flex-start;
+    margin-bottom:18px;
     color:#64748b;
     font-size:15px;
+    line-height:1.45;
 }
 
 .list-unstyled li{
@@ -186,24 +399,180 @@ body{
     color:#64748b;
     font-size:15px;
 }
-.pricing-card{
-    background:#fff;
-    border-radius:20px;
-    padding:30px;
-    box-shadow:0 5px 20px rgba(0,0,0,.08);
-    position:relative;
-    transition:.3s;
+.pricing-card-inner{
     display:flex;
     flex-direction:column;
     height:100%;
+    text-align:center;
+}
+
+.feature-list{
+    flex:1;
+    min-height:142px;
+    margin-bottom:24px;
+    margin-top:0 !important;
 }
 
 .pricing-card .btn-plan{
     margin-top:auto;
 }
-/* Tablet */
-@media (max-width: 992px){
 
+.pricing-grid{
+    display:grid;
+    grid-template-columns:repeat(5,minmax(0,1fr));
+    gap:25px;
+    align-items:stretch;
+}
+
+.pricing-grid > div{min-width:0}
+
+.verify-modal-content{
+    border:1px solid #e5e7eb;
+    border-radius:20px;
+    box-shadow:0 18px 45px rgba(15,23,42,.16);
+}
+
+.verify-modal-header{
+    border-bottom:1px solid #eef2f7;
+    padding:22px 24px;
+}
+
+.verify-modal-title{
+    color:#0f172a;
+    font-size:22px;
+    font-weight:700;
+}
+
+.verify-modal-body{
+    padding:24px;
+}
+
+.verify-modal-footer{
+    border-top:none;
+    padding:0 24px 24px;
+}
+
+.btn-verify-modal{
+    background:#38d989;
+    border:2px solid #38d989;
+    color:#fff;
+    border-radius:12px;
+    min-height:52px;
+    padding:12px;
+    width:100%;
+    font-weight:600;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:all .25s ease;
+}
+
+.btn-verify-modal:hover{
+    background:#2ec477;
+    border-color:#2ec477;
+    color:#fff;
+}
+
+.btn-verify-modal:disabled{
+    opacity:.78;
+    pointer-events:none;
+}
+
+.custom-toast {
+    visibility: hidden;
+    min-width: 350px;
+    max-width: 450px;
+    background: #ef4444;
+    color: #fff;
+    border: 1px solid #dc2626;
+    border-radius: 14px;
+    padding: 16px 24px;
+    position: fixed;
+    z-index: 99999;
+    top: 30px;
+    left: 50%;
+    transform: translate(-50%, -14px);
+    font-size: 15px;
+    font-weight: 500;
+    box-shadow: 0 12px 30px rgba(56,217,137,.25);
+    opacity: 0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    line-height:1.35;
+    transition: opacity .3s ease, transform .3s ease, visibility .3s ease;
+}
+
+.custom-toast.show {
+    visibility: visible;
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+.custom-toast i {
+    color:#fff;
+    font-size:18px;
+    flex-shrink:0;
+}
+
+.billing-switch{
+    width:380px;
+    max-width:100%;
+    margin:auto;
+    background:rgba(255,255,255,.96);
+    border:1px solid #dfe5ec;
+    border-radius:999px;
+    padding:6px;
+    display:flex;
+    gap:4px;
+    box-shadow:0 10px 24px rgba(15,23,42,.09);
+}
+
+.billing-option{
+    flex:1;
+    text-align:center;
+    padding:7px 14px 8px;
+    border:0;
+    border-radius:999px;
+    cursor:pointer;
+    transition:background-color .25s ease, color .25s ease, box-shadow .25s ease, transform .25s ease;
+    font-size:17px;
+    font-weight:700;
+    line-height:1.1;
+    color:#0f172a;
+    user-select:none;
+}
+
+.billing-option small{
+    display:block;
+    margin-top:4px;
+    color:#64748b;
+    font-size:13px;
+    font-weight:400;
+    line-height:1;
+}
+
+.billing-option.active{
+    background:linear-gradient(135deg,#08c75a 0%,#00ad48 100%);
+    color:#fff;
+    box-shadow:0 7px 16px rgba(0,185,80,.25);
+}
+
+.billing-option.active small{
+    color:rgba(255,255,255,.78);
+}
+
+.billing-option:focus-visible{
+    outline:3px solid rgba(0,185,80,.22);
+    outline-offset:2px;
+}
+
+.billing-option:active{
+    transform:scale(.985);
+}
+
+@media (max-width: 992px){
     .section-title{
         font-size:40px;
     }
@@ -215,9 +584,28 @@ body{
     .pricing-card{
         margin-bottom:20px;
     }
+
+    .pricing-grid{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+
+}
+
+@media (min-width:993px) and (max-width:1199px){
+    .pricing-grid{
+        grid-template-columns:repeat(3,minmax(0,1fr));
+    }
 }
 
 @media (max-width:576px){
+    .billing-switch{
+        width:100%;
+    }
+
+    .billing-option{
+        padding-inline:8px;
+        font-size:16px;
+    }
 
     .popular-badge{
         font-size:11px;
@@ -234,10 +622,9 @@ body{
     }
 }
 @media (max-width:768px){
-
     .pricing-card{
-        max-width:420px;
-        margin:0 auto;
+        width:100%;
+        margin:0;
     }
 
     .section-title{
@@ -245,7 +632,7 @@ body{
     }
 
     .price{
-        font-size:42px;
+        font-size:30px;
     }
 
     .feature-list li{
@@ -254,14 +641,12 @@ body{
 }
 
 @media (min-width:1200px){
-
-    .col-xl-2{
-        width:20%;
+    .pricing-grid{
+        grid-template-columns:repeat(5,minmax(0,1fr));
     }
 }
-/* Mobile */
-@media (max-width: 768px){
 
+@media (max-width: 768px){
     .section-title{
         font-size:30px;
         line-height:1.3;
@@ -277,7 +662,7 @@ body{
     }
 
     .price{
-        font-size:40px;
+        font-size:30px;
     }
 
     .feature-box .row > div{
@@ -292,11 +677,10 @@ body{
         font-size:12px;
         padding:6px 15px;
     }
+
 }
 
-/* Small Mobile */
 @media (max-width: 576px){
-
     .container{
         padding-left:15px;
         padding-right:15px;
@@ -307,12 +691,12 @@ body{
     }
 
     .storage-icon{
-        width:65px;
-        height:65px;
+        width:72px;
+        height:72px;
     }
 
     .price{
-        font-size:36px;
+        font-size:28px;
     }
 
     .btn-plan{
@@ -333,43 +717,11 @@ body{
         margin-top:10px;
     }
 }
-.row.pricing-row{
-    display:flex;
-    flex-wrap:wrap;
-    justify-content:center;
-    gap:20px;
-}
-
-.pricing-row .col-xl{
-    flex:1;
-    min-width:250px;
-    max-width:300px;
-}
-
-.pricing-card{
-    background:#fff;
-    border-radius:20px;
-    padding:25px;
-    box-shadow:0 5px 20px rgba(0,0,0,.08);
-    position:relative;
-    transition:.3s;
-    display:flex;
-    flex-direction:column;
-}
-.pricing-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-    gap:25px;
-}
-
-.pricing-card{
-    height:100%;
-}
 </style>
 
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg bg-white shadow-sm">
+<nav class="navbar navbar-expand-lg bg-white shadow-sm">
     <div class="container">
 
         <a class="navbar-brand d-flex align-items-center" href="#">
@@ -387,50 +739,34 @@ body{
             <span class="navbar-toggler-icon"></span>
         </button>
 
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <!-- <ul class="navbar-nav ms-auto">
-
-                <li class="nav-item">
-                    <a class="nav-link" href="#">Features</a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link" href="#">How It Works</a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link active text-success" href="#">
-                        Pricing
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link" href="#">FAQ</a>
-                </li>
-
-                <li class="nav-item ms-3">
-                    <a href="#"
-                       class="btn btn-success px-4">
-                       Request Invite
-                    </a>
-                </li>
-
-            </ul> -->
-        </div>
+        <div class="collapse navbar-collapse" id="navbarNav"></div>
 
     </div>
 </nav>
 
-<div class="container-fluid px-4 py-5">
+<div class="container-fluid px-4 py-3">
 
-    <div class="text-center mb-5">
+    <div class="text-center mb-3">
         <h1 class="section-title">
-            Flexible Storage Plans for Every Need
+            Upgrade Your Storage
         </h1>
 
         <p class="section-subtitle">
-             Store, protect, and access your files securely. Upgrade your storage whenever you need more space.
+             Choose a storage plan and verify your account before checkout.
         </p>
+        <div class="billing-switch mt-4 mb-5" role="group" aria-label="Billing period">
+
+    <button type="button" id="monthlyBtn" class="billing-option active" aria-pressed="true">
+        Monthly
+        <small>Pay as you go</small>
+    </button>
+
+    <button type="button" id="yearlyBtn" class="billing-option" aria-pressed="false">
+        Yearly
+        <small>Save 20%</small>
+    </button>
+
+</div>
     </div>
 
     <div class="pricing-grid">
@@ -442,11 +778,15 @@ body{
 
               <?php if($plan['id'] == 3): ?>
                     <div class="popular-badge">
-                        ⭐ MOST POPULAR
+                        ★ MOST POPULAR
                     </div>
                 <?php endif; ?>
 
-                <div class="text-center">
+                <div class="discount-badge">
+                    <?= (int) $plan['discount_percent']; ?>% OFF
+                </div>
+
+                <div class="pricing-card-inner">
 
                     <div class="storage-icon">
     <svg width="40" height="40" fill="#38d989"
@@ -456,24 +796,49 @@ body{
 </div>
 
                     <div class="storage">
-                        <?= $plan['quota']; ?>
+                        <?= htmlspecialchars((string) $plan['quota']); ?>
                     </div>
 
                     <p class="text-muted">More Storage</p>
 
                     <hr>
 
-                    <div class="price">
-                        ₹<?= $plan['monthly_price']; ?>
-                        <small>/month</small>
-                    </div>
+                    <div class="pricing-wrapper">
+
+    <div class="monthly-price is-selected">
+        <div class="price">
+            ₹<?= number_format($plan['monthly_price'],2); ?>
+            <small>/month</small>
+        </div>
+    </div>
+
+    <div class="price-divider"><span>OR</span></div>
+
+    <div class="yearly-price">
+        <div class="yearly-price-line">
+            <span class="old-price">₹<?= number_format($plan['monthly_price']*12,2); ?></span>
+            <div class="price">
+                ₹<?= number_format($plan['yearly_price'],2); ?>
+                <small>/year</small>
+            </div>
+        </div>
+
+        <div class="save-badge">
+            <i class="bi bi-tag"></i>
+            You Save ₹<?= number_format($plan['save_amount'],2); ?>
+            (<?= (int) $plan['discount_percent']; ?>%)
+        </div>
+
+    </div>
+
+</div>
 
                     <ul class="list-unstyled mt-4 feature-list">
     <li>
         <span class="check-icon">
             <i class="bi bi-check"></i>
         </span>
-       Adds <?= $plan['quota']; ?> to account
+       Adds <?= htmlspecialchars((string) $plan['quota']); ?> to account
     </li>
 
     <li>
@@ -489,15 +854,20 @@ body{
         </span>
         Secure cloud storage
     </li>
+
+    <li>
+        <span class="check-icon">
+            <i class="bi bi-check"></i>
+        </span>
+        24/7 Support
+    </li>
 </ul>
 
-                    <!-- <button class="btn btn-plan <?= $plan['popular'] ? 'btn-popular' : '' ?>">
-                        Choose Plan
-                    </button> -->
- <a href="checkout.php?plan_id=<?= $plan['id'] ?>"
-   class="btn btn-plan <?= $plan['id']==3 ? 'btn-popular' : '' ?>"
+ <a href="#"
+  class="btn btn-plan"
+   data-plan-id="<?= (int) $plan['id'] ?>"
    onclick="showLoading(event,this)">
-    Choose Plan
+    <span class="btn-plan-label">Choose Plan</span>
 </a>
 
                 </div>
@@ -557,28 +927,277 @@ body{
         </div>
 
     </div>
-    
+
 </div>
 
 </div>
+<div class="modal fade" id="verifyPlanModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content verify-modal-content">
+            <div class="modal-header verify-modal-header">
+                <h5 class="modal-title verify-modal-title">Verify Your Drivault Account</h5>
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body verify-modal-body">
+                <label class="form-label fw-semibold" for="modalUsername">
+                    Drivault Username or Email
+                </label>
+                <input type="text"
+                       class="form-control form-control-lg"
+                       id="modalUsername"
+                       autocomplete="off"
+                       placeholder="Enter your Drivault Username or Email">
+                <div id="modalUsernameError" class="text-danger small mt-2"></div>
+            </div>
+
+            <div class="modal-footer verify-modal-footer">
+                <button type="button"
+                        class="btn btn-verify-modal"
+                        id="continueVerifyBtn">
+                    Continue
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="toast" class="custom-toast"></div>
 <script>
-function showLoading(event, btn) {
-    event.preventDefault();
+const verifyPlanModalElement = document.getElementById('verifyPlanModal');
+const modalUsernameInput = document.getElementById('modalUsername');
+const modalUsernameError = document.getElementById('modalUsernameError');
+const continueVerifyBtn = document.getElementById('continueVerifyBtn');
 
-    const url = btn.href;
+let verifyPlanModal = null;
+let selectedPlanId = '';
+let selectedPlanButton = null;
+let isVerifying = false;
+let planPopupTimer = null;
 
+function showToast(message, type = 'error') {
+    const toast = document.getElementById('toast');
+    const isSuccess = type === 'success';
+    const icon = isSuccess ? 'bi-check-circle-fill' : 'bi-exclamation-circle-fill';
+    const escapedMessage = String(message)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+
+    toast.innerHTML = '<i class="bi ' + icon + '"></i><span>' + escapedMessage + '</span>';
+    toast.style.background = isSuccess ? '#38d989' : '#ef4444';
+    toast.style.borderColor = isSuccess ? '#2ec477' : '#dc2626';
+    toast.classList.add('show');
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
+function displayValue(value) {
+    if (value === null || value === undefined || value === '') {
+        return '-';
+    }
+
+    return String(value);
+}
+
+function getVerifyPlanModal() {
+    if (!verifyPlanModal) {
+        verifyPlanModal = new bootstrap.Modal(verifyPlanModalElement);
+    }
+
+    return verifyPlanModal;
+}
+
+function resetVerifyModal() {
+    modalUsernameInput.value = '';
+    modalUsernameInput.disabled = false;
+    modalUsernameError.innerText = '';
+    setContinueLoading(false);
+}
+
+function setContinueLoading(isLoading) {
+    continueVerifyBtn.disabled = isLoading;
+    continueVerifyBtn.innerHTML = isLoading
+        ? '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Verifying...'
+        : 'Continue';
+}
+
+function setCheckoutLoading(btn) {
+    btn.classList.add('loading');
+    btn.disabled = true;
+    btn.style.pointerEvents = 'none';
     btn.innerHTML = `
         <span class="spinner-border spinner-border-sm me-2"
               role="status"
               aria-hidden="true"></span>
         Processing...
     `;
+}
 
-    btn.style.pointerEvents = "none";
+function setPlanOpening(btn, isLoading) {
+    if (!btn) {
+        return;
+    }
 
-    setTimeout(() => {
+    const label = btn.querySelector('.btn-plan-label');
+
+    btn.classList.toggle('opening', isLoading);
+    btn.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+    btn.style.pointerEvents = isLoading ? 'none' : '';
+
+    if (label) {
+        label.innerHTML = isLoading
+            ? '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Opening...'
+            : 'Choose Plan';
+    }
+}
+
+function resetPlanButtons() {
+    document.querySelectorAll('.btn-plan.opening').forEach((button) => {
+        setPlanOpening(button, false);
+    });
+}
+
+async function verifySelectedPlan() {
+    if (isVerifying) {
+        return;
+    }
+
+    const username = modalUsernameInput.value.trim();
+    let shouldRedirect = false;
+
+    modalUsernameError.innerText = '';
+
+    if (username === '') {
+        modalUsernameError.innerText = 'Please enter your Drivault username or email.';
+        modalUsernameInput.focus();
+        return;
+    }
+
+    isVerifying = true;
+    setContinueLoading(true);
+
+    try {
+        const response = await fetch(
+            'pricing.php?action=get_user_details&username=' + encodeURIComponent(username),
+            {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            }
+        );
+
+        const data = await response.json();
+
+        if (!data.success) {
+            modalUsernameError.innerText = data.message || 'User verification failed.';
+            return;
+        }
+
+        const verifiedUsername = data.username || username;
+        const url =
+            'checkout.php?plan_id=' +
+            encodeURIComponent(selectedPlanId) +
+            '&username=' +
+            encodeURIComponent(verifiedUsername);
+
+        shouldRedirect = true;
+        continueVerifyBtn.disabled = true;
+        continueVerifyBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Processing...';
+        modalUsernameInput.disabled = true;
+
+        if (selectedPlanButton) {
+            setCheckoutLoading(selectedPlanButton);
+        }
+
         window.location.href = url;
-    }, 1000);
+
+    } catch (error) {
+        console.error(error);
+        modalUsernameError.innerText = 'Unable to verify user.';
+    } finally {
+        if (!shouldRedirect) {
+            isVerifying = false;
+            setContinueLoading(false);
+        }
+    }
+}
+
+continueVerifyBtn.addEventListener('click', verifySelectedPlan);
+
+modalUsernameInput.addEventListener('keydown', function(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        verifySelectedPlan();
+    }
+});
+
+verifyPlanModalElement.addEventListener('hidden.bs.modal', function() {
+    if (!isVerifying) {
+        resetVerifyModal();
+        resetPlanButtons();
+    }
+});
+
+function showLoading(event, btn) {
+    event.preventDefault();
+
+    if (btn.classList.contains('loading') || btn.classList.contains('opening')) {
+        return;
+    }
+
+    selectedPlanId = btn.getAttribute('data-plan-id') || '';
+    selectedPlanButton = btn;
+
+    resetVerifyModal();
+    resetPlanButtons();
+    setPlanOpening(btn, true);
+
+    if (planPopupTimer) {
+        clearTimeout(planPopupTimer);
+    }
+
+    planPopupTimer = setTimeout(() => {
+        getVerifyPlanModal().show();
+        setPlanOpening(btn, false);
+        modalUsernameInput.focus();
+    }, 550);
+}
+const monthlyBtn=document.getElementById("monthlyBtn");
+
+const yearlyBtn=document.getElementById("yearlyBtn");
+
+monthlyBtn.onclick=function(){
+
+    monthlyBtn.classList.add("active");
+    yearlyBtn.classList.remove("active");
+    monthlyBtn.setAttribute("aria-pressed","true");
+    yearlyBtn.setAttribute("aria-pressed","false");
+
+    document.querySelector(".pricing-grid").classList.remove("yearly-selected");
+    document.querySelectorAll(".monthly-price").forEach(e=>e.classList.add("is-selected"));
+    document.querySelectorAll(".yearly-price").forEach(e=>e.classList.remove("is-selected"));
+
+}
+
+yearlyBtn.onclick=function(){
+
+    yearlyBtn.classList.add("active");
+    monthlyBtn.classList.remove("active");
+    yearlyBtn.setAttribute("aria-pressed","true");
+    monthlyBtn.setAttribute("aria-pressed","false");
+
+    document.querySelector(".pricing-grid").classList.add("yearly-selected");
+    document.querySelectorAll(".monthly-price").forEach(e=>e.classList.remove("is-selected"));
+    document.querySelectorAll(".yearly-price").forEach(e=>e.classList.add("is-selected"));
+
 }
 </script>
 </body>

@@ -4,11 +4,91 @@ session_start();
 
 require '../config/db.php';
 
+function fetchDrivaultUserForCheckout(string $username): array
+{
+    $drivaultConfig = require __DIR__ . '/../config/drivault.php';
+    $endpoint = trim((string) ($drivaultConfig['endpoint'] ?? 'https://login.drivault.com/ocs/v1.php/cloud/users'));
+    $apiUsername = trim((string) ($drivaultConfig['username'] ?? ''));
+    $apiPassword = trim((string) ($drivaultConfig['password'] ?? ''));
+
+    if ($endpoint === '' || $apiUsername === '' || $apiPassword === '') {
+        throw new RuntimeException('Drivault API is not configured.');
+    }
+
+    $curlHandle = curl_init(rtrim($endpoint, '/') . '/' . rawurlencode($username));
+
+    curl_setopt_array($curlHandle, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 10,
+        CURLOPT_CONNECTTIMEOUT => 5,
+        CURLOPT_CUSTOMREQUEST => 'GET',
+        CURLOPT_HTTPHEADER => [
+            'OCS-APIRequest: true',
+            'Accept: application/json',
+            'Authorization: Basic ' . base64_encode($apiUsername . ':' . $apiPassword),
+        ],
+    ]);
+
+    $responseBody = curl_exec($curlHandle);
+    $curlError = curl_error($curlHandle);
+    $httpStatus = (int) curl_getinfo($curlHandle, CURLINFO_RESPONSE_CODE);
+    curl_close($curlHandle);
+
+    if ($responseBody === false) {
+        throw new RuntimeException('Unable to connect to Drivault: ' . $curlError);
+    }
+
+    $decoded = json_decode((string) $responseBody, true);
+    $ocsStatusCode = (int) ($decoded['ocs']['meta']['statuscode'] ?? 0);
+    $userData = $decoded['ocs']['data'] ?? [];
+
+    if ($httpStatus === 404 || $ocsStatusCode === 404 || !is_array($userData) || empty($userData)) {
+        throw new RuntimeException('User not found.');
+    }
+
+    if ($httpStatus >= 400 || ($ocsStatusCode !== 0 && $ocsStatusCode !== 100)) {
+        throw new RuntimeException($decoded['ocs']['meta']['message'] ?? 'Unable to fetch user details.');
+    }
+
+    return [
+        'displayname' => (string) ($userData['displayname'] ?? ''),
+        'email' => (string) ($userData['email'] ?? ''),
+        'id' => (string) ($userData['id'] ?? $username),
+        'phone' => (string) ($userData['phone'] ?? ''),
+        'quota' => [
+            'used' => $userData['quota']['used'] ?? '',
+            'total' => $userData['quota']['total'] ?? '',
+        ],
+    ];
+}
+
+function formatBytesToGb($value): string
+{
+    if ($value === null || $value === '') {
+        return '-';
+    }
+
+    if (!is_numeric($value)) {
+        return (string) $value;
+    }
+
+    $gb = ((float) $value) / 1024 / 1024 / 1024;
+    $decimals = $gb >= 10 ? 0 : 2;
+    $formatted = number_format($gb, $decimals);
+
+    return rtrim(rtrim($formatted, '0'), '.') . ' GB';
+}
+
 if (!isset($_GET['plan_id'])) {
     die("Plan not found");
 }
 
 $planId = (int)$_GET['plan_id'];
+$username = trim((string) ($_GET['username'] ?? ''));
+
+if ($username === '') {
+    die("Username not found");
+}
 
 $stmt = $conn->prepare(
     "SELECT * FROM plans WHERE id=? AND status=1"
@@ -23,22 +103,11 @@ if (!$plan) {
     die("Invalid plan");
 }
 
-/*
-|--------------------------------------------------------------------------
-| Logged in user
-|--------------------------------------------------------------------------
-*/
-
-$userId = $_SESSION['user_id'] ?? 1;
-
-$stmt = $conn->prepare(
-    "SELECT name,email,phone FROM users WHERE id=?"
-);
-
-$stmt->bind_param("i", $userId);
-$stmt->execute();
-
-$user = $stmt->get_result()->fetch_assoc();
+try {
+    $verifiedUser = fetchDrivaultUserForCheckout($username);
+} catch (Throwable $exception) {
+    die("Unable to verify Drivault user: " . htmlspecialchars($exception->getMessage(), ENT_QUOTES, 'UTF-8'));
+}
 
 $price = $plan['monthly_price'];
 $gst = round($price * 0.18, 2);
@@ -54,98 +123,368 @@ $total = $price + $gst;
 
 <title>Checkout - Drivault</title>
 
+<link rel="stylesheet"
+href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
 
 body{
-    background:#f8fafc;
+    background:
+        radial-gradient(circle at top left, rgba(56,217,137,.08), transparent 34%),
+        linear-gradient(180deg,#f8fafc 0%,#ffffff 100%);
+    color:#0f172a;
+    font-family:Arial,sans-serif;
 }
 
-.checkout-card{
-    max-width:800px;
-    margin:auto;
+.checkout-page{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:10px !important;
+}
+
+.checkout-shell{
+    width:100%;
+    max-width:1000px;
+    margin:0 auto;
+    padding:12px 32px 14px;
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    background:rgba(255,255,255,.74);
+    box-shadow:0 20px 55px rgba(15,23,42,.08);
+}
+
+.checkout-topbar{
+    display:flex;
+    align-items:center;
+    min-height:26px;
+}
+
+.back-link{
+    color:#38d989;
+    font-size:15px;
+    font-weight:700;
+    text-decoration:none;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    transition:color .2s ease, transform .2s ease;
+}
+
+.back-link:hover{
+    color:#2ec477;
+    transform:translateX(-2px);
+}
+
+.checkout-hero{
+    text-align:center;
+    margin:-2px auto 18px;
+}
+
+.checkout-hero-title{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    margin-bottom:4px;
+}
+
+.hero-icon{
+    color:#38d989;
+    font-size:30px;
+    line-height:1;
+}
+
+.checkout-hero h1{
+    margin:0;
+    font-size:30px;
+    line-height:1.1;
+    font-weight:700;
+    color:#0f172a;
+    letter-spacing:0;
+}
+
+.checkout-hero p{
+    margin:0;
+    color:#64748b;
+    font-size:15px;
+}
+
+.checkout-grid{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    gap:24px;
+    align-items:stretch;
+}
+
+.checkout-card-panel{
     background:#fff;
-    border-radius:20px;
-    padding:30px;
-    box-shadow:0 5px 25px rgba(0,0,0,.08);
+    border:1px solid #e5e7eb;
+    border-radius:18px;
+    padding:16px 20px;
+    box-shadow:0 12px 30px rgba(15,23,42,.07);
+    height:100%;
 }
 
-.checkout-header{
+.panel-heading{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:14px;
+}
+
+.panel-heading-icon,
+.detail-icon,
+.summary-icon,
+.feature-icon{
+    width:50px;
+    height:50px;
+    border-radius:15px;
+    background:#e8fff2;
+    color:#38d989;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:20px;
+    flex-shrink:0;
+}
+
+.detail-icon{
+    width:36px;
+    height:36px;
+    border-radius:12px;
+    font-size:18px;
+}
+
+.panel-heading h2{
+    margin:0;
+    font-size:22px;
+    line-height:1.15;
+    font-weight:700;
+    color:#0f172a;
+}
+
+.profile-block{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    padding:0 0 14px;
+    border-bottom:1px solid #e5e7eb;
+    margin-bottom:10px;
+}
+
+.profile-avatar{
+    width:66px;
+    height:66px;
+    border-radius:50%;
+    background:linear-gradient(135deg,#38d989,#2ec477);
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:38px;
+    font-weight:800;
+    box-shadow:0 12px 28px rgba(56,217,137,.28);
+    flex-shrink:0;
+}
+
+.profile-name{
+    color:#0f172a;
+    font-size:18px;
+    font-weight:700;
+    margin-bottom:4px;
+    overflow-wrap:anywhere;
+}
+
+.profile-status{
+    color:#64748b;
+    font-size:14px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.profile-status i{
+    color:#38d989;
+}
+
+.detail-list{
     display:flex;
     flex-direction:column;
-    align-items:flex-start;
-    gap:16px;
-    margin-bottom:24px;
 }
 
-.checkout-title-row{
-    position:relative;
-    width:100%;
-    min-height:48px;
-    display:flex;
+.detail-row{
+    display:grid;
+    grid-template-columns:36px minmax(110px,1fr) minmax(0,1.35fr);
+    gap:12px;
     align-items:center;
+    padding:8px 0;
+    border-bottom:1px solid #e5e7eb;
 }
 
-.brand-logo{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    color:#111827;
-    font-weight:700;
-    font-size:22px;
-    text-decoration:none;
+.detail-row:last-child{
+    border-bottom:none;
 }
 
-.brand-logo img{
-    width:34px;
-    height:34px;
-    object-fit:contain;
-}
-
-.checkout-content{
-    padding-top:0;
-}
-
-.checkout-title{
-    position:absolute;
-    left:50%;
-    transform:translateX(-50%);
-    text-align:center;
-    margin:0;
-}
-
-.plan-badge{
-    background:#38d989;
-    color:#fff;
-    padding:10px 18px;
-    border-radius:10px;
-    display:inline-block;
+.detail-label{
+    color:#64748b;
+    font-size:15px;
     font-weight:600;
 }
 
-.total{
-    font-size:34px;
+.detail-value{
+    color:#0f172a;
+    font-size:15px;
+    font-weight:500;
+    text-align:right;
+    overflow-wrap:anywhere;
+}
+
+.plan-preview{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:12px 16px;
+    border:1px solid #38d989;
+    border-radius:14px;
+    background:linear-gradient(135deg,rgba(56,217,137,.08),rgba(255,255,255,.92));
+    margin-bottom:14px;
+}
+
+.summary-icon{
+    width:48px;
+    height:48px;
+    border-radius:50%;
+    font-size:26px;
+}
+
+.plan-name{
+    color:#0f172a;
+    font-size:18px;
     font-weight:700;
+    margin-bottom:4px;
+}
+
+.plan-storage{
+    color:#64748b;
+    font-size:15px;
+    font-weight:500;
+}
+
+.order-lines{
+    margin-bottom:8px;
+}
+
+.order-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:16px;
+    padding:7px 0;
+    color:#64748b;
+    font-size:15px;
+}
+
+.order-value{
+    color:#0f172a;
+    font-weight:700;
+    white-space:nowrap;
+}
+
+.order-divider{
+    border:0;
+    border-top:1px dashed #cbd5e1;
+    margin:8px 0 12px;
+}
+
+.total-box{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    background:linear-gradient(135deg,#f0fff6,#f8fffb);
+    border:1px solid #e0f5e9;
+    border-radius:12px;
+    padding:10px 14px;
+    margin-bottom:12px;
+}
+
+.total-label{
     color:#38d989;
+    font-size:16px;
+    font-weight:700;
+}
+
+.total{
+    color:#38d989;
+    font-size:26px;
+    font-weight:700;
+    line-height:1;
+    white-space:nowrap;
+}
+
+.secure-list{
+    background:linear-gradient(135deg,#f7fffb,#f8fafc);
+    border-radius:12px;
+    padding:9px 14px;
+    margin-bottom:12px;
+}
+
+.checkout-card-panel{
+    min-height:0;
+}
+
+.secure-item{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    color:#64748b;
+    font-size:14px;
+    padding:2px 0;
+}
+
+.secure-item .feature-icon{
+    width:auto;
+    height:auto;
+    border-radius:0;
+    background:transparent;
+    color:#38d989;
+    font-size:18px;
 }
 
 .btn-pay{
     background:#38d989;
     border:none;
-    padding:14px;
-    font-size:18px;
-    font-weight:600;
+    min-height:48px;
+    padding:11px;
+    font-size:17px;
+    font-weight:700;
+    border-radius:12px;
+    transition:transform .2s ease, box-shadow .2s ease, background .2s ease;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
 }
 
 .btn-pay:hover{
     background:#2ec477;
+    transform:translateY(-1px);
+    box-shadow:0 16px 30px rgba(56,217,137,.28);
 }
 
 .btn-pay:disabled{
     background:#38d989;
     border:none;
     opacity:.8;
+}
+
+.checkout-action{
+    max-width:560px;
+    margin:28px auto 0;
 }
 
 .pay-spinner{
@@ -160,6 +499,28 @@ body{
     animation:paySpin .8s linear infinite;
 }
 
+.payment-note{
+    color:#64748b;
+    font-size:13px;
+    text-align:center;
+    margin:8px 0 0;
+}
+
+.checkout-footer-note{
+    color:#64748b;
+    text-align:center;
+    font-size:13px;
+    margin-top:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+}
+
+.checkout-footer-note i{
+    color:#94a3b8;
+}
+
 @keyframes paySpin{
     to{
         transform:rotate(360deg);
@@ -170,216 +531,176 @@ body{
     visibility: hidden;
     min-width: 350px;
     max-width: 450px;
-    background: #dc3545;
+    background: #ef4444;
     color: #fff;
-    text-align: center;
-    border-radius: 8px;
+    border: 1px solid #dc2626;
+    border-radius: 14px;
     padding: 16px 24px;
     position: fixed;
     z-index: 99999;
-
-    /* Top center position */
     top: 30px;
     left: 50%;
-    transform: translateX(-50%);
-
-    font-size: 14px;
-    box-shadow: 0 4px 12px rgba(0,0,0,.3);
-
+    transform: translate(-50%, -14px);
+    font-size: 15px;
+    font-weight: 500;
+    box-shadow: 0 12px 30px rgba(56,217,137,.25);
     opacity: 0;
-    transition: all .4s ease;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    line-height:1.35;
+    transition: opacity .3s ease, transform .3s ease, visibility .3s ease;
 }
 
 .custom-toast.show {
     visibility: visible;
     opacity: 1;
-}
-/* Mobile Responsive */
-@media (max-width: 768px) {
-
-    .container {
-        padding-left: 15px;
-        padding-right: 15px;
-    }
-
-    .checkout-card {
-        padding: 20px;
-        border-radius: 15px;
-    }
-
-    .checkout-header {
-        gap: 12px;
-    }
-
-    .checkout-title-row {
-        flex-direction: column;
-        align-items: center;
-        gap: 15px;
-        min-height: auto;
-    }
-
-    .checkout-title{
-    position:static;
-    transform:none;
-    font-size:34px; /* Reduced size */
-    font-weight:700;
-    margin:10px 0 0;
+    transform: translate(-50%, 0);
 }
 
-    .brand-logo {
-        justify-content: center;
-        width: 100%;
-        font-size: 24px;
-    }
-
-    .brand-logo img {
-        width: 30px;
-        height: 30px;
-    }
-
-    .table td {
-        padding: 10px 5px;
-        font-size: 14px;
-    }
-
-    .plan-badge {
-        width: 100%;
-        text-align: center;
-        padding: 12px;
-    }
-
-    .total {
-        font-size: 28px;
-    }
-
-    .btn-pay {
-        width: 100%;
-        font-size: 16px;
-        padding: 12px;
-    }
-
-    .custom-toast {
-        min-width: auto;
-        width: 90%;
-        max-width: 90%;
-        font-size: 13px;
-        padding: 14px;
-    }
-
-    .form-control {
-        font-size: 16px;
-    }
+.custom-toast i {
+    color:#fff;
+    font-size:18px;
+    flex-shrink:0;
 }
-@media (max-width:768px){
 
-    .container{
-        padding-left:12px;
-        padding-right:12px;
+@media (max-width: 991px){
+    .checkout-grid{
+        grid-template-columns:1fr;
+        gap:24px;
     }
 
-    .checkout-card{
+    .checkout-shell{
         padding:20px;
-        border-radius:20px;
     }
-
-    .checkout-header{
-    position:relative;
-    text-align:center;
-    align-items:center;
-    padding-top:10px;
 }
-    .brand-logo{
-        justify-content:center;
-        width:100%;
-        font-size:32px;
-        font-weight:700;
+
+@media (max-height: 760px) and (min-width: 992px){
+    .checkout-footer-note{
+        display:none;
+    }
+}
+
+@media (max-width: 768px){
+    .checkout-page{
+        padding-left:0 !important;
+        padding-right:0 !important;
     }
 
-    .brand-logo img{
-        width:40px;
-        height:40px;
+    .checkout-shell{
+        border-radius:0;
+        border-left:0;
+        border-right:0;
+        padding:18px 14px 26px;
     }
 
-    .checkout-title-row{
-        width:100%;
-        min-height:auto;
-        flex-direction:column;
+    .checkout-topbar{
+        margin-bottom:18px;
+    }
+
+    .checkout-hero{
+        margin-bottom:28px;
+    }
+
+    .checkout-hero-title{
         gap:12px;
     }
 
-    .checkout-title{
-        position:static;
-        transform:none;
-        font-size:35px;
-        font-weight:800;
-        margin:0;
+    .hero-icon{
+        font-size:34px;
     }
 
-    .checkout-title::after{
-        content:"Review your selected plan and complete your payment securely.";
-        display:block;
-        font-size:15px;
-        font-weight:400;
-        color:#64748b;
-        margin-top:12px;
-        line-height:1.5;
+    .checkout-hero h1{
+        font-size:34px;
     }
 
-    .checkout-title-row .btn{
-    position:absolute;
-    top:-15px;
-    left:-5px;
-    width:46px;
-    height:46px;
-    padding:0;
-    border-radius:12px;
-    font-size:22px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-}
-
-    h5{
-        font-size:28px;
-        margin-bottom:20px;
-        font-weight:700;
-    }
-
-    .plan-badge{
-        width:100%;
-        text-align:center;
-        padding:16px;
-        font-size:22px;
-        border-radius:14px;
-    }
-
-    .table td{
-        padding:16px 0;
+    .checkout-hero p{
         font-size:17px;
     }
 
-    .table td:last-child{
-        text-align:right;
-        font-weight:600;
+    .checkout-card-panel{
+        padding:22px 18px;
+        border-radius:18px;
+    }
+
+    .panel-heading h2{
+        font-size:24px;
+    }
+
+    .profile-block{
+        align-items:flex-start;
+        gap:16px;
+    }
+
+    .profile-avatar{
+        width:82px;
+        height:82px;
+        font-size:44px;
+    }
+
+    .profile-name{
+        font-size:21px;
+    }
+
+    .profile-status{
+        font-size:16px;
+    }
+
+    .detail-row{
+        grid-template-columns:46px minmax(0,1fr);
+        gap:14px;
+    }
+
+    .detail-icon{
+        width:46px;
+        height:46px;
+    }
+
+    .detail-label{
+        font-size:16px;
+    }
+
+    .detail-value{
+        grid-column:2;
+        text-align:left;
+        font-size:16px;
+        margin-top:-10px;
+    }
+
+    .plan-preview{
+        padding:18px;
+        align-items:flex-start;
+    }
+
+    .summary-icon{
+        width:58px;
+        height:58px;
+        font-size:30px;
+    }
+
+    .order-row{
+        font-size:17px;
+    }
+
+    .total-box{
+        flex-direction:column;
+        align-items:flex-start;
+        gap:8px;
     }
 
     .total{
         font-size:34px;
-        text-align:center;
-        margin:20px 0;
-    }
-
-    .form-control{
-        border-radius:14px;
-        padding:14px;
-        font-size:16px;
     }
 
     .btn-pay{
-        width:100%;
-        padding:16px;
-        font-size:18px;
-        border-radius:16px;
+        min-height:60px;
+        font-size:20px;
+    }
+
+    .checkout-action{
+        max-width:100%;
+        margin-top:24px;
     }
 
     .custom-toast{
@@ -397,323 +718,260 @@ body{
 </head>
 <body>
 
-<div class="container py-3 py-md-5">
+<div class="checkout-page px-3 py-3">
+<div class="checkout-shell">
 
-<div class="checkout-card">
-
-<div class="checkout-header">
-
-<a href="pricing.php" class="brand-logo" aria-label="Drivault">
-    <img src="../assets/Photos/icon-192.png" alt="">
-    <span>Drivault</span>
+<div class="checkout-topbar">
+<a href="pricing.php" class="back-link">
+    <i class="bi bi-arrow-left"></i>
+    <span>Back to Plans</span>
 </a>
+</div>
 
-<div class="checkout-title-row">
+<header class="checkout-hero">
+    <div class="checkout-hero-title">
+        <i class="bi bi-shield-check hero-icon"></i>
+        <h1>Checkout</h1>
+    </div>
+    <p>Complete your payment and upgrade your storage</p>
+</header>
 
-<h2 class="fw-bold checkout-title">
-    Checkout
-</h2>
+<div class="checkout-grid">
 
-<a href="pricing.php"
-   class="btn btn-light shadow-sm">
-   ←
-</a>
+<section class="checkout-card-panel">
+    <div class="panel-heading">
+        <div class="panel-heading-icon">
+            <i class="bi bi-person"></i>
+        </div>
+        <h2>User Details</h2>
+    </div>
+
+    <div class="profile-block">
+        <div class="profile-avatar">
+            <?= htmlspecialchars(strtoupper(substr($verifiedUser['displayname'] ?: $verifiedUser['id'] ?: 'U', 0, 1)), ENT_QUOTES, 'UTF-8') ?>
+        </div>
+        <div>
+            <div class="profile-name">
+                <?= htmlspecialchars($verifiedUser['displayname'] ?: '-') ?>
+            </div>
+            <div class="profile-status">
+                <span>Premium Account</span>
+                <i class="bi bi-patch-check-fill"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="detail-list">
+        <div class="detail-row">
+            <div class="detail-icon"><i class="bi bi-envelope"></i></div>
+            <div class="detail-label">Email Address</div>
+            <div class="detail-value"><?= htmlspecialchars($verifiedUser['email'] ?: '-') ?></div>
+        </div>
+
+        <div class="detail-row">
+            <div class="detail-icon"><i class="bi bi-person-badge"></i></div>
+            <div class="detail-label">User ID</div>
+            <div class="detail-value"><?= htmlspecialchars($verifiedUser['id'] ?: '-') ?></div>
+        </div>
+
+        <div class="detail-row">
+            <div class="detail-icon"><i class="bi bi-pie-chart"></i></div>
+            <div class="detail-label">Current Storage Used</div>
+            <div class="detail-value">
+                <?= htmlspecialchars(formatBytesToGb($verifiedUser['quota']['used'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+            </div>
+        </div>
+
+        <div class="detail-row">
+            <div class="detail-icon"><i class="bi bi-database"></i></div>
+            <div class="detail-label">Total Storage</div>
+            <div class="detail-value">
+                <?= htmlspecialchars(formatBytesToGb($verifiedUser['quota']['total'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="checkout-card-panel">
+    <div class="panel-heading">
+        <div class="panel-heading-icon">
+            <i class="bi bi-credit-card"></i>
+        </div>
+        <h2>Order Summary</h2>
+    </div>
+
+    <div class="plan-preview">
+        <div class="summary-icon">
+            <i class="bi bi-box-seam"></i>
+        </div>
+        <div>
+            <div class="plan-name"><?= htmlspecialchars($plan['name']) ?></div>
+            <div class="plan-storage"><?= htmlspecialchars((string)$plan['quota']) ?> Storage</div>
+        </div>
+    </div>
+
+    <div class="order-lines">
+        <div class="order-row">
+            <span>Monthly Price</span>
+            <span class="order-value">&#8377;<?= number_format((float)$price,2) ?></span>
+        </div>
+
+        <div class="order-row">
+            <span>GST (18%)</span>
+            <span class="order-value">&#8377;<?= number_format((float)$gst,2) ?></span>
+        </div>
+    </div>
+
+    <hr class="order-divider">
+
+    <div class="total-box">
+        <span class="total-label">Total Amount</span>
+        <span class="total">&#8377;<?= number_format((float)$total,2) ?></span>
+    </div>
+
+    <div class="secure-list">
+        <div class="secure-item">
+            <i class="bi bi-shield-check feature-icon"></i>
+            <span>Secure Payment</span>
+        </div>
+        <div class="secure-item">
+            <i class="bi bi-shield-check feature-icon"></i>
+            <span>Instant Storage Upgrade</span>
+        </div>
+        <div class="secure-item">
+            <i class="bi bi-shield-check feature-icon"></i>
+            <span>Powered by Razorpay</span>
+        </div>
+    </div>
+
+</section>
 
 </div>
 
+<div class="checkout-action">
+    <button
+        class="btn btn-pay btn-success w-100"
+        id="payBtn">
+        <i class="bi bi-lock-fill"></i>
+        <span>Proceed to Pay</span>
+    </button>
+
+    <p class="payment-note">
+        You will be redirected to Razorpay to complete your payment securely.
+    </p>
 </div>
 
-<div class="checkout-content">
-
-<div class="row"><div class="row">
-<div class="col-md-6">
-
-<h5>Selected Plan</h5>
-
-<div class="plan-badge mb-3">
-    <?= htmlspecialchars($plan['name']) ?>
-</div>
-
-<table class="table">
-
-<tr>
-<td>Storage</td>
-<td><strong><?= $plan['quota'] ?></strong></td>
-</tr>
-
-<tr>
-<td>Price</td>
-<td>₹<?= number_format($price,2) ?></td>
-</tr>
-
-<tr>
-<td>GST (18%)</td>
-<td>₹<?= number_format($gst,2) ?></td>
-</tr>
-
-<tr>
-<td>Total</td>
-<td class="fw-bold">
-₹<?= number_format($total,2) ?>
-</td>
-</tr>
-
-</table>
-
-</div>
-
-<div class="col-md-6">
-
-<h5>Personal Details</h5>
-
-<div class="mb-3">
-<label class="form-label">
-    Name <span class="text-danger">*</span>
-</label>
-<input type="text"
-       class="form-control"
-       id="name"
-         placeholder="Enter your full name"
-       name="checkout_name_blank"
-       value=""
-       autocomplete="new-password"
-       data-lpignore="true"
-       data-form-type="other"
-       required>
-
-<div id="nameError" class="text-danger small mt-1"></div>
-</div>
-
-<div class="mb-3">
-<label class="form-label">
-    Email <span class="text-danger">*</span>
-</label>
-<input type="email"
-       class="form-control"
-       id="email"
-       name="checkout_email_blank"
-       value=""
-       placeholder="Enter your email address"
-       autocomplete="new-password"
-       data-lpignore="true"
-       data-form-type="other"
-       required>
-
-<div id="emailError" class="text-danger small mt-1"></div>
-</div>
-
-<div class="mb-3">
-<label class="form-label">
-    Mobile Number <span class="text-danger">*</span>
-</label>
-<input type="text"
-       class="form-control"
-       id="phone"
-       name="checkout_phone_blank"
-       value=""
-       maxlength="10"
-       autocomplete="new-password"
-       data-lpignore="true"
-       data-form-type="other"
-       placeholder="Enter your mobile number"
-       oninput="this.value=this.value.replace(/[^0-9]/g,'')"
-       required>
-
-<div id="phoneError" class="text-danger small mt-1"></div>
-
-
+<div class="checkout-footer-note">
+    <i class="bi bi-lock"></i>
+    <span>Your payment information is secure and encrypted</span>
 </div>
 
 </div>
-
-<hr>
-
-<div class="text-center">
-
-<div class="total mb-3">
-₹<?= number_format($total,2) ?>
-</div>
-
-<button
-    class="btn btn-pay btn-success w-100"
-    id="payBtn">
-Proceed to Pay</button>
-<p class="text-muted mt-3">
-    🔒 Secure payments powered by Razorpay
-</p>
-
-</div>
-
-</div>
-
-</div>
-
 </div>
 
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
 <script>
 
-document.getElementById('payBtn')
-.addEventListener('click', async function() {
+const payBtn = document.getElementById('payBtn');
+const verifiedUser = <?= json_encode($verifiedUser, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+const payButtonText = '<i class="bi bi-lock-fill"></i><span>Proceed to Pay</span>';
 
-    const btn = this;
-    const defaultText = 'Pay with Razorpay';
+function showToast(message, type = 'error') {
 
-    function setLoading(text) {
-        btn.innerHTML = '<span class="pay-spinner"></span>' + text;
-        btn.disabled = true;
+    const toast = document.getElementById('toast');
+    const isSuccess = type === 'success';
+    const icon = isSuccess ? 'bi-check-circle-fill' : 'bi-exclamation-circle-fill';
+    const escapedMessage = String(message)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+
+    toast.innerHTML = '<i class="bi ' + icon + '"></i><span>' + escapedMessage + '</span>';
+    toast.style.background = isSuccess ? '#38d989' : '#ef4444';
+    toast.style.borderColor = isSuccess ? '#2ec477' : '#dc2626';
+
+    toast.classList.add('show');
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
+function displayValue(value) {
+    if (value === null || value === undefined || value === '') {
+        return '-';
     }
 
-    function resetButton() {
-        btn.innerHTML = defaultText;
-        btn.disabled = false;
+    return String(value);
+}
+
+function setPayLoading(text) {
+    payBtn.innerHTML = '<span class="pay-spinner"></span>' + text;
+    payBtn.disabled = true;
+}
+
+function resetPayButton() {
+    payBtn.innerHTML = payButtonText;
+    payBtn.disabled = false;
+}
+
+payBtn.addEventListener('click', async function() {
+    const customerName = displayValue(verifiedUser.displayname);
+    const customerEmail = displayValue(verifiedUser.email);
+    const customerUserId = displayValue(verifiedUser.id);
+    const customerPhone = verifiedUser.phone ? String(verifiedUser.phone) : '';
+    const storageAccountId = customerUserId;
+
+    setPayLoading('Creating order...');
+
+    let data;
+
+    try {
+        let response = await fetch(
+            '../api/create-order.php',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type':
+                        'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({
+                    user_id: customerUserId,
+                    plan_id: '<?= $planId ?>',
+                    billing_cycle: 'monthly',
+                    name: customerName,
+                    email: customerEmail,
+                    phone: customerPhone || storageAccountId
+                })
+            }
+        );
+
+        data = await response.json();
+
+    } catch (error) {
+
+        resetPayButton();
+        console.error(error);
+        showToast('Something went wrong while creating the order.');
+        return;
     }
-
-    let customerName = document.getElementById("name").value.trim();
-let customerEmail = document.getElementById("email").value.trim();
-let customerPhone = document.getElementById("phone").value.trim();
-
-document.getElementById("nameError").innerText = "";
-document.getElementById("emailError").innerText = "";
-document.getElementById("phoneError").innerText = "";
-
-/* Validation */
-
-if (customerName === '') {
-    document.getElementById("nameError").innerText =
-        "Please enter your name";
-    return;
-}
-
-if (!/^[A-Za-z ]+$/.test(customerName)) {
-    document.getElementById("nameError").innerText =
-        "Name should contain only letters";
-    return;
-}
-
-if (customerName.length < 3) {
-    document.getElementById("nameError").innerText =
-        "Name must be at least 3 characters";
-    return;
-}
-
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-if (!emailRegex.test(customerEmail)) {
-    document.getElementById("emailError").innerText =
-        "Please enter a valid email address";
-    return;
-}
-
-const phoneRegex = /^[6-9]\d{9}$/;
-
-if (!phoneRegex.test(customerPhone)) {
-    document.getElementById("phoneError").innerText =
-        "Please enter a valid 10-digit mobile number";
-    return;
-}
-
-/* Verify Drivault account before creating order */
-
-setLoading('Verifying account...');
-
-try {
-
-    let verifyResponse = await fetch(
-        '../api/verify-drivault-user.php',
-        {
-            method: 'POST',
-            headers: {
-                'Content-Type':
-                    'application/x-www-form-urlencoded'
-            },
-            body: new URLSearchParams({
-                email: customerEmail,
-                phone: customerPhone
-            })
-        }
-    );
-
-    let verifyData = await verifyResponse.json();
-
-    if (!verifyData.success) {
-    resetButton();
-
-    showToast(
-        verifyData.message ||
-        'You do not have a Drivault account. Please create an account first.'
-    );
-
-    return;
-}
-
-} catch (error) {
-    resetButton();
-    console.error(error);
-
-    showToast('Unable to verify Drivault account.');
-
-    return;
-}
-
-setLoading('Creating order...');
-
-let data;
-
-try {
-
-    let response = await fetch(
-        '../api/create-order.php',
-        {
-            method: 'POST',
-            headers: {
-                'Content-Type':
-                    'application/x-www-form-urlencoded'
-            },
-            body: new URLSearchParams({
-                user_id: '<?= $userId ?>',
-                plan_id: '<?= $planId ?>',
-                billing_cycle: 'monthly',
-                name: customerName,
-                email: customerEmail,
-                phone: customerPhone
-            })
-        }
-    );
-
-    data = await response.json();
-
-} catch (error) {
-
-    resetButton();
-    console.error(error);
-    alert('Something went wrong while creating the order.');
-    return;
-}
 
     if(!data.success){
-    resetButton();
+        resetPayButton();
 
-    showToast(data.message);
+        showToast(data.message);
 
-    return;
-}
-
-    // let customerName =
-    // document.getElementById("name").value;
-
-    // let customerEmail =
-    // document.getElementById("email").value;
-
-    // let customerPhone =
-    // document.getElementById("phone").value;
+        return;
+    }
 
     let options = {
 
         modal: {
             ondismiss: function() {
-                resetButton();
+                resetPayButton();
             }
         },
 
@@ -738,7 +996,7 @@ try {
 
         handler:function(payment){
 
-            setLoading('Verifying payment...');
+            setPayLoading('Verifying payment...');
 
             fetch(
                 '../api/payment-success.php',
@@ -760,7 +1018,7 @@ try {
 
                         name: customerName,
                         email: customerEmail,
-                        phone: customerPhone
+                        phone: customerPhone || storageAccountId
                     })
                 }
             )
@@ -810,46 +1068,11 @@ try {
             encodeURIComponent(message);
     });
 
-    setLoading('Complete payment in Razorpay...');
+    setPayLoading('Complete payment in Razorpay...');
 
     rzp.open();
 
 });
-function showToast(message, type = 'error') {
-
-    const toast = document.getElementById('toast');
-
-    toast.innerText = message;
-
-    if (type === 'success') {
-        toast.style.background = '#28a745';
-    } else {
-        toast.style.background = '#dc3545';
-    }
-
-    toast.classList.add('show');
-
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 3000);
-}
-document.getElementById('payBtn')
-
-function showToast(message, type = 'error') {
-
-    const toast = document.getElementById('toast');
-
-    toast.innerText = message;
-
-    toast.style.background =
-        type === 'success' ? '#28a745' : '#dc3545';
-
-    toast.classList.add('show');
-
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 3000);
-}
 
 </script>
 <div id="toast" class="custom-toast"></div>

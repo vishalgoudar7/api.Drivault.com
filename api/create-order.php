@@ -13,15 +13,19 @@ $api = new Api(
 );
 session_start();
 
-$user_id = $_POST['user_id'] ?? 0;
-$plan_id = $_POST['plan_id'] ?? 0;
+$user_id = trim((string) ($_POST['user_id'] ?? ''));
+$plan_id = (int) ($_POST['plan_id'] ?? 0);
 $billing_cycle = $_POST['billing_cycle'] ?? 'monthly';
 $name  = $_POST['name'] ?? '';
 $email = $_POST['email'] ?? '';
-$phone = $_POST['phone'] ?? '';
+$phone = trim((string) ($_POST['phone'] ?? ''));
+
+if ($phone === '' || $phone === '-') {
+    $phone = $user_id;
+}
 
 
-if (!$user_id || !$plan_id) {
+if ($user_id === '' || !$plan_id) {
     die(json_encode([
         'success' => false,
         'message' => 'Missing user_id or plan_id'
@@ -117,7 +121,7 @@ $stmt = $conn->prepare(
 );
 
 $stmt->bind_param(
-    "iisdssss",
+    "sisdssss",
     $user_id,
     $plan_id,
     $billing_cycle,

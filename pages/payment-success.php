@@ -39,6 +39,9 @@ if ($planId > 0) {
 
 $amount = $subscription['amount'] ?? ($plan['monthly_price'] ?? 0);
 $billingCycle = $subscription['billing_cycle'] ?? 'monthly';
+$invoiceUrl = $subscription
+    ? '../payment/generate-invoice.php?payment_id=' . urlencode((string) $subscription['id'])
+    : '#';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -50,35 +53,49 @@ $billingCycle = $subscription['billing_cycle'] ?? 'monthly';
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <style>
 body{
+    margin:0;
     background:#f8fafc;
+    color:#0f172a;
     font-family:Arial,sans-serif;
 }
-.result-card{
-    max-width:760px;
-    margin:auto;
-    background:#fff;
-    border-radius:20px;
-    padding:34px;
-    box-shadow:0 5px 25px rgba(0,0,0,.08);
-    position:relative;
-}
-.brand-logo{
-    position:absolute;
-    top:24px;
-    left:28px;
+
+.brand{
     display:flex;
     align-items:center;
-    gap:8px;
-    color:#111827;
+    gap:10px;
+    color:#0f172a;
+    font-size:24px;
     font-weight:700;
-    font-size:22px;
     text-decoration:none;
+    margin-bottom:0;
 }
-.brand-logo img{
-    width:34px;
-    height:34px;
-    object-fit:contain;
+
+.brand img{
+    width:30px;
+    height:30px;
+    border-radius:7px;
 }
+
+.success-page{
+    min-height:100vh;
+    padding:10px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+}
+
+.success-card{
+    width:100%;
+    max-width:1000px;
+    margin:0 auto;
+    background:rgba(255,255,255,.74);
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    padding:12px 32px 14px;
+    box-shadow:0 20px 55px rgba(15,23,42,.08);
+}
+
 .status-icon{
     width:74px;
     height:74px;
@@ -89,134 +106,325 @@ body{
     align-items:center;
     justify-content:center;
     font-size:38px;
-    margin:0 auto 18px;
-}
-.plan-badge{
-    background:#38d989;
-    color:#fff;
-    padding:10px 18px;
-    border-radius:10px;
-    display:inline-block;
-    font-weight:600;
-}
-.btn-success{
-    background:#38d989;
-    border-color:#38d989;
-}
-.btn-success:hover{
-    background:#2ec477;
-    border-color:#2ec477;
-}
-.btn-loading {
-    position: relative;
-    pointer-events: none;
-    opacity: 0.8;
+    margin:6px auto 16px;
 }
 
-.btn-loading .spinner-border {
-    width: 1rem;
-    height: 1rem;
-    margin-right: 8px;
-    vertical-align: middle;
+.success-title{
+    color:#38d989;
+    font-size:30px;
+    line-height:1.15;
+    font-weight:700;
+    text-align:center;
+    margin:0 0 8px;
+}
+
+.success-subtitle{
+    color:#64748b;
+    font-size:15px;
+    text-align:center;
+    margin:0 0 24px;
+}
+
+.plan-pill{
+    background:#38d989;
+    color:#fff;
+    border-radius:12px;
+    padding:10px 22px;
+    display:inline-flex;
+    font-size:17px;
+    font-weight:700;
+    box-shadow:0 10px 18px rgba(56,217,137,.18);
+}
+
+.success-divider{
+    border:0;
+    border-top:1px solid #e5e7eb;
+    margin:26px 0 18px;
+}
+
+.success-card .text-center{
+    margin-top:0;
+}
+
+.detail-row{
+    display:grid;
+    grid-template-columns:44px minmax(120px,1fr) minmax(0,1fr);
+    align-items:center;
+    gap:16px;
+    padding:10px 8px;
+    border-bottom:1px solid #e5e7eb;
+}
+
+.detail-row:last-child{
+    border-bottom:none;
+}
+
+.detail-icon{
+    width:40px;
+    height:40px;
+    border-radius:50%;
+    background:#e8fff2;
+    color:#38d989;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:20px;
+}
+
+.detail-label{
+    color:#64748b;
+    font-size:15px;
+    font-weight:600;
+}
+
+.detail-value{
+    color:#0f172a;
+    font-size:15px;
+    font-weight:700;
+    text-align:right;
+    overflow-wrap:anywhere;
+}
+
+.detail-value.success-value{
+    color:#38d989;
+}
+
+.action-grid{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:10px;
+    margin-top:26px;
+    max-width:560px;
+    margin-left:auto;
+    margin-right:auto;
+}
+
+.success-action{
+    min-height:44px;
+    border-radius:8px;
+    font-size:16px;
+    font-weight:600;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    text-decoration:none;
+    transition:transform .2s ease, box-shadow .2s ease, background .2s ease;
+}
+
+.success-action:hover{
+    transform:translateY(-1px);
+}
+
+.action-primary{
+    color:#fff;
+    background:#38d989;
+    border:1px solid #38d989;
+    box-shadow:0 12px 24px rgba(56,217,137,.22);
+}
+
+.action-primary:hover{
+    color:#fff;
+    background:#2ec477;
+}
+
+.action-secondary{
+    color:#64748b;
+    background:#fff;
+    border:1px solid #94a3b8;
+}
+
+.action-secondary:hover{
+    color:#0f172a;
+    border-color:#64748b;
+}
+
+.action-download{
+    color:#0d6efd;
+    background:#fff;
+    border:1px solid #0d6efd;
+}
+
+.action-download:hover{
+    color:#fff;
+    background:#0d6efd;
+}
+
+.secure-note{
+    color:#64748b;
+    font-size:13px;
+    font-weight:600;
+    text-align:center;
+    margin:12px 0 0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:18px;
+}
+
+.secure-note i{
+    color:#64748b;
+}
+
+.secure-note a{
+    color:#0d6efd;
+    text-decoration:none;
+}
+
+@media (max-width: 991px){
+    .success-card{
+        padding:20px;
+    }
+
+    .success-title{
+        font-size:34px;
+    }
+
+    .success-subtitle{
+        font-size:17px;
+    }
+
+    .detail-row{
+        grid-template-columns:44px minmax(0,1fr);
+        gap:14px;
+        padding:10px 0;
+    }
+
+    .detail-value{
+        grid-column:2;
+        text-align:left;
+        font-size:16px;
+        margin-top:-8px;
+    }
+
+    .detail-label{
+        font-size:16px;
+    }
+
+    .action-grid{
+        grid-template-columns:1fr;
+        gap:14px;
+    }
+}
+
+@media (max-width: 576px){
+    .brand{
+        font-size:24px;
+    }
+
+    .brand img{
+        width:42px;
+        height:42px;
+    }
+
+    .success-page{
+        padding:0;
+    }
+
+    .success-card{
+        border-radius:0;
+        border-left:0;
+        border-right:0;
+        min-height:100vh;
+    }
+
+    .status-icon{
+        width:86px;
+        height:86px;
+        font-size:48px;
+    }
+
+    .plan-pill{
+        width:100%;
+        justify-content:center;
+        font-size:19px;
+    }
 }
 </style>
 </head>
 <body>
-<div class="container py-5">
-    <div class="result-card">
-        <a href="pricing.php" class="brand-logo" aria-label="Drivault">
-            <img src="../assets/Photos/icon-192.png" alt="">
+<main class="success-page">
+    <section class="success-card">
+        <a href="pricing.php" class="brand">
+            <img src="../assets/Photos/icon-192.png" alt="Drivault">
             <span>Drivault</span>
         </a>
 
-        <div class="text-center">
-            <div class="status-icon">
-                <i class="bi bi-check-lg"></i>
-            </div>
-            <h2 class="fw-bold mb-2">Payment Successful</h2>
-            <p class="text-muted mb-4">Your storage package has been added to your Drivault account.</p>
+        <div class="status-icon">
+            <i class="bi bi-check-lg"></i>
         </div>
 
+        <h1 class="success-title">Payment Successful!</h1>
+        <p class="success-subtitle">Thank you! Your storage package has been added to your Drivault account.</p>
+
         <?php if ($plan): ?>
-            <div class="text-center mb-4">
-                <div class="plan-badge"><?= htmlspecialchars($plan['name']) ?></div>
+            <div class="text-center">
+                <span class="plan-pill"><?= htmlspecialchars($plan['name']) ?></span>
             </div>
 
-            <table class="table">
-                <tr>
-                    <td>Storage</td>
-                    <td class="text-end fw-semibold"><?= htmlspecialchars($plan['quota']) ?></td>
-                </tr>
-                <tr>
-                    <td>Billing</td>
-                    <td class="text-end text-capitalize"><?= htmlspecialchars($billingCycle) ?></td>
-                </tr>
-                <tr>
-                    <td>Amount Paid</td>
-                    <td class="text-end fw-bold">Rs <?= number_format((float)$amount, 2) ?></td>
-                </tr>
-                <?php if ($paymentId !== ''): ?>
-                    <tr>
-                        <td>Payment ID</td>
-                        <td class="text-end small"><?= htmlspecialchars($paymentId) ?></td>
-                    </tr>
-                <?php endif; ?>
-            </table>
+            <hr class="success-divider">
+
+            <div class="detail-row">
+                <div class="detail-icon"><i class="bi bi-cloud-upload"></i></div>
+                <div class="detail-label">Storage</div>
+                <div class="detail-value success-value"><?= htmlspecialchars((string) $plan['quota']) ?></div>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-icon"><i class="bi bi-calendar3"></i></div>
+                <div class="detail-label">Billing</div>
+                <div class="detail-value text-capitalize"><?= htmlspecialchars((string) $billingCycle) ?></div>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-icon"><i class="bi bi-currency-rupee"></i></div>
+                <div class="detail-label">Amount Paid</div>
+                <div class="detail-value success-value">Rs <?= number_format((float)$amount, 2) ?></div>
+            </div>
+
+            <?php if ($paymentId !== ''): ?>
+                <div class="detail-row">
+                    <div class="detail-icon"><i class="bi bi-wallet2"></i></div>
+                    <div class="detail-label">Payment ID</div>
+                    <div class="detail-value"><?= htmlspecialchars($paymentId) ?></div>
+                </div>
+            <?php endif; ?>
         <?php else: ?>
-            <div class="alert alert-warning">
+            <div class="alert alert-warning mt-4">
                 Payment completed, but the selected package details could not be loaded.
             </div>
         <?php endif; ?>
 
-        <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-4">
+        <div class="action-grid">
+            <a href="pricing.php" class="success-action action-primary">
+                <i class="bi bi-box-seam"></i>
+                <span>View Packages</span>
+            </a>
 
-    <a href="pricing.php"
-       class="btn btn-success px-4">
-       View Packages
-    </a>
+            <a href="pricing.php" class="success-action action-secondary">
+                <i class="bi bi-house-door"></i>
+                <span>Go to Dashboard</span>
+            </a>
 
-    <?php if ($planId > 0): ?>
-        <a href="checkout.php?plan_id=<?= $planId ?>"
-           class="btn btn-outline-secondary px-4">
-           Buy Again
-        </a>
-    <?php endif; ?>
+            <?php if ($subscription): ?>
+                <a href="<?= htmlspecialchars($invoiceUrl) ?>" class="success-action action-download">
+                    <i class="bi bi-download"></i>
+                    <span>Download Invoice</span>
+                </a>
+            <?php else: ?>
+                <a href="#" class="success-action action-download disabled" aria-disabled="true">
+                    <i class="bi bi-download"></i>
+                    <span>Download Invoice</span>
+                </a>
+            <?php endif; ?>
+        </div>
+    </section>
 
-    <?php if ($subscription): ?>
-        <a href="../payment/generate-invoice.php?payment_id=<?= $subscription['id'] ?>"
-           class="btn btn-outline-primary px-4">
-            <i class="bi bi-download"></i>
-            Download Invoice
-        </a>
-    <?php endif; ?>
-
-</div>
+    <div class="secure-note">
+        <span><i class="bi bi-lock-fill"></i> Secure Payment</span>
+        <span>&bull;</span>
+        <span>Powered by <a href="https://razorpay.com" target="_blank" rel="noopener">Razorpay</a></span>
     </div>
-</div>
-<script>
-document.querySelectorAll('.action-btn').forEach(button => {
-
-    button.addEventListener('click', function () {
-
-        const originalText = this.innerHTML;
-
-        this.classList.add('btn-loading');
-
-        this.innerHTML = `
-            <span class="spinner-border spinner-border-sm"
-                  role="status"
-                  aria-hidden="true"></span>
-            Loading...
-        `;
-
-        // Optional: restore if navigation doesn't happen
-        setTimeout(() => {
-            this.innerHTML = originalText;
-            this.classList.remove('btn-loading');
-        }, 5000);
-    });
-
-});
-</script>
+</main>
 </body>
 </html>
