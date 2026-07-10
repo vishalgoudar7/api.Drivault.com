@@ -355,6 +355,11 @@ body{
     min-height:520px;
 }
 
+.pricing-card.popular{
+    border-color:#38d989;
+    box-shadow:0 10px 25px rgba(0,0,0,.08), 0 0 0 1px rgba(56,217,137,.18);
+}
+
 .pricing-card:hover{
     border-color:#38d989;
     transform:translateY(-8px);
@@ -684,6 +689,41 @@ body{
     .container{
         padding-left:15px;
         padding-right:15px;
+    }
+
+    .navbar{
+        padding-top:12px;
+        padding-bottom:12px;
+    }
+
+    .navbar .container{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        flex-direction:row;
+        flex-wrap:nowrap;
+        gap:12px;
+    }
+
+    .navbar-brand.d-flex.align-items-center{
+        flex-direction:row;
+        text-align:left;
+        min-width:0;
+        margin-right:0;
+    }
+
+    .navbar-brand img{
+        width:36px;
+        height:36px;
+        margin-right:8px !important;
+        flex-shrink:0;
+    }
+
+    .navbar-toggler{
+        width:52px;
+        height:44px;
+        padding:6px 10px;
+        flex-shrink:0;
     }
 
     .pricing-card{

@@ -1,5 +1,7 @@
 <?php
-require '../config/db.php';
+
+require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../api/includes/drivault_api.php';
 
 $paymentId = trim($_GET['payment_id'] ?? '');
 $orderId = trim($_GET['order_id'] ?? '');
@@ -39,8 +41,8 @@ if ($subscription) {
     if ($paymentId != '' && $subscription['payment_status'] != 'Success') {
 
         $expiryDate = $subscription['billing_cycle'] == 'yearly'
-            ? date('Y-m-d', strtotime('+1 year'))
-            : date('Y-m-d', strtotime('+1 month'));
+    ? date('Y-m-d H:i:s', strtotime('+1 year'))
+    : date('Y-m-d H:i:s', strtotime('+1 month'));
 
         $update = $conn->prepare("
             UPDATE subscriptions
@@ -72,6 +74,12 @@ $update->bind_param(
 
         $update->execute();
 
+// Enable the user after successful payment
+$enable = enableUser($subscription['drivault_display_name']);
+
+if (!$enable['success']) {
+    error_log("Enable User Failed: " . ($enable['error'] ?? 'Unknown Error'));
+}
         /*
         |--------------------------------------------------------------------------
         | Refresh Subscription Data
