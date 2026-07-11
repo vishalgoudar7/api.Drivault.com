@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../api/includes/drivault_api.php';
+require_once __DIR__ . '/../cron/send_reminder.php';
 
 $paymentId = trim($_GET['payment_id'] ?? '');
 $orderId = trim($_GET['order_id'] ?? '');
@@ -9,6 +10,65 @@ $subscriptionId = (int)($_GET['subscription_id'] ?? 0);
 $planId = (int)($_GET['plan_id'] ?? 0);
 
 $subscription = null;
+
+function enableMainDrivaultUser(array $subscription): bool
+{
+    $drivaultConfig = require __DIR__ . '/../config/drivault.php';
+    $usernameCandidates = [
+        trim((string) ($subscription['drivault_phone'] ?? '')),
+        trim((string) ($subscription['user_id'] ?? '')),
+        trim((string) ($subscription['drivault_email'] ?? '')),
+        trim((string) ($subscription['drivault_display_name'] ?? '')),
+    ];
+    $username = '';
+
+    foreach ($usernameCandidates as $candidate) {
+        if (!in_array($candidate, ['', '-', '0', '2147483647'], true)) {
+            $username = $candidate;
+            break;
+        }
+    }
+
+    if ($username === '') {
+        error_log('Enable Failed : Drivault username not found');
+        return false;
+    }
+
+    $curl = curl_init();
+
+    curl_setopt_array($curl, [
+        CURLOPT_URL => "https://login.drivault.com/ocs/v1.php/cloud/users/" . urlencode($username) . "/enable",
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CUSTOMREQUEST => "PUT",
+        CURLOPT_USERPWD => $drivaultConfig['username'] . ":" . $drivaultConfig['password'],
+        CURLOPT_HTTPHEADER => [
+            "OCS-APIRequest: true",
+            "Accept: application/json"
+        ]
+    ]);
+
+    $response = curl_exec($curl);
+    $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+
+    if (curl_errno($curl)) {
+        error_log("Enable User Error : " . curl_error($curl));
+        curl_close($curl);
+
+        return false;
+    }
+
+    curl_close($curl);
+
+    if ($httpCode == 200) {
+        error_log("User Enabled Successfully : " . $username);
+
+        return true;
+    }
+
+    error_log("Enable Failed : HTTP " . $httpCode . " " . $response);
+
+    return false;
+}
 
 if ($subscriptionId > 0) {
     $stmt = $conn->prepare("SELECT * FROM subscriptions WHERE id = ?");
@@ -31,6 +91,7 @@ if ($subscription) {
     $orderId = $orderId ?: ($subscription['razorpay_order_id'] ?? '');
 
     $paymentId = $paymentId ?: ($subscription['razorpay_payment_id'] ?? '');
+    $userEnabled = false;
 
     /*
     |--------------------------------------------------------------------------
@@ -57,7 +118,8 @@ status = 'Active',
 start_date = CURDATE(),
 expiry_date = ?,
 
-updated_at = NOW()
+updated_at = NOW(),
+disabled_at = NULL
 
 WHERE id = ?
         ");
@@ -74,12 +136,54 @@ $update->bind_param(
 
         $update->execute();
 
-// Enable the user after successful payment
-$enable = enableUser($subscription['drivault_display_name']);
+// Enable User On Main Drivault Server
 
-if (!$enable['success']) {
-    error_log("Enable User Failed: " . ($enable['error'] ?? 'Unknown Error'));
+$drivaultConfig = require __DIR__ . '/../config/drivault.php';
+
+$username = $subscription['user_id'];
+
+$curl = curl_init();
+
+curl_setopt_array($curl, [
+    CURLOPT_URL => "https://login.drivault.com/ocs/v1.php/cloud/users/" . urlencode($username) . "/enable",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_CUSTOMREQUEST => "PUT",
+    CURLOPT_USERPWD => $drivaultConfig['username'] . ":" . $drivaultConfig['password'],
+    CURLOPT_HTTPHEADER => [
+        "OCS-APIRequest: true",
+        "Accept: application/json"
+    ]
+]);
+
+$response = curl_exec($curl);
+
+$httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+
+if (curl_errno($curl)) {
+
+    error_log("Enable User Error : " . curl_error($curl));
+
+} else {
+
+    if ($httpCode == 200) {
+
+        echo "<h3 style='color:green'>✓ User Enabled On Main Server</h3>";
+
+        error_log("User Enabled Successfully : " . $username);
+
+        $userEnabled = true;
+
+    } else {
+
+        echo "<pre>$response</pre>";
+
+        error_log("Enable Failed : HTTP " . $httpCode);
+
+    }
+
 }
+
+curl_close($curl);
         /*
         |--------------------------------------------------------------------------
         | Refresh Subscription Data
@@ -98,6 +202,29 @@ if (!$enable['success']) {
         $stmt->execute();
 
         $subscription = $stmt->get_result()->fetch_assoc();
+
+        if ($userEnabled && $subscription) {
+            if (sendAccountActiveEmail($subscription)) {
+                error_log("Account active email sent : " . $subscription['drivault_email']);
+            } else {
+                error_log("Account active email failed : " . ($subscription['drivault_email'] ?? ''));
+            }
+        }
+    }
+}
+
+if (
+    $subscription &&
+    strcasecmp((string) ($subscription['payment_status'] ?? ''), 'Success') === 0 &&
+    !empty($subscription['disabled_at'])
+) {
+    if (enableMainDrivaultUser($subscription)) {
+        $stmt = $conn->prepare("UPDATE subscriptions SET status = 'Active', disabled_at = NULL WHERE id = ?");
+        $stmt->bind_param("i", $subscription['id']);
+        $stmt->execute();
+
+        $subscription['status'] = 'Active';
+        $subscription['disabled_at'] = null;
     }
 }
 

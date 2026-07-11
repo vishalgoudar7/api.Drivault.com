@@ -5,6 +5,7 @@ require_once __DIR__ . '/../config/db.php';
 
 // Drivault API
 require_once __DIR__ . '/../api/includes/drivault_api.php';
+$drivaultConfig = require __DIR__ . '/../config/drivault.php';
 
 // Reminder Mail
 require_once __DIR__ . '/send_reminder.php';
@@ -87,12 +88,44 @@ while ($row = mysqli_fetch_assoc($result)) {
         echo "<span style='color:red;'>✓ 1 Day Reminder Sent</span><br>";
     }
 
-    // Subscription Expired
-    if ($daysLeft <= 0) {
+    
+    
+// Subscription Expired
+if ($daysLeft <= 0 && strtolower($row['status']) == 'active') {
 
-        $response = disableUser($row['drivault_display_name']);
+    $username = $row['user_id'];
 
-        mysqli_query($conn, "
+    echo "<br><b>Disabling User:</b> " . htmlspecialchars($username) . "<br>";
+
+    $curl = curl_init();
+
+    curl_setopt_array($curl, [
+        CURLOPT_URL => "https://login.drivault.com/ocs/v1.php/cloud/users/" . urlencode($username) . "/disable",
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CUSTOMREQUEST => "PUT",
+        CURLOPT_USERPWD => $drivaultConfig['username'] . ":" . $drivaultConfig['password'],
+        CURLOPT_HTTPHEADER => [
+            "OCS-APIRequest: true",
+            "Accept: application/json"
+        ]
+    ]);
+
+    $response = curl_exec($curl);
+
+    $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+
+    if (curl_errno($curl)) {
+        echo "<b>cURL Error:</b> " . curl_error($curl) . "<br>";
+    }
+
+    curl_close($curl);
+
+    echo "<b>HTTP Code:</b> " . $httpCode . "<br>";
+    echo "<pre>$response</pre>";
+
+    if ($httpCode == 200) {
+
+        mysqli_query($conn,"
             UPDATE subscriptions
             SET
                 status='expired',
@@ -100,10 +133,27 @@ while ($row = mysqli_fetch_assoc($result)) {
             WHERE id={$row['id']}
         ");
 
-        echo "<span style='color:red;font-weight:bold;'>✓ User Disabled</span><br>";
-    }
+        echo "<span style='color:red;font-weight:bold'>
+        ✓ User Disabled On Main Server
+        </span><br>";
 
-    echo "<hr>";
+        if (sendAccountDisabledEmail($row)) {
+            echo "<span style='color:green;font-weight:bold'>
+            Account Disabled Email Sent
+            </span><br>";
+        } else {
+            echo "<span style='color:red'>
+            Account Disabled Email Failed
+            </span><br>";
+        }
+
+    } else {
+
+        echo "<span style='color:red'>
+        Failed to Disable User
+        </span><br>";
+    }
 }
 
+}
 echo "<h3>Subscription Checker Completed</h3>";

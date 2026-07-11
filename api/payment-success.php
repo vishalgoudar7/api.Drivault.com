@@ -3,6 +3,7 @@
 require '../config/db.php';
 require '../vendor/autoload.php';
 require __DIR__ . '/../payment/invoice-helper.php';
+require __DIR__ . '/../cron/send_reminder.php';
 // require '../includes/drivault.php';
 
 use PHPMailer\PHPMailer\Exception as MailerException;
@@ -474,7 +475,8 @@ $stmt = $conn->prepare(
         expiry_date = CASE
             WHEN billing_cycle = 'yearly' THEN DATE_ADD(NOW(), INTERVAL 1 YEAR)
             ELSE DATE_ADD(NOW(), INTERVAL 1 MONTH)
-        END
+        END,
+        disabled_at = NULL
      WHERE id = ?"
 );
 
@@ -491,6 +493,61 @@ if (!$stmt->execute()) {
         'message' => 'Unable to update subscription: ' . $stmt->error
     ]);
     exit;
+}
+
+$stmt = $conn->prepare("SELECT * FROM subscriptions WHERE id = ?");
+$stmt->bind_param("i", $subscription['id']);
+$stmt->execute();
+$updatedSubscription = $stmt->get_result()->fetch_assoc() ?: $subscription;
+
+/*
+|--------------------------------------------------------------------------
+| Enable User On Main Drivault Server
+|--------------------------------------------------------------------------
+*/
+
+$enableUrl = rtrim($drivaultEndpoint, '/') . '/' . rawurlencode($username) . '/enable';
+$enableCurl = curl_init();
+
+curl_setopt_array($enableCurl, [
+    CURLOPT_URL => $enableUrl,
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_CUSTOMREQUEST => 'PUT',
+    CURLOPT_USERPWD => $drivaultApiUsername . ':' . $drivaultApiPassword,
+    CURLOPT_HTTPHEADER => [
+        'OCS-APIRequest: true',
+        'Accept: application/json'
+    ]
+]);
+
+$enableResponse = curl_exec($enableCurl);
+$enableHttpCode = curl_getinfo($enableCurl, CURLINFO_HTTP_CODE);
+$enableError = curl_error($enableCurl);
+
+curl_close($enableCurl);
+
+if ($enableError) {
+    error_log('[payment-success] Enable user error for ' . $username . ': ' . $enableError);
+} elseif ($enableHttpCode != 200) {
+    error_log('[payment-success] Enable user failed for ' . $username . ': HTTP ' . $enableHttpCode . ' ' . $enableResponse);
+} else {
+    error_log('[payment-success] User enabled successfully: ' . $username);
+}
+
+$accountActiveEmailSent = false;
+
+if ($enableHttpCode == 200) {
+    try {
+        $accountActiveEmailSent = sendAccountActiveEmail($updatedSubscription);
+    } catch (Throwable $exception) {
+        error_log('[payment-success] Account active email error: ' . $exception->getMessage());
+    }
+
+    if ($accountActiveEmailSent) {
+        error_log('[payment-success] Account active email sent: ' . ($updatedSubscription['drivault_email'] ?? ''));
+    } else {
+        error_log('[payment-success] Account active email failed: ' . ($updatedSubscription['drivault_email'] ?? ''));
+    }
 }
 
 /*
@@ -539,12 +596,13 @@ if (!$stmt->execute()) {
 */
 
 $emailSent = false;
-$subscriptionForEmail = $subscription;
+$subscriptionForEmail = $updatedSubscription;
 $subscriptionForEmail['status'] = 'active';
 $subscriptionForEmail['payment_status'] = 'Success';
 $subscriptionForEmail['razorpay_payment_id'] = $paymentId;
 $subscriptionForEmail['razorpay_signature'] = $signature;
 $subscriptionForEmail['plan_name'] = $plan['name'] ?? '';
+$subscriptionForEmail['storage_quota'] = $plan['quota'] ?? ($subscriptionForEmail['storage_quota'] ?? '');
 $subscriptionForEmail['quota'] = $plan['quota'] ?? '';
 
 try {
@@ -567,6 +625,9 @@ echo json_encode([
     'order_id' => $orderId,
     'subscription_id' => $subscription['id'],
     'email_sent' => $emailSent,
+    'account_active_email_sent' => $accountActiveEmailSent,
+    'user_enabled' => ($enableHttpCode == 200),
+    'enable_http_code' => $enableHttpCode,
     'plan_id' => $planId,
     'quota' => $quotaResult
 ]);
