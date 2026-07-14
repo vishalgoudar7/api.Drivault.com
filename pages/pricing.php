@@ -20,17 +20,21 @@ function fetchDrivaultUserForPricing(string $username): array
         throw new RuntimeException('Drivault API is not configured.');
     }
 
-    $curlHandle = curl_init(rtrim($endpoint, '/') . '/' . rawurlencode($username));
+    $curlHandle = curl_init(rtrim($endpoint, '/') . '?search=' . rawurlencode($username));
 
     curl_setopt_array($curlHandle, [
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 10,
-        CURLOPT_CONNECTTIMEOUT => 5,
+        CURLOPT_ENCODING => '',
+        CURLOPT_TIMEOUT => 4,
+        CURLOPT_CONNECTTIMEOUT => 2,
+        CURLOPT_FOLLOWLOCATION => false,
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_2TLS,
         CURLOPT_CUSTOMREQUEST => 'GET',
+        CURLOPT_HTTPAUTH => CURLAUTH_BASIC,
+        CURLOPT_USERPWD => $apiUsername . ':' . $apiPassword,
         CURLOPT_HTTPHEADER => [
             'OCS-APIRequest: true',
             'Accept: application/json',
-            'Authorization: Basic ' . base64_encode($apiUsername . ':' . $apiPassword),
         ],
     ]);
 
@@ -43,27 +47,32 @@ function fetchDrivaultUserForPricing(string $username): array
         throw new RuntimeException('Unable to connect to Drivault: ' . $curlError);
     }
 
-    $decoded = json_decode((string) $responseBody, true);
-    $ocsStatusCode = (int) ($decoded['ocs']['meta']['statuscode'] ?? 0);
-    $userData = $decoded['ocs']['data'] ?? [];
-
-    if ($httpStatus === 404 || $ocsStatusCode === 404 || !is_array($userData) || empty($userData)) {
-        throw new RuntimeException('User not found.');
-    }
-
-    if ($httpStatus >= 400 || ($ocsStatusCode !== 0 && $ocsStatusCode !== 100)) {
+    if ($httpStatus >= 400) {
+        $decoded = json_decode((string) $responseBody, true);
         throw new RuntimeException($decoded['ocs']['meta']['message'] ?? 'Unable to fetch user details.');
     }
 
+    $decoded = json_decode((string) $responseBody, true);
+    $users = $decoded['ocs']['data']['users'] ?? [];
+    $users = is_array($users) ? array_values($users) : [];
+    $isEmail = filter_var($username, FILTER_VALIDATE_EMAIL) !== false;
+    $isVerified = false;
+
+    foreach ($users as $user) {
+        $user = trim((string) $user);
+
+        if ($isEmail || strcasecmp($user, $username) === 0) {
+            $isVerified = true;
+            break;
+        }
+    }
+
+    if (!$isVerified) {
+        throw new RuntimeException('User not found.');
+    }
+
     return [
-        'displayname' => (string) ($userData['displayname'] ?? ''),
-        'email' => (string) ($userData['email'] ?? ''),
-        'id' => (string) ($userData['id'] ?? $username),
-        'phone' => (string) ($userData['phone'] ?? ''),
-        'quota' => [
-            'used' => $userData['quota']['used'] ?? '',
-            'total' => $userData['quota']['total'] ?? '',
-        ],
+        'id' => $username,
     ];
 }
 
@@ -107,6 +116,11 @@ $result = $conn->query("
 ");
 
 $plans = $result->fetch_all(MYSQLI_ASSOC);
+
+function formatRoundedPrice(mixed $amount): string
+{
+    return number_format((int) ceil((float) $amount), 2);
+}
 ?>
 
 <!DOCTYPE html>
@@ -449,7 +463,7 @@ body{
 
 .verify-modal-header{
     border-bottom:none;
-    padding:22px 26px 0;
+    padding:16px 22px 0;
     justify-content:flex-end;
 }
 
@@ -472,7 +486,7 @@ body{
 .verify-logo-halo{
     width:auto;
     height:auto;
-    margin:0 auto 12px;
+    margin:-6px auto 8px;
     border-radius:0;
     background:transparent;
     display:flex;
@@ -487,10 +501,10 @@ body{
 }
 
 .verify-logo{
-    width:66px;
-    height:66px;
-    border-radius:18px;
-    object-fit:cover;
+    width:54px;
+    height:54px;
+    border-radius:0;
+    object-fit:contain;
     box-shadow:none;
     position:relative;
     z-index:1;
@@ -595,30 +609,25 @@ body{
 }
 
 .btn-verify-modal{
-    background:linear-gradient(180deg,#18c96e,#08a94f);
-    border:0;
-    color:#fff;
+    background:transparent;
+    border:2px solid #38d989;
+    color:#38d989;
     border-radius:12px;
-    min-height:58px;
-    padding:12px 18px;
+    min-height:52px;
+    padding:12px;
     width:100%;
-    font-size:19px;
-    font-weight:800;
+    font-size:16px;
+    font-weight:600;
     display:flex;
     align-items:center;
     justify-content:center;
-    gap:14px;
-    box-shadow:0 14px 28px rgba(18,183,106,.24);
+    box-shadow:none;
     transition:all .25s ease;
 }
 
-.btn-verify-modal i{
-    font-size:25px;
-}
-
 .btn-verify-modal:hover{
-    background:#2ec477;
-    border-color:#2ec477;
+    background:#38d989;
+    border-color:#38d989;
     color:#fff;
 }
 
@@ -831,9 +840,9 @@ body{
     }
 
     .verify-logo{
-        width:60px;
-        height:60px;
-        border-radius:16px;
+        width:48px;
+        height:48px;
+        border-radius:0;
     }
 
     .verify-modal-title{
@@ -1081,7 +1090,7 @@ body{
 
     <div class="monthly-price is-selected">
         <div class="price">
-            ₹<?= number_format($plan['monthly_price'],2); ?>
+            ₹<?= formatRoundedPrice($plan['monthly_price']); ?>
             <small>/month</small>
         </div>
     </div>
@@ -1090,16 +1099,16 @@ body{
 
     <div class="yearly-price">
         <div class="yearly-price-line">
-            <span class="old-price">₹<?= number_format($plan['monthly_price']*12,2); ?></span>
+            <span class="old-price">₹<?= formatRoundedPrice($plan['monthly_price'] * 12); ?></span>
             <div class="price">
-                ₹<?= number_format($plan['yearly_price'],2); ?>
+                ₹<?= formatRoundedPrice($plan['yearly_price']); ?>
                 <small>/year</small>
             </div>
         </div>
 
         <div class="save-badge">
             <i class="bi bi-tag"></i>
-            You Save ₹<?= number_format($plan['save_amount'],2); ?>
+            You Save ₹<?= formatRoundedPrice($plan['save_amount']); ?>
             (<?= (int) $plan['discount_percent']; ?>%)
         </div>
 
@@ -1228,14 +1237,14 @@ body{
                     </p>
                 </div>
 
-                <label class="verify-form-label" for="modalUsername">Drivault Username or Email</label>
+                <label class="verify-form-label" for="modalUsername">Enter your Drivault Username or Email</label>
                 <div class="verify-input-wrap">
                     <i class="bi bi-person verify-input-icon"></i>
                     <input type="text"
                            class="form-control verify-input"
                            id="modalUsername"
                            autocomplete="off"
-                           placeholder="e.g. john.doe or john@example.com">
+                           placeholder="Enter your Drivault Username or Email">
                 </div>
                 <div id="modalUsernameError" class="text-danger small mt-2"></div>
 
@@ -1258,7 +1267,6 @@ body{
                     <button type="button"
                             class="btn btn-verify-modal"
                             id="continueVerifyBtn">
-                        <i class="bi bi-shield-check"></i>
                         <span>Verify &amp; Continue</span>
                     </button>
                 </div>
@@ -1329,7 +1337,7 @@ function setContinueLoading(isLoading) {
     continueVerifyBtn.disabled = isLoading;
     continueVerifyBtn.innerHTML = isLoading
         ? '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Verifying...'
-        : '<i class="bi bi-shield-check"></i><span>Verify &amp; Continue</span>';
+        : '<span>Verify &amp; Continue</span>';
 }
 
 function setCheckoutLoading(btn) {
@@ -1386,17 +1394,22 @@ async function verifySelectedPlan() {
 
     isVerifying = true;
     setContinueLoading(true);
+    let timeoutId = null;
 
     try {
+        const controller = new AbortController();
+        timeoutId = setTimeout(() => controller.abort(), 5000);
         const response = await fetch(
             'pricing.php?action=get_user_details&username=' + encodeURIComponent(username),
             {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json'
-                }
+                },
+                signal: controller.signal
             }
         );
+        clearTimeout(timeoutId);
 
         const data = await response.json();
 
@@ -1428,9 +1441,14 @@ async function verifySelectedPlan() {
 
     } catch (error) {
         console.error(error);
-        modalUsernameError.innerText = 'Unable to verify user.';
+        modalUsernameError.innerText = error.name === 'AbortError'
+            ? 'Verification is taking too long. Please try again.'
+            : 'Unable to verify user.';
     } finally {
         if (!shouldRedirect) {
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
             isVerifying = false;
             setContinueLoading(false);
         }

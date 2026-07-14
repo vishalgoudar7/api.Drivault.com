@@ -400,9 +400,11 @@ body{
 }
 
 .action-grid{
-    display:grid;
-    grid-template-columns:repeat(3,minmax(0,1fr));
-    gap:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:12px;
     margin-top:26px;
     max-width:560px;
     margin-left:auto;
@@ -410,6 +412,7 @@ body{
 }
 
 .success-action{
+    width:200px;
     min-height:44px;
     border-radius:8px;
     font-size:16px;
@@ -512,8 +515,11 @@ body{
     }
 
     .action-grid{
-        grid-template-columns:1fr;
         gap:14px;
+    }
+
+    .success-action{
+        width:100%;
     }
 }
 
@@ -630,11 +636,6 @@ if ($mode === 'renew') {
             <a href="pricing.php" class="success-action action-primary">
                 <i class="bi bi-box-seam"></i>
                 <span>View Packages</span>
-            </a>
-
-            <a href="pricing.php" class="success-action action-secondary">
-                <i class="bi bi-house-door"></i>
-                <span>Go to Dashboard</span>
             </a>
 
             <?php if ($subscription): ?>

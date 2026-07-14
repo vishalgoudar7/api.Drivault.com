@@ -106,9 +106,9 @@ $gst = round(
     2
 );
 
-$totalAmount = $price + $gst;
+$totalAmount = ceil($price + $gst);
 
-$amountPaise = round($totalAmount * 100);
+$amountPaise = $totalAmount * 100;
 
 /*
 |--------------------------------------------------------------------------

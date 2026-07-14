@@ -115,6 +115,11 @@ function formatAvailableStorage(mixed $used, mixed $total): string
     return formatStorageAmount($available);
 }
 
+function formatRoundedPrice(mixed $amount): string
+{
+    return number_format((int) ceil((float) $amount), 2);
+}
+
 if (!isset($_GET['plan_id'])) {
     die("Plan not found");
 }
@@ -158,7 +163,7 @@ $price = $billingCycle === 'yearly'
     : (float) $plan['monthly_price'];
 $billingLabel = $billingCycle === 'yearly' ? 'Yearly Price' : 'Monthly Price';
 $gst = round($price * 0.18, 2);
-$total = $price + $gst;
+$total = ceil($price + $gst);
 
 ?>
 <!DOCTYPE html>
@@ -568,6 +573,68 @@ body{
     color:#94a3b8;
 }
 
+.payment-processing-overlay{
+    position:fixed;
+    inset:0;
+    z-index:9999;
+    background:rgba(248,250,252,.92);
+    backdrop-filter:blur(5px);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+}
+
+.payment-processing-overlay.show{
+    display:flex;
+}
+
+.payment-processing-card{
+    width:100%;
+    max-width:420px;
+    background:#fff;
+    border:1px solid #e5e7eb;
+    border-radius:18px;
+    box-shadow:0 24px 70px rgba(15,23,42,.18);
+    padding:34px 30px;
+    text-align:center;
+}
+
+.payment-processing-icon{
+    width:68px;
+    height:68px;
+    border-radius:50%;
+    background:#e8fff2;
+    color:#38d989;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin:0 auto 18px;
+    font-size:30px;
+}
+
+.payment-processing-icon .pay-spinner{
+    width:28px;
+    height:28px;
+    margin:0;
+    border-color:rgba(56,217,137,.24);
+    border-top-color:#38d989;
+}
+
+.payment-processing-card h2{
+    margin:0 0 8px;
+    color:#0f172a;
+    font-size:24px;
+    font-weight:800;
+}
+
+.payment-processing-card p{
+    margin:0;
+    color:#64748b;
+    font-size:15px;
+    line-height:1.5;
+}
+
 @keyframes paySpin{
     to{
         transform:rotate(360deg);
@@ -877,12 +944,12 @@ body{
     <div class="order-lines">
         <div class="order-row">
             <span><?= htmlspecialchars($billingLabel, ENT_QUOTES, 'UTF-8') ?></span>
-            <span class="order-value">&#8377;<?= number_format((float)$price,2) ?></span>
+            <span class="order-value">&#8377;<?= formatRoundedPrice($price) ?></span>
         </div>
 
         <div class="order-row">
             <span>GST (18%)</span>
-            <span class="order-value">&#8377;<?= number_format((float)$gst,2) ?></span>
+            <span class="order-value">&#8377;<?= formatRoundedPrice($gst) ?></span>
         </div>
     </div>
 
@@ -890,7 +957,7 @@ body{
 
     <div class="total-box">
         <span class="total-label">Total Amount</span>
-        <span class="total">&#8377;<?= number_format((float)$total,2) ?></span>
+        <span class="total">&#8377;<?= formatRoundedPrice($total) ?></span>
     </div>
 
     <div class="secure-list">
@@ -989,6 +1056,37 @@ function resetPayButton() {
     payBtn.disabled = false;
 }
 
+function showPaymentProcessing(title, text, isComplete = false) {
+    const overlay = document.getElementById('paymentProcessingOverlay');
+    const icon = document.getElementById('paymentProcessingIcon');
+    const titleEl = document.getElementById('paymentProcessingTitle');
+    const textEl = document.getElementById('paymentProcessingText');
+
+    if (!overlay || !icon || !titleEl || !textEl) {
+        return;
+    }
+
+    titleEl.textContent = title;
+    textEl.textContent = text;
+    icon.innerHTML = isComplete
+        ? '<i class="bi bi-check-lg"></i>'
+        : '<span class="pay-spinner"></span>';
+    overlay.classList.add('show');
+    overlay.setAttribute('aria-hidden', 'false');
+}
+
+function redirectAfterProcessing(url) {
+    showPaymentProcessing(
+        'Payment verified',
+        'Redirecting you to the confirmation page...',
+        true
+    );
+
+    setTimeout(() => {
+        window.location = url;
+    }, 500);
+}
+
 payBtn.addEventListener('click', async function() {
     const customerName = displayValue(verifiedUser.displayname);
     const customerEmail = displayValue(verifiedUser.email);
@@ -1070,6 +1168,10 @@ payBtn.addEventListener('click', async function() {
         handler:function(payment){
 
             setPayLoading('Verifying payment...');
+            showPaymentProcessing(
+                'Verifying payment',
+                'Please wait while we confirm your payment and prepare your subscription.'
+            );
 
             fetch(
                 '../api/payment-success.php',
@@ -1097,7 +1199,7 @@ payBtn.addEventListener('click', async function() {
            .then(res=>{
     if(res.success){
 
-       window.location =
+       const successUrl =
 "payment-success.php?payment_id=" +
 encodeURIComponent(res.payment_id) +
 "&order_id=" +
@@ -1107,6 +1209,7 @@ encodeURIComponent(res.subscription_id) +
 "&mode=<?= $mode ?>" +
 "&plan_id=<?= $planId ?>";
 
+        redirectAfterProcessing(successUrl);
         return;
     }
 
@@ -1149,6 +1252,17 @@ encodeURIComponent(res.subscription_id) +
 });
 
 </script>
+<div id="paymentProcessingOverlay" class="payment-processing-overlay" aria-live="polite" aria-hidden="true">
+    <div class="payment-processing-card">
+        <div class="payment-processing-icon" id="paymentProcessingIcon">
+            <span class="pay-spinner"></span>
+        </div>
+        <h2 id="paymentProcessingTitle">Verifying payment</h2>
+        <p id="paymentProcessingText">
+            Please wait while we confirm your payment and prepare your subscription.
+        </p>
+    </div>
+</div>
 <div id="toast" class="custom-toast"></div>
 </body>
 </html>
