@@ -371,7 +371,89 @@ if ($drivaultEndpoint === '' || $drivaultApiUsername === '' || $drivaultApiPassw
 }
 
 $url = rtrim($drivaultEndpoint, '/') . '/' . rawurlencode($username);
+if ($isRenewal) {
 
+    $previousQuota = (int)$subscription['previous_quota'];
+
+    if ($previousQuota <= 0) {
+
+        echo json_encode([
+            "success"=>false,
+            "message"=>"Previous quota not found."
+        ]);
+
+        exit;
+    }
+
+    $restoreGB = round(
+        $previousQuota /
+        1024 /
+        1024 /
+        1024
+    );
+
+    $restoreQuota = $restoreGB . "GB";
+
+    $ch = curl_init();
+
+    curl_setopt_array($ch,[
+
+        CURLOPT_URL=>$url,
+
+        CURLOPT_RETURNTRANSFER=>true,
+
+        CURLOPT_CUSTOMREQUEST=>"PUT",
+
+        CURLOPT_POSTFIELDS=>http_build_query([
+
+            "key"=>"quota",
+
+            "value"=>$restoreQuota
+
+        ]),
+
+        CURLOPT_USERPWD=>
+            $drivaultApiUsername
+            .":"
+            .$drivaultApiPassword,
+
+        CURLOPT_HTTPHEADER=>[
+            "OCS-APIRequest: true",
+            "Accept: application/json"
+        ]
+
+    ]);
+
+    $restoreResponse = curl_exec($ch);
+    $restoreHttpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+    if(curl_errno($ch)){
+
+        echo json_encode([
+            "success"=>false,
+            "message"=>curl_error($ch)
+        ]);
+
+        exit;
+    }
+
+    curl_close($ch);
+
+    if ($restoreHttpCode != 200) {
+
+        echo json_encode([
+            "success"=>false,
+            "message"=>"Unable to restore previous quota.",
+            "response"=>$restoreResponse
+        ]);
+
+        exit;
+    }
+
+    $quotaResult=[
+        "restored_quota"=>$restoreGB
+    ];
+}
 if (!$isRenewal) {
     // Get current quota
     $ch = curl_init();
@@ -503,18 +585,18 @@ $paymentType = $isRenewal ? 'renewal' : 'upgrade';
 $stmt = $conn->prepare(
     "UPDATE subscriptions
      SET
-        status = 'active',
-        payment_status = 'Success',
-        payment_type = ?,
-        razorpay_order_id = ?,
-        razorpay_payment_id = ?,
-        razorpay_signature = ?,
-        start_date = ?,
-        expiry_date = ?,
-        disabled_at = NULL,
-        reminder_7_sent = 0,
-        reminder_3_sent = 0,
-        reminder_1_sent = 0
+       status='active',
+       payment_status='Success',
+       previous_quota=NULL,
+       payment_type=?,
+       razorpay_order_id=?,
+       razorpay_payment_id=?,
+       razorpay_signature=?,
+       start_date=?,
+       expiry_date=?,
+       reminder_7_sent=0,
+       reminder_3_sent=0,
+       reminder_1_sent=0
      WHERE id = ?"
 );
 
@@ -541,56 +623,6 @@ $stmt = $conn->prepare("SELECT * FROM subscriptions WHERE id = ?");
 $stmt->bind_param("i", $subscription['id']);
 $stmt->execute();
 $updatedSubscription = $stmt->get_result()->fetch_assoc() ?: $subscription;
-
-/*
-|--------------------------------------------------------------------------
-| Enable User On Main Drivault Server
-|--------------------------------------------------------------------------
-*/
-
-$enableUrl = rtrim($drivaultEndpoint, '/') . '/' . rawurlencode($username) . '/enable';
-$enableCurl = curl_init();
-
-curl_setopt_array($enableCurl, [
-    CURLOPT_URL => $enableUrl,
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_CUSTOMREQUEST => 'PUT',
-    CURLOPT_USERPWD => $drivaultApiUsername . ':' . $drivaultApiPassword,
-    CURLOPT_HTTPHEADER => [
-        'OCS-APIRequest: true',
-        'Accept: application/json'
-    ]
-]);
-
-$enableResponse = curl_exec($enableCurl);
-$enableHttpCode = curl_getinfo($enableCurl, CURLINFO_HTTP_CODE);
-$enableError = curl_error($enableCurl);
-
-curl_close($enableCurl);
-
-if ($enableError) {
-    error_log('[payment-success] Enable user error for ' . $username . ': ' . $enableError);
-} elseif ($enableHttpCode != 200) {
-    error_log('[payment-success] Enable user failed for ' . $username . ': HTTP ' . $enableHttpCode . ' ' . $enableResponse);
-} else {
-    error_log('[payment-success] User enabled successfully: ' . $username);
-}
-
-$accountActiveEmailSent = false;
-
-if ($enableHttpCode == 200) {
-    try {
-        $accountActiveEmailSent = sendAccountActiveEmail($updatedSubscription);
-    } catch (Throwable $exception) {
-        error_log('[payment-success] Account active email error: ' . $exception->getMessage());
-    }
-
-    if ($accountActiveEmailSent) {
-        error_log('[payment-success] Account active email sent: ' . ($updatedSubscription['drivault_email'] ?? ''));
-    } else {
-        error_log('[payment-success] Account active email failed: ' . ($updatedSubscription['drivault_email'] ?? ''));
-    }
-}
 
 /*
 |--------------------------------------------------------------------------
@@ -673,9 +705,6 @@ echo json_encode([
     'order_id' => $orderId,
     'subscription_id' => $subscription['id'],
     'email_sent' => $emailSent,
-    'account_active_email_sent' => $accountActiveEmailSent,
-    'user_enabled' => ($enableHttpCode == 200),
-    'enable_http_code' => $enableHttpCode,
     'plan_id' => $planId,
     'quota' => $quotaResult
 ]);
