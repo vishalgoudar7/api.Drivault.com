@@ -202,6 +202,8 @@ $signature = $_POST['razorpay_signature'] ?? '';
 $name  = $_POST['name'] ?? '';
 $email = $_POST['email'] ?? '';
 $phone = $_POST['phone'] ?? '';
+$mode = $_POST['mode'] ?? 'new';
+$renewSubscriptionId = (int)($_POST['subscription_id'] ?? 0);
 
 
 if (!$orderId || !$paymentId || !$signature) {
@@ -242,12 +244,20 @@ try {
 |--------------------------------------------------------------------------
 */
 
-$stmt = $conn->prepare(
-    "SELECT * FROM subscriptions
-     WHERE razorpay_order_id = ?"
-);
+$isRenewal = $mode === 'renew';
 
-$stmt->bind_param("s", $orderId);
+$subscriptionSql = $isRenewal
+    ? "SELECT * FROM subscriptions WHERE id = ? LIMIT 1"
+    : "SELECT * FROM subscriptions WHERE razorpay_order_id = ? LIMIT 1";
+
+$stmt = $conn->prepare($subscriptionSql);
+
+if ($isRenewal) {
+    $stmt->bind_param("i", $renewSubscriptionId);
+} else {
+    $stmt->bind_param("s", $orderId);
+}
+
 $stmt->execute();
 
 $subscription = $stmt->get_result()->fetch_assoc();
@@ -294,17 +304,24 @@ if (!$plan) {
 |--------------------------------------------------------------------------
 */
 
-$quotaText = strtoupper(trim($plan['quota']));
+$quotaResult = null;
+$purchasedGB = 0;
 
-if (strpos($quotaText, 'TB') !== false) {
+if (!$isRenewal) {
+    $quotaText = strtoupper(trim($plan['quota']));
 
-    $planQuotaGB =
-        (float) str_replace('TB', '', $quotaText) * 1024;
+    if (strpos($quotaText, 'TB') !== false) {
 
-} else {
+        $planQuotaGB =
+            (float) str_replace('TB', '', $quotaText) * 1024;
 
-    $planQuotaGB =
-        (float) str_replace('GB', '', $quotaText);
+    } else {
+
+        $planQuotaGB =
+            (float) str_replace('GB', '', $quotaText);
+    }
+
+    $purchasedGB = $planQuotaGB;
 }
 
 /*
@@ -341,8 +358,6 @@ if (!$username) {
     exit;
 }
 
-$purchasedGB = $planQuotaGB;
-
 $drivaultEndpoint = trim((string) ($drivaultConfig['endpoint'] ?? 'https://login.drivault.com/ocs/v1.php/cloud/users'));
 $drivaultApiUsername = trim((string) ($drivaultConfig['username'] ?? ''));
 $drivaultApiPassword = trim((string) ($drivaultConfig['password'] ?? ''));
@@ -357,133 +372,160 @@ if ($drivaultEndpoint === '' || $drivaultApiUsername === '' || $drivaultApiPassw
 
 $url = rtrim($drivaultEndpoint, '/') . '/' . rawurlencode($username);
 
-// Get current quota
-$ch = curl_init();
+if (!$isRenewal) {
+    // Get current quota
+    $ch = curl_init();
 
-curl_setopt_array($ch, [
-    CURLOPT_URL => $url,
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_USERPWD => $drivaultApiUsername . ':' . $drivaultApiPassword,
-    CURLOPT_HTTPHEADER => [
-        "OCS-APIRequest: true",
-        "Accept: application/json"
-    ]
-]);
-
-$response = curl_exec($ch);
-
-if (curl_errno($ch)) {
-    echo json_encode([
-        'success' => false,
-        'message' => curl_error($ch)
+    curl_setopt_array($ch, [
+        CURLOPT_URL => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_USERPWD => $drivaultApiUsername . ':' . $drivaultApiPassword,
+        CURLOPT_HTTPHEADER => [
+            "OCS-APIRequest: true",
+            "Accept: application/json"
+        ]
     ]);
-    exit;
-}
 
-curl_close($ch);
+    $response = curl_exec($ch);
 
-$currentQuotaBytes = null;
-$decodedQuotaResponse = json_decode((string) $response, true);
-
-if (is_array($decodedQuotaResponse)) {
-    $quotaData = $decodedQuotaResponse['ocs']['data']['quota'] ?? [];
-
-    if (isset($quotaData['quota']) && is_numeric($quotaData['quota'])) {
-        $currentQuotaBytes = (int) $quotaData['quota'];
-    } elseif (isset($quotaData['total']) && is_numeric($quotaData['total'])) {
-        $currentQuotaBytes = (int) $quotaData['total'];
+    if (curl_errno($ch)) {
+        echo json_encode([
+            'success' => false,
+            'message' => curl_error($ch)
+        ]);
+        exit;
     }
-}
 
-if ($currentQuotaBytes === null) {
-    $xml = simplexml_load_string((string) $response);
+    curl_close($ch);
 
-    if ($xml && isset($xml->data->quota->quota)) {
-        $currentQuotaBytes = (int) $xml->data->quota->quota;
-    } elseif ($xml && isset($xml->data->quota->total)) {
-        $currentQuotaBytes = (int) $xml->data->quota->total;
+    $currentQuotaBytes = null;
+    $decodedQuotaResponse = json_decode((string) $response, true);
+
+    if (is_array($decodedQuotaResponse)) {
+        $quotaData = $decodedQuotaResponse['ocs']['data']['quota'] ?? [];
+
+        if (isset($quotaData['quota']) && is_numeric($quotaData['quota'])) {
+            $currentQuotaBytes = (int) $quotaData['quota'];
+        } elseif (isset($quotaData['total']) && is_numeric($quotaData['total'])) {
+            $currentQuotaBytes = (int) $quotaData['total'];
+        }
     }
-}
 
-if ($currentQuotaBytes === null) {
-    echo json_encode([
-        'success' => false,
-        'message' => 'Unable to read current storage quota'
+    if ($currentQuotaBytes === null) {
+        $xml = simplexml_load_string((string) $response);
+
+        if ($xml && isset($xml->data->quota->quota)) {
+            $currentQuotaBytes = (int) $xml->data->quota->quota;
+        } elseif ($xml && isset($xml->data->quota->total)) {
+            $currentQuotaBytes = (int) $xml->data->quota->total;
+        }
+    }
+
+    if ($currentQuotaBytes === null) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Unable to read current storage quota'
+        ]);
+        exit;
+    }
+
+    $currentGB = round(
+        $currentQuotaBytes / 1024 / 1024 / 1024
+    );
+
+    // Add purchased quota
+    $newGB = $currentGB + $purchasedGB;
+
+    $newQuota = $newGB . "GB";
+
+    // Update Nextcloud quota
+    $ch = curl_init();
+
+    curl_setopt_array($ch, [
+        CURLOPT_URL => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_USERPWD => $drivaultApiUsername . ':' . $drivaultApiPassword,
+        CURLOPT_POSTFIELDS => http_build_query([
+            "key" => "quota",
+            "value" => $newQuota
+        ]),
+        CURLOPT_CUSTOMREQUEST => "PUT",
+        CURLOPT_HTTPHEADER => [
+            "OCS-APIRequest: true",
+            "Accept: application/json"
+        ]
     ]);
-    exit;
+
+    $updateResponse = curl_exec($ch);
+
+    if (curl_errno($ch)) {
+        echo json_encode([
+            'success' => false,
+            'message' => curl_error($ch)
+        ]);
+        exit;
+    }
+
+    curl_close($ch);
+
+    $quotaResult = [
+        'username' => $username,
+        'old_quota' => $currentGB,
+        'added_quota' => $purchasedGB,
+        'new_quota' => $newGB
+    ];
 }
-
-$currentGB = round(
-    $currentQuotaBytes / 1024 / 1024 / 1024
-);
-
-// Add purchased quota
-$newGB = $currentGB + $purchasedGB;
-
-$newQuota = $newGB . "GB";
-
-// Update Nextcloud quota
-$ch = curl_init();
-
-curl_setopt_array($ch, [
-    CURLOPT_URL => $url,
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_USERPWD => $drivaultApiUsername . ':' . $drivaultApiPassword,
-    CURLOPT_POSTFIELDS => http_build_query([
-        "key" => "quota",
-        "value" => $newQuota
-    ]),
-    CURLOPT_CUSTOMREQUEST => "PUT",
-    CURLOPT_HTTPHEADER => [
-        "OCS-APIRequest: true",
-        "Accept: application/json"
-    ]
-]);
-
-$updateResponse = curl_exec($ch);
-
-if (curl_errno($ch)) {
-    echo json_encode([
-        'success' => false,
-        'message' => curl_error($ch)
-    ]);
-    exit;
-}
-
-curl_close($ch);
-
-$quotaResult = [
-    'username' => $username,
-    'old_quota' => $currentGB,
-    'added_quota' => $purchasedGB,
-    'new_quota' => $newGB
-];
 /*
 |--------------------------------------------------------------------------
 | Update Subscription
 |--------------------------------------------------------------------------
 */
 
+$base = new DateTime();
+
+if ($isRenewal) {
+    if (!empty($subscription['expiry_date']) &&
+        strtotime($subscription['expiry_date']) > time()) {
+        $base = new DateTime($subscription['expiry_date']);
+    }
+}
+
+if ($subscription['billing_cycle'] === 'yearly') {
+    $base->modify('+1 year');
+} else {
+    $base->modify('+1 month');
+}
+
+$newExpiry = $base->format('Y-m-d H:i:s');
+$newStart = date('Y-m-d H:i:s');
+$paymentType = $isRenewal ? 'renewal' : 'upgrade';
+
 $stmt = $conn->prepare(
     "UPDATE subscriptions
      SET
         status = 'active',
         payment_status = 'Success',
+        payment_type = ?,
+        razorpay_order_id = ?,
         razorpay_payment_id = ?,
         razorpay_signature = ?,
-        start_date = NOW(),
-        expiry_date = CASE
-            WHEN billing_cycle = 'yearly' THEN DATE_ADD(NOW(), INTERVAL 1 YEAR)
-            ELSE DATE_ADD(NOW(), INTERVAL 1 MONTH)
-        END,
-        disabled_at = NULL
+        start_date = ?,
+        expiry_date = ?,
+        disabled_at = NULL,
+        reminder_7_sent = 0,
+        reminder_3_sent = 0,
+        reminder_1_sent = 0
      WHERE id = ?"
 );
 
 $stmt->bind_param(
-    "ssi",
+    "ssssssi",
+    $paymentType,
+    $orderId,
     $paymentId,
     $signature,
+    $newStart,
+    $newExpiry,
     $subscription['id']
 );
 
@@ -564,21 +606,23 @@ $stmt = $conn->prepare(
         razorpay_order_id,
         razorpay_payment_id,
         amount,
+        payment_type,
         status
     )
     VALUES
     (
-        ?, ?, ?, ?, ?, 'success'
+        ?, ?, ?, ?, ?, ?, 'success'
     )"
 );
 
 $stmt->bind_param(
-    "sissd",
+    "sissds",
     $userId,
     $subscription['id'],
     $orderId,
     $paymentId,
-    $subscription['paid_amount']
+    $subscription['paid_amount'],
+    $paymentType
 );
 
 if (!$stmt->execute()) {
@@ -618,9 +662,13 @@ try {
 | Success Response
 |--------------------------------------------------------------------------
 */
+$successMessage = $isRenewal
+    ? 'Payment successful. Subscription renewed.'
+    : 'Payment successful. Storage upgraded.';
+
 echo json_encode([
     'success' => true,
-    'message' => 'Payment successful. Storage upgraded.',
+    'message' => $successMessage,
     'payment_id' => $paymentId,
     'order_id' => $orderId,
     'subscription_id' => $subscription['id'],

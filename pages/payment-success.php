@@ -8,6 +8,7 @@ $paymentId = trim($_GET['payment_id'] ?? '');
 $orderId = trim($_GET['order_id'] ?? '');
 $subscriptionId = (int)($_GET['subscription_id'] ?? 0);
 $planId = (int)($_GET['plan_id'] ?? 0);
+$mode = $_GET['mode'] ?? 'new';
 
 $subscription = null;
 
@@ -563,8 +564,29 @@ body{
             <i class="bi bi-check-lg"></i>
         </div>
 
-        <h1 class="success-title">Payment Successful!</h1>
-        <p class="success-subtitle">Thank you! Your storage package has been added to your Drivault account.</p>
+        <h1 class="success-title">
+<?php
+if ($mode === 'renew') {
+    echo 'Subscription Renewed!';
+} elseif ($mode === 'upgrade') {
+    echo 'Storage Upgraded!';
+} else {
+    echo 'Payment Successful!';
+}
+?>
+</h1>
+
+<p class="success-subtitle">
+<?php
+if ($mode === 'renew') {
+    echo 'Your subscription has been renewed successfully.';
+} elseif ($mode === 'upgrade') {
+    echo 'Your storage has been upgraded successfully.';
+} else {
+    echo 'Thank you! Your storage package has been added to your Drivault account.';
+}
+?>
+</p>
 
         <?php if ($plan): ?>
             <div class="text-center">

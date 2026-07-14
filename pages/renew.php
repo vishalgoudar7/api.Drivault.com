@@ -3,6 +3,26 @@ session_start();
 
 require '../config/db.php';
 
+function getRenewalUsername(array $subscription): string
+{
+    $candidates = [
+        $subscription['drivault_phone'] ?? '',
+        $subscription['drivault_email'] ?? '',
+        $subscription['drivault_display_name'] ?? '',
+        $subscription['user_id'] ?? '',
+    ];
+
+    foreach ($candidates as $candidate) {
+        $candidate = trim((string) $candidate);
+
+        if ($candidate !== '' && $candidate !== '-' && $candidate !== '0') {
+            return $candidate;
+        }
+    }
+
+    return '';
+}
+
 if (!isset($_GET['subscription_id'])) {
     die("Subscription not found.");
 }
@@ -26,13 +46,19 @@ if (!$subscription) {
     die("Invalid subscription.");
 }
 
+$username = getRenewalUsername($subscription);
+
+if ($username === '') {
+    die("Drivault user not found for this subscription.");
+}
+
 header(
     "Location: checkout.php?" .
     http_build_query([
         'plan_id'         => $subscription['plan_id'],
-        'username'        => $subscription['user_id'],
+        'username'        => $username,
         'billing_cycle'   => $subscription['billing_cycle'],
-        'renewal'         => 1,
+        'mode'            => 'renew',
         'subscription_id' => $subscription['id']
     ])
 );

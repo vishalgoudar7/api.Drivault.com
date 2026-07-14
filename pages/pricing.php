@@ -431,45 +431,189 @@ body{
 
 .pricing-grid > div{min-width:0}
 
+.modal-backdrop.show{
+    opacity:.68;
+    background:#111827;
+}
+
+#verifyPlanModal .modal-dialog{
+    max-width:640px;
+}
+
 .verify-modal-content{
-    border:1px solid #e5e7eb;
-    border-radius:20px;
-    box-shadow:0 18px 45px rgba(15,23,42,.16);
+    border:1px solid rgba(226,232,240,.9);
+    border-radius:22px;
+    box-shadow:0 24px 70px rgba(15,23,42,.32);
+    overflow:hidden;
 }
 
 .verify-modal-header{
-    border-bottom:1px solid #eef2f7;
-    padding:22px 24px;
+    border-bottom:none;
+    padding:22px 26px 0;
+    justify-content:flex-end;
+}
+
+.verify-modal-header .btn-close{
+    width:24px;
+    height:24px;
+    margin:0;
+    opacity:.68;
+    transform:scale(1.15);
+}
+
+.verify-modal-body{
+    padding:0 52px 28px;
+}
+
+.verify-hero{
+    text-align:center;
+}
+
+.verify-logo-halo{
+    width:auto;
+    height:auto;
+    margin:0 auto 12px;
+    border-radius:0;
+    background:transparent;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+}
+
+.verify-logo-halo::before,
+.verify-logo-halo::after{
+    content:none;
+}
+
+.verify-logo{
+    width:66px;
+    height:66px;
+    border-radius:18px;
+    object-fit:cover;
+    box-shadow:none;
+    position:relative;
+    z-index:1;
 }
 
 .verify-modal-title{
     color:#0f172a;
-    font-size:22px;
-    font-weight:700;
+    font-size:28px;
+    font-weight:800;
+    line-height:1.15;
+    margin:0 0 12px;
 }
 
-.verify-modal-body{
-    padding:24px;
+.verify-modal-title span{
+    color:#12b76a;
+}
+
+.verify-subtitle{
+    max-width:460px;
+    margin:0 auto 24px;
+    color:#64748b;
+    font-size:17px;
+    line-height:1.45;
+}
+
+.verify-form-label{
+    color:#111827;
+    font-size:17px;
+    font-weight:800;
+    margin-bottom:10px;
+}
+
+.verify-input-wrap{
+    position:relative;
+}
+
+.verify-input-icon{
+    position:absolute;
+    left:20px;
+    top:50%;
+    transform:translateY(-50%);
+    color:#12b76a;
+    font-size:22px;
+    pointer-events:none;
+}
+
+.verify-input{
+    border:1px solid #cbd5e1;
+    border-radius:10px;
+    min-height:58px;
+    padding:14px 18px 14px 58px;
+    color:#0f172a;
+    font-size:17px;
+    box-shadow:none;
+}
+
+.verify-input:focus{
+    border-color:#12b76a;
+    box-shadow:0 0 0 4px rgba(18,183,106,.12);
+}
+
+.verify-input::placeholder{
+    color:#94a3b8;
+}
+
+.verify-trust-strip{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:0;
+    margin:20px 0 22px;
+    border-radius:12px;
+    background:linear-gradient(90deg,#f3fbf7,#eef9f3);
+    overflow:hidden;
+}
+
+.verify-trust-item{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    min-height:72px;
+    padding:14px 18px;
+    color:#475569;
+    font-size:14px;
+    font-weight:700;
+    line-height:1.35;
+}
+
+.verify-trust-item + .verify-trust-item{
+    border-left:1px solid #dbe7df;
+}
+
+.verify-trust-item i{
+    color:#12b76a;
+    font-size:25px;
+    flex:0 0 auto;
 }
 
 .verify-modal-footer{
     border-top:none;
-    padding:0 24px 24px;
+    padding:0;
+    display:block;
 }
 
 .btn-verify-modal{
-    background:#38d989;
-    border:2px solid #38d989;
+    background:linear-gradient(180deg,#18c96e,#08a94f);
+    border:0;
     color:#fff;
     border-radius:12px;
-    min-height:52px;
-    padding:12px;
+    min-height:58px;
+    padding:12px 18px;
     width:100%;
-    font-weight:600;
+    font-size:19px;
+    font-weight:800;
     display:flex;
     align-items:center;
     justify-content:center;
+    gap:14px;
+    box-shadow:0 14px 28px rgba(18,183,106,.24);
     transition:all .25s ease;
+}
+
+.btn-verify-modal i{
+    font-size:25px;
 }
 
 .btn-verify-modal:hover{
@@ -481,6 +625,26 @@ body{
 .btn-verify-modal:disabled{
     opacity:.78;
     pointer-events:none;
+}
+
+.verify-help{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    margin:20px 0 0;
+    color:#64748b;
+    font-size:14px;
+    text-align:center;
+}
+
+.verify-help i{
+    color:#64748b;
+    font-size:18px;
+}
+
+.verify-help span{
+    color:#12b76a;
 }
 
 .custom-toast {
@@ -642,6 +806,76 @@ body{
 
     .feature-list li{
         font-size:14px;
+    }
+
+    #verifyPlanModal .modal-dialog{
+        max-width:calc(100% - 24px);
+        margin:12px auto;
+    }
+
+    .verify-modal-content{
+        border-radius:22px;
+    }
+
+    .verify-modal-header{
+        padding:22px 22px 0;
+    }
+
+    .verify-modal-body{
+        padding:0 22px 26px;
+    }
+
+    .verify-logo-halo{
+        width:auto;
+        height:auto;
+    }
+
+    .verify-logo{
+        width:60px;
+        height:60px;
+        border-radius:16px;
+    }
+
+    .verify-modal-title{
+        font-size:24px;
+    }
+
+    .verify-subtitle{
+        font-size:16px;
+    }
+
+    .verify-form-label{
+        font-size:17px;
+    }
+
+    .verify-input{
+        min-height:62px;
+        font-size:16px;
+        padding-left:58px;
+    }
+
+    .verify-input-icon{
+        left:20px;
+        font-size:22px;
+    }
+
+    .verify-trust-strip{
+        grid-template-columns:1fr;
+    }
+
+    .verify-trust-item{
+        min-height:64px;
+        padding:14px 18px;
+    }
+
+    .verify-trust-item + .verify-trust-item{
+        border-left:none;
+        border-top:1px solid #dbe7df;
+    }
+
+    .btn-verify-modal{
+        min-height:56px;
+        font-size:17px;
     }
 }
 
@@ -975,7 +1209,6 @@ body{
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content verify-modal-content">
             <div class="modal-header verify-modal-header">
-                <h5 class="modal-title verify-modal-title">Verify Your Drivault Account</h5>
                 <button type="button"
                         class="btn-close"
                         data-bs-dismiss="modal"
@@ -983,23 +1216,53 @@ body{
             </div>
 
             <div class="modal-body verify-modal-body">
-                <label class="form-label fw-semibold" for="modalUsername">
-                    Drivault Username or Email
-                </label>
-                <input type="text"
-                       class="form-control form-control-lg"
-                       id="modalUsername"
-                       autocomplete="off"
-                       placeholder="Enter your Drivault Username or Email">
-                <div id="modalUsernameError" class="text-danger small mt-2"></div>
-            </div>
+                <div class="verify-hero">
+                    <div class="verify-logo-halo">
+                        <img src="../assets/Photos/icon-192.png" alt="Drivault" class="verify-logo">
+                    </div>
+                    <h5 class="modal-title verify-modal-title">
+                        Verify Your <span>Drivault</span> Account
+                    </h5>
+                    <p class="verify-subtitle">
+                        Enter your Drivault username or email to verify your account before purchasing additional cloud storage.
+                    </p>
+                </div>
 
-            <div class="modal-footer verify-modal-footer">
-                <button type="button"
-                        class="btn btn-verify-modal"
-                        id="continueVerifyBtn">
-                    Continue
-                </button>
+                <label class="verify-form-label" for="modalUsername">Drivault Username or Email</label>
+                <div class="verify-input-wrap">
+                    <i class="bi bi-person verify-input-icon"></i>
+                    <input type="text"
+                           class="form-control verify-input"
+                           id="modalUsername"
+                           autocomplete="off"
+                           placeholder="e.g. john.doe or john@example.com">
+                </div>
+                <div id="modalUsernameError" class="text-danger small mt-2"></div>
+
+                <div class="verify-trust-strip">
+                    <div class="verify-trust-item">
+                        <i class="bi bi-shield-lock"></i>
+                        <span>Secure verification</span>
+                    </div>
+                    <div class="verify-trust-item">
+                        <i class="bi bi-lock"></i>
+                        <span>No password required</span>
+                    </div>
+                    <div class="verify-trust-item">
+                        <i class="bi bi-lightning-charge"></i>
+                        <span>Takes only a few seconds</span>
+                    </div>
+                </div>
+
+                <div class="modal-footer verify-modal-footer">
+                    <button type="button"
+                            class="btn btn-verify-modal"
+                            id="continueVerifyBtn">
+                        <i class="bi bi-shield-check"></i>
+                        <span>Verify &amp; Continue</span>
+                    </button>
+                </div>
+
             </div>
         </div>
     </div>
@@ -1066,7 +1329,7 @@ function setContinueLoading(isLoading) {
     continueVerifyBtn.disabled = isLoading;
     continueVerifyBtn.innerHTML = isLoading
         ? '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Verifying...'
-        : 'Continue';
+        : '<i class="bi bi-shield-check"></i><span>Verify &amp; Continue</span>';
 }
 
 function setCheckoutLoading(btn) {
@@ -1149,7 +1412,8 @@ async function verifySelectedPlan() {
             '&username=' +
             encodeURIComponent(verifiedUsername) +
             '&billing_cycle=' +
-            encodeURIComponent(selectedBillingCycle);
+            encodeURIComponent(selectedBillingCycle) +
+            '&mode=upgrade';
 
         shouldRedirect = true;
         continueVerifyBtn.disabled = true;

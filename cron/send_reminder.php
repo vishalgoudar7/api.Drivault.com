@@ -5,6 +5,62 @@ require_once __DIR__ . '/../vendor/autoload.php';
 use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\PHPMailer;
 
+function isLocalRequestHost(string $host): bool
+{
+    $host = strtolower(trim(explode(':', $host)[0]));
+
+    return in_array($host, ['localhost', '127.0.0.1', '::1'], true);
+}
+
+function encodeUrlPath(string $path): string
+{
+    $parts = array_filter(explode('/', trim(str_replace('\\', '/', $path), '/')), 'strlen');
+
+    return $parts ? '/' . implode('/', array_map('rawurlencode', $parts)) : '';
+}
+
+function getMailBaseUrl(): string
+{
+    $host = (string) ($_SERVER['HTTP_HOST'] ?? '');
+    $appConfig = require __DIR__ . '/../config/app.php';
+
+    if ($host !== '' && isLocalRequestHost($host)) {
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $localPath = rawurldecode(parse_url((string) ($appConfig['local_url'] ?? ''), PHP_URL_PATH) ?: '');
+
+        return rtrim($scheme . '://' . $host . encodeUrlPath($localPath), '/');
+    }
+
+    $configuredBaseUrl = trim((string) (getenv('APP_MAIL_BASE_URL') ?: ($appConfig['production_url'] ?? '')));
+
+    return rtrim($configuredBaseUrl !== '' ? $configuredBaseUrl : 'https://api.drivault.com', '/');
+}
+
+function buildMailUrl(string $path, array $query = []): string
+{
+    $url = getMailBaseUrl() . '/' . ltrim($path, '/');
+
+    if ($query) {
+        $url .= '?' . http_build_query($query);
+    }
+
+    return $url;
+}
+
+function getMailWebsiteDisplay(): string
+{
+    $host = (string) ($_SERVER['HTTP_HOST'] ?? '');
+
+    if ($host !== '' && isLocalRequestHost($host)) {
+        $appConfig = require __DIR__ . '/../config/app.php';
+        $localPath = rawurldecode(parse_url((string) ($appConfig['local_url'] ?? ''), PHP_URL_PATH) ?: '');
+
+        return rtrim($host . encodeUrlPath($localPath), '/');
+    }
+
+    return 'api.drivault.com';
+}
+
 function sendMail(string $to, string $subject, string $message): bool
 {
     $mailConfig = require __DIR__ . '/../config/mail.php';
@@ -75,8 +131,8 @@ function sendReminder(array $row, int $days): bool
     $planName = trim((string) ($row['plan_name'] ?? 'Drivault Plan'));
     $expiryDate = trim((string) ($row['expiry_date'] ?? ''));
     $supportEmail = 'support@drivault.com';
-    $websiteDisplay = 'api.drivault.com';
-    $renewUrl = 'https://api.drivault.com/pages/pricing.php';
+    $websiteDisplay = getMailWebsiteDisplay();
+    $renewUrl = buildMailUrl('pages/renew.php', ['subscription_id' => $row['id']]);
 
     $subject = "Your Drivault Subscription Expires in {$days} Day(s)";
 
@@ -158,8 +214,8 @@ function sendAccountDisabledEmail(array $row): bool
     $planName = trim((string) ($row['plan_name'] ?? 'Drivault Plan'));
     $expiryDate = trim((string) ($row['expiry_date'] ?? ''));
     $supportEmail = 'support@drivault.com';
-    $websiteDisplay = 'api.drivault.com';
-    $renewUrl = 'https://api.drivault.com/pages/pricing.php';
+    $websiteDisplay = getMailWebsiteDisplay();
+    $renewUrl = buildMailUrl('pages/renew.php', ['subscription_id' => $row['id']]);
 
     $subject = 'Your Drivault Account Has Been Disabled';
 
@@ -244,8 +300,8 @@ function sendAccountActiveEmail(array $row): bool
     $paidAmount = number_format((float) ($row['paid_amount'] ?? 0), 2);
     $paymentId = trim((string) ($row['razorpay_payment_id'] ?? ''));
     $supportEmail = 'support@drivault.com';
-    $websiteDisplay = 'api.drivault.com';
-    $dashboardUrl = 'https://api.drivault.com/pages/pricing.php';
+    $websiteDisplay = getMailWebsiteDisplay();
+    $dashboardUrl = buildMailUrl('pages/pricing.php');
 
     $subject = 'Your Drivault Account Is Active';
 

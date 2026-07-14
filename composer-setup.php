@@ -44,6 +44,8 @@ function setupEnvironment()
 
 /**
  * Processes the installer
+ *
+ * @param array $argv Command-line arguments
  */
 function process($argv)
 {
@@ -366,7 +368,12 @@ function getPlatformIssues(&$errors, &$warnings, $install)
         );
     }
 
-    if (extension_loaded('ionCube Loader') && ioncube_loader_iversion() < 40009) {
+    if (
+        extension_loaded('ionCube Loader')
+        && function_exists('ioncube_loader_iversion')
+        && function_exists('ioncube_loader_version')
+        && ioncube_loader_iversion() < 40009
+    ) {
         $ioncube = ioncube_loader_version();
         $errors['ioncube'] = array(
             'Your ionCube Loader extension ('.$ioncube.') is incompatible with Phar files.',
@@ -535,6 +542,10 @@ function showSecurityWarning($disableTls)
 
 /**
  * colorize output
+ *
+ * @param string $text Output text
+ * @param null|string $color Output color name
+ * @param bool $newLine Whether to append a newline
  */
 function out($text, $color = null, $newLine = true)
 {
@@ -636,6 +647,11 @@ function useXdg()
     return false;
 }
 
+/**
+ * @param string $contents CA file contents
+ *
+ * @return bool
+ */
 function validateCaFile($contents)
 {
     // assume the CA is valid if php is vulnerable to
@@ -685,18 +701,31 @@ function getIniMessage()
 
 class Installer
 {
+    /** @var bool */
     private $quiet;
+    /** @var bool */
     private $disableTls;
+    /** @var false|string */
     private $cafile;
+    /** @var string */
     private $displayPath;
+    /** @var string */
     private $target;
+    /** @var string */
     private $tmpFile;
+    /** @var null|string */
     private $tmpCafile;
+    /** @var string */
     private $baseUrl;
+    /** @var int|string */
     private $algo;
+    /** @var ErrorHandler */
     private $errHandler;
+    /** @var HttpClient */
     private $httpClient;
+    /** @var array */
     private $pubKeys = array();
+    /** @var array */
     private $installs = array();
 
     /**
@@ -704,7 +733,7 @@ class Installer
      *
      * @param bool $quiet Quiet mode
      * @param bool $disableTls Bypass tls
-     * @param mixed $cafile Path to CA bundle, or false
+     * @param mixed $caFile Path to CA bundle, or false
      */
     public function __construct($quiet, $disableTls, $caFile)
     {
@@ -883,6 +912,9 @@ class Installer
         $result = false;
         $infoMsg = 'Downloading...';
         $infoType = 'info';
+        $url = '';
+        $signature = '';
+        $error = '';
 
         while ($retries--) {
             if (!$this->quiet) {
@@ -935,6 +967,7 @@ class Installer
     protected function getVersion($channel, &$version, &$url, &$error)
     {
         $error = '';
+        $data = array();
 
         if ($version) {
             if (empty($url)) {
@@ -1179,6 +1212,8 @@ class Installer
      */
     protected function cleanUp($result)
     {
+        $errors = array();
+
         if ($this->quiet) {
             // Ensure output buffers are emptied
             $errors = explode(PHP_EOL, (string) ob_get_clean());
@@ -1274,7 +1309,9 @@ PKTAGS;
 
 class ErrorHandler
 {
+    /** @var string */
     public $message;
+    /** @var bool */
     protected $active;
 
     /**
@@ -1321,12 +1358,18 @@ class ErrorHandler
 
 class NoProxyPattern
 {
+    /** @var bool */
     private $composerInNoProxy = false;
+    /** @var array */
     private $rulePorts = array();
 
+    /**
+     * @param string $pattern No-proxy pattern
+     */
     public function __construct($pattern)
     {
-        $rules = preg_split('{[\s,]+}', $pattern, null, PREG_SPLIT_NO_EMPTY);
+        $rules = preg_split('{[\s,]+}', $pattern, -1, PREG_SPLIT_NO_EMPTY);
+        $rules = is_array($rules) ? $rules : array();
 
         if ($matches = preg_grep('{getcomposer\.org(?::\d+)?}i', $rules)) {
             $this->composerInNoProxy = true;
@@ -1389,10 +1432,17 @@ class HttpClient {
         }
     }
 
+    /**
+     * @param string $url URL to fetch
+     *
+     * @return false|string
+     */
     public function get($url)
     {
+        $http_response_header = array();
+
         if (function_exists('http_clear_last_response_headers')) {
-           $http_response_header = http_clear_last_response_headers();
+           http_clear_last_response_headers();
         }
 
         $context = $this->getStreamContext($url);
@@ -1430,6 +1480,11 @@ class HttpClient {
         return $result;
     }
 
+    /**
+     * @param string $url URL to fetch
+     *
+     * @return resource
+     */
     protected function getStreamContext($url)
     {
         if ($this->disableTls === false) {
@@ -1441,6 +1496,11 @@ class HttpClient {
         return $this->getMergedStreamContext($url);
     }
 
+    /**
+     * @param false|string $cafile Path to CA bundle, or false
+     *
+     * @return array
+     */
     protected function getTlsStreamContextDefaults($cafile)
     {
         $ciphers = implode(':', array(

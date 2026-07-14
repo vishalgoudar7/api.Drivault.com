@@ -18,6 +18,8 @@ session_start();
 $user_id = trim((string) ($_POST['user_id'] ?? ''));
 $plan_id = (int) ($_POST['plan_id'] ?? 0);
 $billing_cycle = strtolower(trim((string) ($_POST['billing_cycle'] ?? 'monthly')));
+$mode = $_POST['mode'] ?? 'new';
+$subscriptionId = (int)($_POST['subscription_id'] ?? 0);
 $name  = $_POST['name'] ?? '';
 $email = $_POST['email'] ?? '';
 $phone = trim((string) ($_POST['phone'] ?? ''));
@@ -120,7 +122,19 @@ $order = $api->order->create([
     'currency' => 'INR'
 ]);
 
-$orderId = $order['id'];
+$orderId = (string) $order['id'];
+
+if ($mode === 'renew') {
+
+    echo json_encode([
+        'success' => true,
+        'subscription_id' => $subscriptionId,
+        'order_id' => $orderId,
+        'amount' => $amountPaise,
+        'key' => $config['key_id']
+    ]);
+    exit;
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -131,6 +145,7 @@ $orderId = $order['id'];
 $paymentMethod = "Razorpay";
 $paymentStatus = "Pending";
 $subscriptionStatus = "Pending";
+$paymentType = "upgrade";
 
 $stmt = $conn->prepare("
 INSERT INTO subscriptions
@@ -154,17 +169,18 @@ INSERT INTO subscriptions
     save_amount,
 
     payment_method,
+    payment_type,
     payment_status,
     status
 )
 VALUES
 (
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 )
 ");
 
 $stmt->bind_param(
-    "sisssdssssdddidsss",
+    "sisssdssssdddidssss",
 
     $user_id,
     $plan_id,
@@ -185,6 +201,7 @@ $stmt->bind_param(
     $saveAmount,
 
     $paymentMethod,
+    $paymentType,
     $paymentStatus,
     $subscriptionStatus
 );

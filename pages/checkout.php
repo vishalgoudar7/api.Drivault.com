@@ -79,6 +79,42 @@ function formatBytesToGb(mixed $value): string
     return rtrim(rtrim($formatted, '0'), '.') . ' GB';
 }
 
+function formatStorageAmount(mixed $value): string
+{
+    if ($value === null || $value === '') {
+        return '-';
+    }
+
+    if (!is_numeric($value)) {
+        return (string) $value;
+    }
+
+    $gb = ((float) $value) / 1024 / 1024 / 1024;
+
+    if ($gb >= 1024) {
+        $tb = $gb / 1024;
+        $formatted = number_format($tb, 1);
+
+        return rtrim(rtrim($formatted, '0'), '.') . ' TB';
+    }
+
+    $decimals = $gb >= 10 ? 0 : 2;
+    $formatted = number_format($gb, $decimals);
+
+    return rtrim(rtrim($formatted, '0'), '.') . ' GB';
+}
+
+function formatAvailableStorage(mixed $used, mixed $total): string
+{
+    if (!is_numeric($used) || !is_numeric($total)) {
+        return '-';
+    }
+
+    $available = max(0, (float) $total - (float) $used);
+
+    return formatStorageAmount($available);
+}
+
 if (!isset($_GET['plan_id'])) {
     die("Plan not found");
 }
@@ -86,6 +122,9 @@ if (!isset($_GET['plan_id'])) {
 $planId = (int)$_GET['plan_id'];
 $username = trim((string) ($_GET['username'] ?? ''));
 $billingCycle = strtolower(trim((string) ($_GET['billing_cycle'] ?? 'monthly')));
+$mode = $_GET['mode'] ?? 'new';
+$subscriptionId = (int)($_GET['subscription_id'] ?? 0);
+
 
 if (!in_array($billingCycle, ['monthly', 'yearly'], true)) {
     $billingCycle = 'monthly';
@@ -739,9 +778,24 @@ body{
 <header class="checkout-hero">
     <div class="checkout-hero-title">
         <i class="bi bi-shield-check hero-icon"></i>
-        <h1>Checkout</h1>
+        <h1>
+            <?= $mode == 'renew'
+                ? 'Renew Subscription'
+                : ($mode == 'upgrade'
+                    ? 'Upgrade Storage'
+                    : 'Checkout')
+            ?>
+        </h1>
     </div>
-    <p>Complete your payment and upgrade your storage</p>
+
+    <p>
+        <?= $mode == 'renew'
+            ? 'Renew your Drivault subscription'
+            : ($mode == 'upgrade'
+                ? 'Upgrade your storage plan'
+                : 'Complete your payment and upgrade your storage')
+        ?>
+    </p>
 </header>
 
 <div class="checkout-grid">
@@ -784,17 +838,19 @@ body{
 
         <div class="detail-row">
             <div class="detail-icon"><i class="bi bi-pie-chart"></i></div>
-            <div class="detail-label">Current Storage Used</div>
+            <div class="detail-label">Storage Used</div>
             <div class="detail-value">
-                <?= htmlspecialchars(formatBytesToGb($verifiedUser['quota']['used'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                <?= htmlspecialchars(formatStorageAmount($verifiedUser['quota']['used'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                of
+                <?= htmlspecialchars(formatStorageAmount($verifiedUser['quota']['total'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
             </div>
         </div>
 
         <div class="detail-row">
             <div class="detail-icon"><i class="bi bi-database"></i></div>
-            <div class="detail-label">Total Storage</div>
+            <div class="detail-label">Available Storage</div>
             <div class="detail-value">
-                <?= htmlspecialchars(formatBytesToGb($verifiedUser['quota']['total'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                <?= htmlspecialchars(formatAvailableStorage($verifiedUser['quota']['used'] ?? '', $verifiedUser['quota']['total'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
             </div>
         </div>
     </div>
@@ -858,11 +914,18 @@ body{
 
 <div class="checkout-action">
     <button
-        class="btn btn-pay btn-success w-100"
-        id="payBtn">
-        <i class="bi bi-lock-fill"></i>
-        <span>Proceed to Pay</span>
-    </button>
+    class="btn btn-pay btn-success w-100"
+    id="payBtn">
+    <i class="bi bi-lock-fill"></i>
+    <span>
+        <?= $mode == 'renew'
+            ? 'Renew Now'
+            : ($mode == 'upgrade'
+                ? 'Upgrade Now'
+                : 'Proceed to Pay')
+        ?>
+    </span>
+</button>
 
     <p class="payment-note">
         You will be redirected to Razorpay to complete your payment securely.
@@ -947,13 +1010,15 @@ payBtn.addEventListener('click', async function() {
                         'application/x-www-form-urlencoded'
                 },
                 body: new URLSearchParams({
-                    user_id: customerUserId,
-                    plan_id: '<?= $planId ?>',
-                    billing_cycle: '<?= $billingCycle ?>',
-                    name: customerName,
-                    email: customerEmail,
-                    phone: customerPhone || storageAccountId
-                })
+    user_id: customerUserId,
+    plan_id: '<?= $planId ?>',
+    billing_cycle: '<?= $billingCycle ?>',
+    mode: '<?= $mode ?>',
+    subscription_id: '<?= $subscriptionId ?>',
+    name: customerName,
+    email: customerEmail,
+    phone: customerPhone || storageAccountId
+})
             }
         );
 
@@ -1014,36 +1079,33 @@ payBtn.addEventListener('click', async function() {
                         'Content-Type':
                         'application/x-www-form-urlencoded'
                     },
-                    body:new URLSearchParams({
-                        razorpay_order_id:
-                        payment.razorpay_order_id,
+                   body:new URLSearchParams({
+    razorpay_order_id: payment.razorpay_order_id,
+    razorpay_payment_id: payment.razorpay_payment_id,
+    razorpay_signature: payment.razorpay_signature,
 
-                        razorpay_payment_id:
-                        payment.razorpay_payment_id,
+    mode: '<?= $mode ?>',
+    subscription_id: '<?= $subscriptionId ?>',
 
-                        razorpay_signature:
-                        payment.razorpay_signature,
-
-                        name: customerName,
-                        email: customerEmail,
-                        phone: customerPhone || storageAccountId
-                    })
+    name: customerName,
+    email: customerEmail,
+    phone: customerPhone || storageAccountId
+})
                 }
             )
             .then(r=>r.json())
            .then(res=>{
     if(res.success){
 
-        window.location =
-            "payment-success.php?payment_id=" +
-            encodeURIComponent(res.payment_id) +
-            "&order_id=" +
-            encodeURIComponent(res.order_id) +
-            "&subscription_id=" +
-            encodeURIComponent(res.subscription_id) +
-            "&signature=" +
-            encodeURIComponent(payment.razorpay_signature) +
-            "&plan_id=<?= $planId ?>";
+       window.location =
+"payment-success.php?payment_id=" +
+encodeURIComponent(res.payment_id) +
+"&order_id=" +
+encodeURIComponent(res.order_id) +
+"&subscription_id=" +
+encodeURIComponent(res.subscription_id) +
+"&mode=<?= $mode ?>" +
+"&plan_id=<?= $planId ?>";
 
         return;
     }
