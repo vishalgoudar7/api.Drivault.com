@@ -1,16 +1,16 @@
 <?php
 // for production
-// $host = "localhost";
-// $dbname = "invitation_system";
-// $username = "drivault_user";
-// $password = "Drivault@123";
+$host = "localhost";
+$dbname = "invitation_system";
+$username = "drivault_user";
+$password = "Drivault@123";
 
 
 //for local testing
-$host = "localhost";
-$dbname = "invitation_system";
-$username = "root";
-$password = "";
+// $host = "localhost";
+// $dbname = "invitation_system";
+// $username = "root";
+// $password = "";
 
 $defaultAdminName = 'Drivault Admin';
 $defaultAdminEmail = 'admin@drivault.com';
