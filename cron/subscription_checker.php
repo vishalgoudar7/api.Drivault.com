@@ -93,7 +93,7 @@ function sendExpiredQuotaReducedEmail(array $row): bool
     // Expired users keep account access, so this email explains quota reduction only.
     $to = (string) ($row['drivault_email'] ?? '');
     $customerName = trim((string) ($row['drivault_display_name'] ?? 'Customer'));
-    $renewUrl = buildMailUrl('pages/renew.php', ['subscription_id' => $row['id']]);
+    $renewUrl = buildRenewButtonUrl((int) $row['id']);
 
     $message = sprintf(
         '<div style="font-family:Arial,Helvetica,sans-serif;background:#f4f6f8;padding:10px;color:#111827;">

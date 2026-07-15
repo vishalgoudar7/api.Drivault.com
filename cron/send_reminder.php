@@ -31,9 +31,7 @@ function getMailBaseUrl(): string
         return rtrim($scheme . '://' . $host . encodeUrlPath($localPath), '/');
     }
 
-    $configuredBaseUrl = trim((string) (getenv('APP_MAIL_BASE_URL') ?: ($appConfig['production_url'] ?? '')));
-
-    return rtrim($configuredBaseUrl !== '' ? $configuredBaseUrl : 'https://api.drivault.com', '/');
+    return 'https://api.drivault.com';
 }
 
 function buildMailUrl(string $path, array $query = []): string
@@ -45,6 +43,17 @@ function buildMailUrl(string $path, array $query = []): string
     }
 
     return $url;
+}
+
+function buildRenewButtonUrl(int $subscriptionId): string
+{
+    $host = (string) ($_SERVER['HTTP_HOST'] ?? '');
+
+    if ($host !== '' && isLocalRequestHost($host)) {
+        return buildMailUrl('pages/renew.php', ['subscription_id' => $subscriptionId]);
+    }
+
+    return 'https://api.drivault.com/pages/renew.php?subscription_id=' . rawurlencode((string) $subscriptionId);
 }
 
 function getMailWebsiteDisplay(): string
@@ -132,7 +141,7 @@ function sendReminder(array $row, int $days): bool
     $expiryDate = trim((string) ($row['expiry_date'] ?? ''));
     $supportEmail = 'support@drivault.com';
     $websiteDisplay = getMailWebsiteDisplay();
-    $renewUrl = buildMailUrl('pages/renew.php', ['subscription_id' => $row['id']]);
+    $renewUrl = buildRenewButtonUrl((int) $row['id']);
 
     $subject = "Your Drivault Subscription Expires in {$days} Day(s)";
 
@@ -215,7 +224,7 @@ function sendAccountDisabledEmail(array $row): bool
     $expiryDate = trim((string) ($row['expiry_date'] ?? ''));
     $supportEmail = 'support@drivault.com';
     $websiteDisplay = getMailWebsiteDisplay();
-    $renewUrl = buildMailUrl('pages/renew.php', ['subscription_id' => $row['id']]);
+    $renewUrl = buildRenewButtonUrl((int) $row['id']);
 
     $subject = 'Your Drivault Account Has Been Disabled';
 
