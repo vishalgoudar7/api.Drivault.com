@@ -51,9 +51,11 @@ if ($accountCreatedDetails !== null) {
     margin:0;
     padding:0;
     box-sizing:border-box;
-    font-family:'Inter',sans-serif;
+    font-family: 'Inter', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
 }
-
+.password-rules li{
+    font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
+}
 body{
     background:#f5f7f9;
     display:flex;
@@ -62,7 +64,30 @@ body{
     min-height:100vh;
     padding:20px;
 }
+.password-rules ul{
+    list-style:none;
+    padding:0;
+    margin:0;
+}
 
+.password-rules li{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin:10px 0;
+    color:#64748b;
+    font-size:14px;
+    transition:.3s;
+}
+
+.password-rules li.valid{
+    color:#16a34a;
+    font-weight:600;
+}
+
+.password-rules li.invalid{
+    color:#ef4444;
+}
 .container{
     width:100%;
     max-width:500px;
@@ -194,8 +219,19 @@ input:focus{
     margin-bottom:24px;
 }
 
+.password-rules{
+    transition: opacity .25s ease, transform .25s ease;
+}
+
 .password-rules.is-hidden{
-    display:none;
+    opacity:0;
+    transform:translateY(-8px);
+    visibility:hidden;
+    height:0;
+    padding:0;
+    margin:0;
+    overflow:hidden;
+    border:none;
 }
 
 .password-rules h3{
@@ -550,15 +586,17 @@ button:disabled{
 
             <div class="password-rules is-hidden" id="passwordRules">
 
-                <h3>Password Requirements</h3>
+    <h3>Password Requirements</h3>
 
-                <p>• Minimum 8 characters</p>
-                <p>• At least 1 uppercase letter</p>
-                <p>• At least 1 lowercase letter</p>
-                <p>• At least 1 number</p>
-                <p>• At least 1 special character</p>
+    <ul>
+        <li id="rule-length">❌ Minimum 10 characters</li>
+        <li id="rule-upper">❌ At least 1 uppercase letter</li>
+        <li id="rule-lower">❌ At least 1 lowercase letter</li>
+        <li id="rule-number">❌ At least 1 number</li>
+        <li id="rule-special">❌ At least 1 special character</li>
+    </ul>
 
-            </div>
+</div>
 
             <button id="createAccountBtn" type="submit">
     <span id="btnText">Create Account</span>
@@ -721,6 +759,11 @@ const passwordStrength = document.getElementById('passwordStrength');
 const matchMessage = document.getElementById('matchMessage');
 
 const passwordRules = document.getElementById('passwordRules');
+const ruleLength = document.getElementById("rule-length");
+const ruleUpper = document.getElementById("rule-upper");
+const ruleLower = document.getElementById("rule-lower");
+const ruleNumber = document.getElementById("rule-number");
+const ruleSpecial = document.getElementById("rule-special");
 
 const form = document.getElementById('set-password-form');
 
@@ -747,25 +790,46 @@ function useTestingPassword() {
     togglePasswordRules(false);
 }
 
-function checkPasswordStrength(password) {
+function checkPasswordStrength(password){
 
-    if (password.length === 0) {
-        passwordStrength.innerHTML = '';
+    if(password.length === 0){
+
+        togglePasswordRules(false);
+
+        ruleLength.style.display = "flex";
+        ruleUpper.style.display = "flex";
+        ruleLower.style.display = "flex";
+        ruleNumber.style.display = "flex";
+        ruleSpecial.style.display = "flex";
+
         return;
     }
 
-    if (password.length < 10) {
+    const hasLength = password.length >= 10;
+    const hasUpper = /[A-Z]/.test(password);
+    const hasLower = /[a-z]/.test(password);
+    const hasNumber = /\d/.test(password);
+    const hasSpecial = /[^A-Za-z0-9]/.test(password);
 
-        passwordStrength.innerHTML =
-            'Password must be at least 10 characters';
+    updateRule(ruleLength, hasLength);
+    updateRule(ruleUpper, hasUpper);
+    updateRule(ruleLower, hasLower);
+    updateRule(ruleNumber, hasNumber);
+    updateRule(ruleSpecial, hasSpecial);
 
-        passwordStrength.style.color = '#ef4444';
+    if(hasLength && hasUpper && hasLower && hasNumber && hasSpecial){
 
-    } else {
+        // Hide the entire Password Requirements box
+        togglePasswordRules(false);
 
-        passwordStrength.innerHTML = '';
+    }else{
+
+        togglePasswordRules(true);
 
     }
+
+    passwordStrength.innerHTML = "";
+
 }
 // function checkPasswordStrength(password) {
 
@@ -804,23 +868,21 @@ function togglePasswordRules(showRules) {
     passwordRules.classList.toggle('is-hidden', !showRules);
 }
 
-if(passwordRules) {
-    passwordRules.innerHTML = `
-        <h3>Password Requirements</h3>
-        <ul>
-            <li>Minimum 10 characters</li>
-            <li>At least 1 uppercase letter</li>
-            <li>At least 1 lowercase letter</li>
-            <li>At least 1 number</li>
-            <li>At least 1 special character</li>
-        </ul>
-    `;
-}
-passwordInput?.addEventListener('input', () => {
+function updateRule(element, valid){
 
-    checkPasswordStrength(passwordInput.value);
+    if(valid){
+        element.style.display = "none";
+    }else{
+        element.style.display = "flex";
+    }
+
+}
+passwordInput?.addEventListener("input", function(){
+
+    checkPasswordStrength(this.value);
 
     validatePasswordMatch();
+
 });
 // passwordInput?.addEventListener('input', () => {
 

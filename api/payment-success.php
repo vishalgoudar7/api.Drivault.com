@@ -1,5 +1,20 @@
 <?php
 
+$logFile = __DIR__ . '/payment-debug.log';
+
+file_put_contents(
+    $logFile,
+    "\n=============================\n" .
+    date('Y-m-d H:i:s') . "\n" .
+    "REQUEST METHOD: " . $_SERVER['REQUEST_METHOD'] . "\n" .
+    "POST DATA:\n" .
+    print_r($_POST, true) .
+    "\nRAW INPUT:\n" .
+    file_get_contents('php://input') .
+    "\n=============================\n",
+    FILE_APPEND
+);
+
 require '../config/db.php';
 require '../vendor/autoload.php';
 require __DIR__ . '/../payment/invoice-helper.php';
@@ -195,18 +210,19 @@ function sendPaymentSuccessEmail(array $subscription, array $plan, array $mailCo
 }
 
 
-$orderId   = $_POST['razorpay_order_id'] ?? '';
-$paymentId = $_POST['razorpay_payment_id'] ?? '';
-$signature = $_POST['razorpay_signature'] ?? '';
+$orderId   = trim((string) ($_POST['razorpay_order_id'] ?? ''));
+$razorpaySubscriptionId = trim((string) ($_POST['razorpay_subscription_id'] ?? ''));
+$paymentId = trim((string) ($_POST['razorpay_payment_id'] ?? ''));
+$signature = trim((string) ($_POST['razorpay_signature'] ?? ''));
 
 $name  = $_POST['name'] ?? '';
 $email = $_POST['email'] ?? '';
 $phone = $_POST['phone'] ?? '';
 $mode = $_POST['mode'] ?? 'new';
-$renewSubscriptionId = (int)($_POST['subscription_id'] ?? 0);
+$localSubscriptionId = (int)($_POST['subscription_id'] ?? 0);
 
 
-if (!$orderId || !$paymentId || !$signature) {
+if ((!$orderId && !$razorpaySubscriptionId) || !$paymentId || !$signature) {
 
     echo json_encode([
         'success' => false,
@@ -223,11 +239,18 @@ if (!$orderId || !$paymentId || !$signature) {
 
 try {
 
-    $api->utility->verifyPaymentSignature([
-        'razorpay_order_id'   => $orderId,
+    $signaturePayload = [
         'razorpay_payment_id' => $paymentId,
         'razorpay_signature'  => $signature
-    ]);
+    ];
+
+    if ($orderId !== '') {
+        $signaturePayload['razorpay_order_id'] = $orderId;
+    } else {
+        $signaturePayload['razorpay_subscription_id'] = $razorpaySubscriptionId;
+    }
+
+    $api->utility->verifyPaymentSignature($signaturePayload);
 
 } catch (SignatureVerificationError $e) {
 
@@ -246,15 +269,14 @@ try {
 
 $isRenewal = $mode === 'renew';
 
-$subscriptionSql = $isRenewal
-    ? "SELECT * FROM subscriptions WHERE id = ? LIMIT 1"
-    : "SELECT * FROM subscriptions WHERE razorpay_order_id = ? LIMIT 1";
-
-$stmt = $conn->prepare($subscriptionSql);
-
-if ($isRenewal) {
-    $stmt->bind_param("i", $renewSubscriptionId);
+if ($localSubscriptionId > 0) {
+    $stmt = $conn->prepare("SELECT * FROM subscriptions WHERE id = ? LIMIT 1");
+    $stmt->bind_param("i", $localSubscriptionId);
+} elseif ($razorpaySubscriptionId !== '') {
+    $stmt = $conn->prepare("SELECT * FROM subscriptions WHERE razorpay_subscription_id = ? LIMIT 1");
+    $stmt->bind_param("s", $razorpaySubscriptionId);
 } else {
+    $stmt = $conn->prepare("SELECT * FROM subscriptions WHERE razorpay_order_id = ? LIMIT 1");
     $stmt->bind_param("s", $orderId);
 }
 
@@ -590,6 +612,7 @@ $stmt = $conn->prepare(
        previous_quota=NULL,
        payment_type=?,
        razorpay_order_id=?,
+       razorpay_subscription_id=?,
        razorpay_payment_id=?,
        razorpay_signature=?,
        start_date=?,
@@ -601,9 +624,10 @@ $stmt = $conn->prepare(
 );
 
 $stmt->bind_param(
-    "ssssssi",
+    "sssssssi",
     $paymentType,
     $orderId,
+    $razorpaySubscriptionId,
     $paymentId,
     $signature,
     $newStart,
@@ -703,6 +727,7 @@ echo json_encode([
     'message' => $successMessage,
     'payment_id' => $paymentId,
     'order_id' => $orderId,
+    'razorpay_subscription_id' => $razorpaySubscriptionId,
     'subscription_id' => $subscription['id'],
     'email_sent' => $emailSent,
     'plan_id' => $planId,

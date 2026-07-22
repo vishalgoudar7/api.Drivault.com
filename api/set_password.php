@@ -64,10 +64,13 @@ if ($plainPassword !== $confirmPassword) {
     exit('Password and confirm password do not match.');
 }
 
-$passwordPattern = '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/';
+$passwordPattern =
+'/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{10,}$/';
 if (preg_match($passwordPattern, $plainPassword) !== 1) {
     http_response_code(422);
-    exit('Password must be at least 8 characters and include uppercase, lowercase, number, and special character.');
+    exit(
+'Password must be at least 10 characters and include uppercase, lowercase, number, and special character.'
+);
 }
 
 if ($verifiedUserId > 0) {

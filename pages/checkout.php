@@ -72,11 +72,13 @@ function formatBytesToGb(mixed $value): string
         return (string) $value;
     }
 
-    $gb = ((float) $value) / 1024 / 1024 / 1024;
     $decimals = $gb >= 10 ? 0 : 2;
-    $formatted = number_format($gb, $decimals);
 
-    return rtrim(rtrim($formatted, '0'), '.') . ' GB';
+if ($decimals === 0) {
+    return number_format($gb, 0) . ' GB';
+}
+
+return rtrim(rtrim(number_format($gb, 2), '0'), '.') . ' GB';
 }
 
 function formatStorageAmount(mixed $value): string
@@ -86,22 +88,21 @@ function formatStorageAmount(mixed $value): string
     }
 
     if (!is_numeric($value)) {
-        return (string) $value;
+        return (string)$value;
     }
 
-    $gb = ((float) $value) / 1024 / 1024 / 1024;
+    $gb = (float)$value / (1024 * 1024 * 1024);
 
     if ($gb >= 1024) {
         $tb = $gb / 1024;
-        $formatted = number_format($tb, 1);
-
-        return rtrim(rtrim($formatted, '0'), '.') . ' TB';
+        return round($tb, 1) . ' TB';
     }
 
-    $decimals = $gb >= 10 ? 0 : 2;
-    $formatted = number_format($gb, $decimals);
+    if ($gb >= 10) {
+        return round($gb) . ' GB';
+    }
 
-    return rtrim(rtrim($formatted, '0'), '.') . ' GB';
+    return round($gb, 2) . ' GB';
 }
 
 function formatAvailableStorage(mixed $used, mixed $total): string
@@ -119,7 +120,33 @@ function formatRoundedPrice(mixed $amount): string
 {
     return number_format((int) ceil((float) $amount), 2);
 }
+function maskUsername(string $username): string
+{
+    $length = strlen($username);
 
+    if ($length <= 3) {
+        return $username;
+    }
+
+    return str_repeat('*', $length - 3) . substr($username, -3);
+}
+
+function maskEmail(string $email): string
+{
+    if (empty($email) || strpos($email, '@') === false) {
+        return $email;
+    }
+
+    [$name, $domain] = explode('@', $email, 2);
+
+    if (strlen($name) <= 3) {
+        $maskedName = str_repeat('*', strlen($name));
+    } else {
+        $maskedName = str_repeat('*', strlen($name) - 3) . substr($name, -3);
+    }
+
+    return $maskedName . '@' . $domain;
+}
 if (!isset($_GET['plan_id'])) {
     die("Plan not found");
 }
@@ -894,13 +921,13 @@ body{
         <div class="detail-row">
             <div class="detail-icon"><i class="bi bi-envelope"></i></div>
             <div class="detail-label">Email Address</div>
-            <div class="detail-value"><?= htmlspecialchars($verifiedUser['email'] ?: '-') ?></div>
+            <div class="detail-value"><?= htmlspecialchars(maskEmail($verifiedUser['email'] ?: '-')) ?></div>
         </div>
 
         <div class="detail-row">
             <div class="detail-icon"><i class="bi bi-person-badge"></i></div>
             <div class="detail-label">User ID</div>
-            <div class="detail-value"><?= htmlspecialchars($verifiedUser['id'] ?: '-') ?></div>
+            <div class="detail-value"><?= htmlspecialchars(maskUsername($verifiedUser['id'] ?: '-')) ?></div>
         </div>
 
         <div class="detail-row">
@@ -1013,6 +1040,10 @@ body{
 
 const payBtn = document.getElementById('payBtn');
 const verifiedUser = <?= json_encode($verifiedUser, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+console.log("Verified User:", verifiedUser);
+console.log("Quota:", verifiedUser.quota);
+console.log("Used:", verifiedUser.quota.used);
+console.log("Total:", verifiedUser.quota.total);
 const payButtonText = '<i class="bi bi-lock-fill"></i><span>Proceed to Pay</span>';
 
 function showToast(message, type = 'error') {
@@ -1100,7 +1131,7 @@ payBtn.addEventListener('click', async function() {
 
     try {
         let response = await fetch(
-            '../api/create-order.php',
+            '../api/create-subscription.php',
             {
                 method: 'POST',
                 headers: {
@@ -1148,7 +1179,7 @@ payBtn.addEventListener('click', async function() {
 
         key:data.key,
 
-        amount:data.amount,
+        // amount:data.amount,
 
         currency:"INR",
 
@@ -1157,7 +1188,7 @@ payBtn.addEventListener('click', async function() {
         description:
         "Storage Upgrade",
 
-        order_id:data.order_id,
+        subscription_id:data.razorpay_subscription_id,
 
         prefill:{
             name: customerName,
@@ -1182,12 +1213,12 @@ payBtn.addEventListener('click', async function() {
                         'application/x-www-form-urlencoded'
                     },
                    body:new URLSearchParams({
-    razorpay_order_id: payment.razorpay_order_id,
+    razorpay_subscription_id: payment.razorpay_subscription_id,
     razorpay_payment_id: payment.razorpay_payment_id,
     razorpay_signature: payment.razorpay_signature,
 
     mode: '<?= $mode ?>',
-    subscription_id: '<?= $subscriptionId ?>',
+    subscription_id: data.subscription_id || '<?= $subscriptionId ?>',
 
     name: customerName,
     email: customerEmail,
@@ -1202,8 +1233,8 @@ payBtn.addEventListener('click', async function() {
        const successUrl =
 "payment-success.php?payment_id=" +
 encodeURIComponent(res.payment_id) +
-"&order_id=" +
-encodeURIComponent(res.order_id) +
+"&razorpay_subscription_id=" +
+encodeURIComponent(res.razorpay_subscription_id) +
 "&subscription_id=" +
 encodeURIComponent(res.subscription_id) +
 "&mode=<?= $mode ?>" +
@@ -1214,11 +1245,16 @@ encodeURIComponent(res.subscription_id) +
     }
 
     window.location =
-        "payment-failed.php?plan_id=<?= $planId ?>" +
-        "&order_id=" +
-        encodeURIComponent(payment.razorpay_order_id || data.order_id) +
-        "&reason=" +
-        encodeURIComponent(res.message || "Payment verification failed");
+    "payment-failed.php?plan_id=<?= $planId ?>" +
+    "&subscription_id=" +
+    encodeURIComponent(data.subscription_id || '<?= $subscriptionId ?>') +
+    "&razorpay_subscription_id=" +
+    encodeURIComponent(
+        payment.razorpay_subscription_id ||
+        data.razorpay_subscription_id
+    ) +
+    "&reason=" +
+    encodeURIComponent(res.message || "Payment verification failed");
 })
             .catch(()=>{
                 window.location =
@@ -1237,12 +1273,14 @@ encodeURIComponent(res.subscription_id) +
             ? response.error.description
             : "Payment failed. Please try again.";
 
-        window.location =
-            "payment-failed.php?plan_id=<?= $planId ?>" +
-            "&order_id=" +
-            encodeURIComponent(data.order_id) +
-            "&reason=" +
-            encodeURIComponent(message);
+    window.location =
+    "payment-failed.php?plan_id=<?= $planId ?>" +
+    "&subscription_id=" +
+    encodeURIComponent(data.subscription_id || '<?= $subscriptionId ?>') +
+    "&razorpay_subscription_id=" +
+    encodeURIComponent(data.razorpay_subscription_id || '') +
+    "&reason=" +
+    encodeURIComponent(message);
     });
 
     setPayLoading('Complete payment in Razorpay...');

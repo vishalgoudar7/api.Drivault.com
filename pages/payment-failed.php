@@ -2,12 +2,33 @@
 require '../config/db.php';
 
 $planId = (int)($_GET['plan_id'] ?? 0);
+$subscriptionParam = trim((string)($_GET['subscription_id'] ?? ''));
+$subscriptionId = (int)$subscriptionParam;
 $orderId = trim($_GET['order_id'] ?? '');
+$razorpaySubscriptionId = trim($_GET['razorpay_subscription_id'] ?? '');
 $reason = trim($_GET['reason'] ?? 'Payment could not be completed. Please try again.');
 
 $subscription = null;
 
-if ($orderId !== '') {
+if ($razorpaySubscriptionId === '' && strpos($subscriptionParam, 'sub_') === 0) {
+    $razorpaySubscriptionId = $subscriptionParam;
+}
+
+if ($subscriptionId > 0) {
+    $stmt = $conn->prepare("SELECT * FROM subscriptions WHERE id = ?");
+    $stmt->bind_param("i", $subscriptionId);
+    $stmt->execute();
+    $subscription = $stmt->get_result()->fetch_assoc();
+}
+
+if (!$subscription && $razorpaySubscriptionId !== '') {
+    $stmt = $conn->prepare("SELECT * FROM subscriptions WHERE razorpay_subscription_id = ?");
+    $stmt->bind_param("s", $razorpaySubscriptionId);
+    $stmt->execute();
+    $subscription = $stmt->get_result()->fetch_assoc();
+}
+
+if (!$subscription && $orderId !== '') {
     $stmt = $conn->prepare("SELECT * FROM subscriptions WHERE razorpay_order_id = ?");
     $stmt->bind_param("s", $orderId);
     $stmt->execute();
