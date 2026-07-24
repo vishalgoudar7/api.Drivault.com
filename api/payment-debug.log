@@ -158,3 +158,363 @@ Array
 RAW INPUT:
 razorpay_subscription_id=sub_TG9LAizytLuis3&razorpay_payment_id=pay_TG9N2cnzocE6VQ&razorpay_signature=89e9bc93c6924e81301178197502c280330a766aa98eb0613afcd4a5ddead484&mode=upgrade&subscription_id=5&name=vishal&email=vishalgoudar05%40gmail.com&phone=9598979496v
 =============================
+
+=============================
+2026-07-23 07:28:56
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_subscription_id] => sub_TGpGWGPiyj5XdI
+    [razorpay_payment_id] => pay_TGpRWFa9hofwxG
+    [razorpay_signature] => 7bcac599ebfe92d16928eaeeb212d24552818aa341afd0702476081c49075b22
+    [mode] => upgrade
+    [subscription_id] => 1
+    [name] => Vishalgouda Goudar
+    [email] => vishalgoudar143@gmail.com
+    [phone] => vishalgoudar143
+)
+
+RAW INPUT:
+razorpay_subscription_id=sub_TGpGWGPiyj5XdI&razorpay_payment_id=pay_TGpRWFa9hofwxG&razorpay_signature=7bcac599ebfe92d16928eaeeb212d24552818aa341afd0702476081c49075b22&mode=upgrade&subscription_id=1&name=Vishalgouda+Goudar&email=vishalgoudar143%40gmail.com&phone=vishalgoudar143
+=============================
+
+=============================
+2026-07-23 07:32:07
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_subscription_id] => sub_TGpUTfdxd9Lox3
+    [razorpay_payment_id] => pay_TGpUqQBqqzHEts
+    [razorpay_signature] => 3229526954987055fd886090f91eef77dfe528864d0a470118f60010253822b1
+    [mode] => upgrade
+    [subscription_id] => 2
+    [name] => Vishalgouda Goudar
+    [email] => vishalgoudar143@gmail.com
+    [phone] => vishalgoudar143
+)
+
+RAW INPUT:
+razorpay_subscription_id=sub_TGpUTfdxd9Lox3&razorpay_payment_id=pay_TGpUqQBqqzHEts&razorpay_signature=3229526954987055fd886090f91eef77dfe528864d0a470118f60010253822b1&mode=upgrade&subscription_id=2&name=Vishalgouda+Goudar&email=vishalgoudar143%40gmail.com&phone=vishalgoudar143
+=============================
+
+=============================
+2026-07-23 07:34:17
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_subscription_id] => sub_TGpWtmWbHo61vi
+    [razorpay_payment_id] => pay_TGpX9PcJrUea4Y
+    [razorpay_signature] => 085176c90fdca2a0554cc55a9ef37804c437150e1eac8984e0191d212b9205cc
+    [mode] => upgrade
+    [subscription_id] => 3
+    [name] => Vishalgouda Goudar
+    [email] => vishalgoudar143@gmail.com
+    [phone] => vishalgoudar143
+)
+
+RAW INPUT:
+razorpay_subscription_id=sub_TGpWtmWbHo61vi&razorpay_payment_id=pay_TGpX9PcJrUea4Y&razorpay_signature=085176c90fdca2a0554cc55a9ef37804c437150e1eac8984e0191d212b9205cc&mode=upgrade&subscription_id=3&name=Vishalgouda+Goudar&email=vishalgoudar143%40gmail.com&phone=vishalgoudar143
+=============================
+
+=============================
+2026-07-23 07:58:03
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_subscription_id] => sub_TGpurddqd64Lkl
+    [razorpay_payment_id] => pay_TGpwF6dIvmFgEI
+    [razorpay_signature] => 104b03eea758b2b7e7c836d551c63833636e5894ff9ed1b78a92cb09850ebc57
+    [mode] => renew
+    [subscription_id] => 3
+    [name] => Vishalgouda Goudar
+    [email] => vishalgoudar143@gmail.com
+    [phone] => vishalgoudar143
+)
+
+RAW INPUT:
+razorpay_subscription_id=sub_TGpurddqd64Lkl&razorpay_payment_id=pay_TGpwF6dIvmFgEI&razorpay_signature=104b03eea758b2b7e7c836d551c63833636e5894ff9ed1b78a92cb09850ebc57&mode=renew&subscription_id=3&name=Vishalgouda+Goudar&email=vishalgoudar143%40gmail.com&phone=vishalgoudar143
+=============================
+
+=============================
+2026-07-23 08:38:52
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_subscription_id] => sub_TGqcz65LvDAllL
+    [razorpay_payment_id] => pay_TGqdMc3qVCOmug
+    [razorpay_signature] => b0feed9dc52a81db9f97a89d42a0f7ea4f5a5d827e6d82daaf85e1ff2eb456a9
+    [mode] => upgrade
+    [subscription_id] => 1
+    [name] => Vishalgouda Goudar
+    [email] => vishalgoudar143@gmail.com
+    [phone] => vishalgoudar143
+)
+
+RAW INPUT:
+razorpay_subscription_id=sub_TGqcz65LvDAllL&razorpay_payment_id=pay_TGqdMc3qVCOmug&razorpay_signature=b0feed9dc52a81db9f97a89d42a0f7ea4f5a5d827e6d82daaf85e1ff2eb456a9&mode=upgrade&subscription_id=1&name=Vishalgouda+Goudar&email=vishalgoudar143%40gmail.com&phone=vishalgoudar143
+=============================
+
+=============================
+2026-07-23 08:43:26
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_subscription_id] => sub_TGqhfoO5OUmXtH
+    [razorpay_payment_id] => pay_TGqi2bY6TrnxL7
+    [razorpay_signature] => 9f9b706fbeefcda91a84117719e88c874d4fab69b107ea67fe288acc77105135
+    [mode] => upgrade
+    [subscription_id] => 2
+    [name] => vishnu
+    [email] => vishalgoudar012@gmail.com
+    [phone] => 9598979496
+)
+
+RAW INPUT:
+razorpay_subscription_id=sub_TGqhfoO5OUmXtH&razorpay_payment_id=pay_TGqi2bY6TrnxL7&razorpay_signature=9f9b706fbeefcda91a84117719e88c874d4fab69b107ea67fe288acc77105135&mode=upgrade&subscription_id=2&name=vishnu&email=vishalgoudar012%40gmail.com&phone=9598979496
+=============================
+
+=============================
+2026-07-23 09:02:45
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_subscription_id] => sub_TGr2CPYZisXCA7
+    [razorpay_payment_id] => pay_TGr2YTkuX3PtLU
+    [razorpay_signature] => eaa9a3dec6c4c75eabe13a6f7e37352bc11a3d925485b12a5a2652ac4efb2e30
+    [mode] => upgrade
+    [subscription_id] => 3
+    [name] => Vishalgouda Goudar
+    [email] => vishalgoudar143@gmail.com
+    [phone] => vishalgoudar143
+)
+
+RAW INPUT:
+razorpay_subscription_id=sub_TGr2CPYZisXCA7&razorpay_payment_id=pay_TGr2YTkuX3PtLU&razorpay_signature=eaa9a3dec6c4c75eabe13a6f7e37352bc11a3d925485b12a5a2652ac4efb2e30&mode=upgrade&subscription_id=3&name=Vishalgouda+Goudar&email=vishalgoudar143%40gmail.com&phone=vishalgoudar143
+=============================
+
+=============================
+2026-07-23 09:05:37
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_subscription_id] => sub_TGr5EoZ8drXkfm
+    [razorpay_payment_id] => pay_TGr5Y131O8wNU9
+    [razorpay_signature] => dbe1d7be6d4f6464a64c92ab100fd2cdf7ce1c39e75d1cbf8f55264ce8e1d38b
+    [mode] => upgrade
+    [subscription_id] => 5
+    [name] => Vishalgouda Goudar
+    [email] => vishalgoudar143@gmail.com
+    [phone] => vishalgoudar143
+)
+
+RAW INPUT:
+razorpay_subscription_id=sub_TGr5EoZ8drXkfm&razorpay_payment_id=pay_TGr5Y131O8wNU9&razorpay_signature=dbe1d7be6d4f6464a64c92ab100fd2cdf7ce1c39e75d1cbf8f55264ce8e1d38b&mode=upgrade&subscription_id=5&name=Vishalgouda+Goudar&email=vishalgoudar143%40gmail.com&phone=vishalgoudar143
+=============================
+
+=============================
+2026-07-23 09:10:25
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_subscription_id] => sub_TGrAHX5mTeU6lR
+    [razorpay_payment_id] => pay_TGrAilIO5dpn8T
+    [razorpay_signature] => d775fe95bed11f89b3176cda7e7478fda78befdcbe94f76ee03e01e6ecb2f3b5
+    [mode] => upgrade
+    [subscription_id] => 7
+    [name] => vishnu
+    [email] => vishalgoudar012@gmail.com
+    [phone] => 9598979496
+)
+
+RAW INPUT:
+razorpay_subscription_id=sub_TGrAHX5mTeU6lR&razorpay_payment_id=pay_TGrAilIO5dpn8T&razorpay_signature=d775fe95bed11f89b3176cda7e7478fda78befdcbe94f76ee03e01e6ecb2f3b5&mode=upgrade&subscription_id=7&name=vishnu&email=vishalgoudar012%40gmail.com&phone=9598979496
+=============================
+
+=============================
+2026-07-23 09:15:54
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_subscription_id] => sub_TGrG8LwUzxzOPH
+    [razorpay_payment_id] => pay_TGrGWRqfsRpY6E
+    [razorpay_signature] => ff362b36e46aeb4a698aef4b751413aaecfce8b8d22d22acac09f43a6754b785
+    [mode] => upgrade
+    [subscription_id] => 8
+    [name] => Vishalgouda Goudar
+    [email] => vishalgoudar143@gmail.com
+    [phone] => vishalgoudar143
+)
+
+RAW INPUT:
+razorpay_subscription_id=sub_TGrG8LwUzxzOPH&razorpay_payment_id=pay_TGrGWRqfsRpY6E&razorpay_signature=ff362b36e46aeb4a698aef4b751413aaecfce8b8d22d22acac09f43a6754b785&mode=upgrade&subscription_id=8&name=Vishalgouda+Goudar&email=vishalgoudar143%40gmail.com&phone=vishalgoudar143
+=============================
+
+=============================
+2026-07-23 09:19:03
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_subscription_id] => sub_TGrJb9aIZ58m3z
+    [razorpay_payment_id] => pay_TGrJpbXP2zd4rk
+    [razorpay_signature] => ba5f86eb9b84764b8e2d82f49e09ff631bee804b247fd2353cdfe8b3b3403fe2
+    [mode] => upgrade
+    [subscription_id] => 10
+    [name] => vishnu
+    [email] => vishalgoudar012@gmail.com
+    [phone] => 9598979496
+)
+
+RAW INPUT:
+razorpay_subscription_id=sub_TGrJb9aIZ58m3z&razorpay_payment_id=pay_TGrJpbXP2zd4rk&razorpay_signature=ba5f86eb9b84764b8e2d82f49e09ff631bee804b247fd2353cdfe8b3b3403fe2&mode=upgrade&subscription_id=10&name=vishnu&email=vishalgoudar012%40gmail.com&phone=9598979496
+=============================
+
+=============================
+2026-07-23 11:55:16
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_subscription_id] => sub_TGtySkVp53D7wG
+    [razorpay_payment_id] => pay_TGtynHc6zYhBNi
+    [razorpay_signature] => e4c4ac6ee8707af0737864a706a93eade1fcd6f1302ddac3bffe804db2211147
+    [mode] => upgrade
+    [subscription_id] => 1
+    [name] => Vishalgouda Goudar
+    [email] => vishalgoudar143@gmail.com
+    [phone] => vishalgoudar143
+)
+
+RAW INPUT:
+razorpay_subscription_id=sub_TGtySkVp53D7wG&razorpay_payment_id=pay_TGtynHc6zYhBNi&razorpay_signature=e4c4ac6ee8707af0737864a706a93eade1fcd6f1302ddac3bffe804db2211147&mode=upgrade&subscription_id=1&name=Vishalgouda+Goudar&email=vishalgoudar143%40gmail.com&phone=vishalgoudar143
+=============================
+
+=============================
+2026-07-23 11:58:15
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_subscription_id] => sub_TGu1lj6WEPzQLJ
+    [razorpay_payment_id] => pay_TGu20UjSV4ifCq
+    [razorpay_signature] => dfae2b3dc9211713c94d3840e5fcabc0b1ef32e471e7f84a23a87c511cc92e6d
+    [mode] => upgrade
+    [subscription_id] => 2
+    [name] => Vishalgouda Goudar
+    [email] => vishalgoudar143@gmail.com
+    [phone] => vishalgoudar143
+)
+
+RAW INPUT:
+razorpay_subscription_id=sub_TGu1lj6WEPzQLJ&razorpay_payment_id=pay_TGu20UjSV4ifCq&razorpay_signature=dfae2b3dc9211713c94d3840e5fcabc0b1ef32e471e7f84a23a87c511cc92e6d&mode=upgrade&subscription_id=2&name=Vishalgouda+Goudar&email=vishalgoudar143%40gmail.com&phone=vishalgoudar143
+=============================
+
+=============================
+2026-07-23 12:02:05
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_subscription_id] => sub_TGu5dx1nrzl3cE
+    [razorpay_payment_id] => pay_TGu5vWnxzp9u2S
+    [razorpay_signature] => 71830a3ea792272ed8c33a718e5cba49d55c73272b9e1f7b6e1f70fc79c6dee4
+    [mode] => upgrade
+    [subscription_id] => 3
+    [name] => Vishalgouda Goudar
+    [email] => vishalgoudar143@gmail.com
+    [phone] => vishalgoudar143
+)
+
+RAW INPUT:
+razorpay_subscription_id=sub_TGu5dx1nrzl3cE&razorpay_payment_id=pay_TGu5vWnxzp9u2S&razorpay_signature=71830a3ea792272ed8c33a718e5cba49d55c73272b9e1f7b6e1f70fc79c6dee4&mode=upgrade&subscription_id=3&name=Vishalgouda+Goudar&email=vishalgoudar143%40gmail.com&phone=vishalgoudar143
+=============================
+
+=============================
+2026-07-23 12:15:53
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_subscription_id] => sub_TGuKGBnaRl5Twp
+    [razorpay_payment_id] => pay_TGuKbqv78sZ2b4
+    [razorpay_signature] => 7ad95c062cfece0839742e4b43e5b65ac57c5ca82bb198f651e6f44b36778617
+    [mode] => renew
+    [subscription_id] => 3
+    [name] => Vishalgouda Goudar
+    [email] => vishalgoudar143@gmail.com
+    [phone] => vishalgoudar143
+)
+
+RAW INPUT:
+razorpay_subscription_id=sub_TGuKGBnaRl5Twp&razorpay_payment_id=pay_TGuKbqv78sZ2b4&razorpay_signature=7ad95c062cfece0839742e4b43e5b65ac57c5ca82bb198f651e6f44b36778617&mode=renew&subscription_id=3&name=Vishalgouda+Goudar&email=vishalgoudar143%40gmail.com&phone=vishalgoudar143
+=============================
+
+=============================
+2026-07-23 13:11:04
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_subscription_id] => sub_TGvGTpScV5Hq5x
+    [razorpay_payment_id] => pay_TGvGuBtNz3vszB
+    [razorpay_signature] => 98e157ba06d32210ceba504940b2cb9b248853778dbedf13e2c0444d69cd0abb
+    [mode] => renew
+    [subscription_id] => 3
+    [name] => Vishalgouda Goudar
+    [email] => vishalgoudar143@gmail.com
+    [phone] => vishalgoudar143
+)
+
+RAW INPUT:
+razorpay_subscription_id=sub_TGvGTpScV5Hq5x&razorpay_payment_id=pay_TGvGuBtNz3vszB&razorpay_signature=98e157ba06d32210ceba504940b2cb9b248853778dbedf13e2c0444d69cd0abb&mode=renew&subscription_id=3&name=Vishalgouda+Goudar&email=vishalgoudar143%40gmail.com&phone=vishalgoudar143
+=============================
+
+=============================
+2026-07-23 13:45:37
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_subscription_id] => sub_TGvqntLoHAXX0Q
+    [razorpay_payment_id] => pay_TGvrO8WCYu2e5c
+    [razorpay_signature] => 0d5dd9b0109bce161cc58ac31c987a12f6606defa6641f70b4c666b939b149bd
+    [mode] => upgrade
+    [subscription_id] => 4
+    [name] => vishnu
+    [email] => vishalgoudar012@gmail.com
+    [phone] => 9598979496
+)
+
+RAW INPUT:
+razorpay_subscription_id=sub_TGvqntLoHAXX0Q&razorpay_payment_id=pay_TGvrO8WCYu2e5c&razorpay_signature=0d5dd9b0109bce161cc58ac31c987a12f6606defa6641f70b4c666b939b149bd&mode=upgrade&subscription_id=4&name=vishnu&email=vishalgoudar012%40gmail.com&phone=9598979496
+=============================
+
+=============================
+2026-07-23 13:47:35
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_subscription_id] => sub_TGvtCNjz4nvCSV
+    [razorpay_payment_id] => pay_TGvtRzi2Qn32Ml
+    [razorpay_signature] => 91b7f3239eb74750b44b78ffee1c45ab1e21c885ca288f5149d5bf6b9bb6af55
+    [mode] => upgrade
+    [subscription_id] => 5
+    [name] => vishnu
+    [email] => vishalgoudar012@gmail.com
+    [phone] => 9598979496
+)
+
+RAW INPUT:
+razorpay_subscription_id=sub_TGvtCNjz4nvCSV&razorpay_payment_id=pay_TGvtRzi2Qn32Ml&razorpay_signature=91b7f3239eb74750b44b78ffee1c45ab1e21c885ca288f5149d5bf6b9bb6af55&mode=upgrade&subscription_id=5&name=vishnu&email=vishalgoudar012%40gmail.com&phone=9598979496
+=============================

@@ -267,43 +267,79 @@ if ($currentQuota === null) {
 }
 
 // Store previous_quota only once; this preserves the real quota for renewal restore.
+// $stmt = $conn->prepare("
+//     UPDATE subscriptions
+//     SET previous_quota=?
+//     WHERE id=?
+//     AND previous_quota IS NULL
+// ");
+
+// if (!$stmt) {
+//     checkerDebug('SQL prepare error: ' . $conn->error);
+//     continue;
+// }
+
+// $stmt->bind_param(
+
+//     "ii",
+
+//     $currentQuota,
+
+//     $row['id']
+
+// );
+
+// if (!$stmt->execute()) {
+//     checkerDebug('SQL execute error: ' . $stmt->error);
+//     $stmt->close();
+//     continue;
+// }
+
+// $affectedRows = $stmt->affected_rows;
+// checkerDebug('SQL affected rows: ' . $affectedRows);
+// $stmt->close();
+
+// if ($affectedRows <= 0 && empty($row['previous_quota'])) {
+//     echo "<span style='color:red'>Previous quota was not saved. Skipping quota reduction.</span><br>";
+//     continue;
+// }
+
+// previous_quota is already saved during purchase/upgrade.
+// Before reducing quota, make sure it exists.
+
+// if (empty($row['previous_quota'])) {
+
+//     echo "<span style='color:red'>
+//     Previous quota not found.
+//     </span><br>";
+
+//     continue;
+// }
+
+// Restore user to their original free quota
+// $freeQuota = (int)$row['free_quota'];
+
+// $restoreQuota = $freeQuota . "GB";
+// Expired users stay enabled; only their quota is reduced to 1GB.
+// Save current total quota before reducing storage
+$totalQuota = (int)$row['total_quota'];
+
 $stmt = $conn->prepare("
     UPDATE subscriptions
-    SET previous_quota=?
-    WHERE id=?
-    AND previous_quota IS NULL
+    SET previous_quota = ?
+    WHERE id = ?
 ");
 
-if (!$stmt) {
-    checkerDebug('SQL prepare error: ' . $conn->error);
-    continue;
-}
-
 $stmt->bind_param(
-
     "ii",
-
-    $currentQuota,
-
+    $totalQuota,
     $row['id']
-
 );
 
-if (!$stmt->execute()) {
-    checkerDebug('SQL execute error: ' . $stmt->error);
-    $stmt->close();
-    continue;
-}
-
-$affectedRows = $stmt->affected_rows;
-checkerDebug('SQL affected rows: ' . $affectedRows);
+$stmt->execute();
 $stmt->close();
 
-if ($affectedRows <= 0 && empty($row['previous_quota'])) {
-    echo "<span style='color:red'>Previous quota was not saved. Skipping quota reduction.</span><br>";
-    continue;
-}
-// Expired users stay enabled; only their quota is reduced to 1GB.
+$restoreQuota = "1GB";
 $curl = curl_init();
 
 curl_setopt_array($curl,[
@@ -314,13 +350,13 @@ curl_setopt_array($curl,[
 
     CURLOPT_CUSTOMREQUEST=>"PUT",
 
-    CURLOPT_POSTFIELDS=>http_build_query([
+    CURLOPT_POSTFIELDS => http_build_query([
 
-        "key"=>"quota",
+    "key" => "quota",
 
-        "value"=>"1GB"
+    "value" => $restoreQuota
 
-    ]),
+]),
 
     CURLOPT_USERPWD=>
 

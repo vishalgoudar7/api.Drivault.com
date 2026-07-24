@@ -184,6 +184,66 @@ try {
 } catch (Throwable $exception) {
     die("Unable to verify Drivault user: " . htmlspecialchars($exception->getMessage(), ENT_QUOTES, 'UTF-8'));
 }
+/*
+|--------------------------------------------------------------------------
+| Store Original Drivault Quota
+|--------------------------------------------------------------------------
+*/
+
+/*
+|--------------------------------------------------------------------------
+| Get User's Current Quota from Drivault
+|--------------------------------------------------------------------------
+*/
+
+$currentQuotaBytes = (int)($verifiedUser['quota']['total'] ?? 0);
+
+$currentQuotaGb = round($currentQuotaBytes / (1024 * 1024 * 1024));
+
+/*
+|--------------------------------------------------------------------------
+| Always use the user's current total quota before purchase
+|--------------------------------------------------------------------------
+*/
+
+// New user
+if ($mode == 'new') {
+
+    $_SESSION['free_quota'] = $currentQuotaGb;
+}
+
+// Upgrade or Renew
+else {
+
+    $stmt = $conn->prepare("
+        SELECT free_quota
+        FROM subscriptions
+        WHERE user_id = ?
+        AND status='active'
+        ORDER BY id DESC
+        LIMIT 1
+    ");
+
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+
+    $subscription = $stmt->get_result()->fetch_assoc();
+
+    if ($subscription) {
+        $_SESSION['free_quota'] = $subscription['free_quota'];
+    } else {
+        $_SESSION['free_quota'] = $currentQuotaGb;
+    }
+}
+
+$_SESSION['current_quota'] = $_SESSION['free_quota'];
+
+$_SESSION['drivault_username'] = $verifiedUser['id'];
+
+
+$_SESSION['selected_plan_id'] = $planId;
+$_SESSION['billing_cycle'] = $billingCycle;
+$_SESSION['checkout_mode'] = $mode;
 
 $price = $billingCycle === 'yearly'
     ? (float) $plan['yearly_price']

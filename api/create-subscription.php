@@ -14,11 +14,31 @@ $api = new Api(
     $config['key_secret']
 );
 session_start();
+// $freeQuota = $_SESSION['free_quota'] ?? 0;
+// $currentQuota = $_SESSION['current_quota'] ?? 0;
+
+// $planQuota = (int) filter_var(
+//     $plan['quota'],
+//     FILTER_SANITIZE_NUMBER_INT
+// );
+
+// $totalQuota = $freeQuota + $planQuota;
+
+// $subscriptionAction = match ($mode) {
+//     'renew'  => 'renewal',
+//     'upgrade'=> 'upgrade',
+//     default  => 'new'
+// };
 
 $user_id = trim((string) ($_POST['user_id'] ?? ''));
 $plan_id = (int) ($_POST['plan_id'] ?? 0);
 $billing_cycle = strtolower(trim((string) ($_POST['billing_cycle'] ?? 'monthly')));
 $mode = $_POST['mode'] ?? 'new';
+$subscriptionAction = match ($mode) {
+    'renew'   => 'renewal',
+    'upgrade' => 'upgrade',
+    default   => 'new'
+};
 $subscriptionId = (int)($_POST['subscription_id'] ?? 0);
 $name  = $_POST['name'] ?? '';
 $email = $_POST['email'] ?? '';
@@ -64,6 +84,18 @@ if (!$plan) {
         'message' => 'Plan not found'
     ]));
 }
+
+$freeQuota = $_SESSION['free_quota'] ?? 0;
+$currentQuota = $_SESSION['current_quota'] ?? 0;
+
+$planQuota = (int) filter_var(
+    $plan['quota'],
+    FILTER_SANITIZE_NUMBER_INT
+);
+
+$storageQuota = (int)$planQuota;
+
+$totalQuota = $freeQuota + $storageQuota;
 /*
 |--------------------------------------------------------------------------
 | Plan Details
@@ -191,7 +223,7 @@ if ($mode === 'renew') {
 $paymentMethod = "Razorpay";
 $paymentStatus = "Pending";
 $subscriptionStatus = "Pending";
-$paymentType = "upgrade";
+$paymentType = $mode;
 
 $stmt = $conn->prepare("
 INSERT INTO subscriptions
@@ -203,6 +235,11 @@ INSERT INTO subscriptions
     billing_cycle,
     paid_amount,
     razorpay_subscription_id,
+
+    free_quota,
+current_quota,
+total_quota,
+subscription_action,
 
     drivault_display_name,
     drivault_email,
@@ -220,13 +257,14 @@ INSERT INTO subscriptions
     status
 )
 VALUES
+
 (
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 )
-");
+    ");
 
 $stmt->bind_param(
-    "sisssdssssdddidssss",
+    "sisssdsiiissssdddidssss",
 
     $user_id,
     $plan_id,
@@ -235,6 +273,10 @@ $stmt->bind_param(
     $billing_cycle,
     $totalAmount,
     $razorpaySubscriptionId,
+$freeQuota,
+$currentQuota,
+$totalQuota,
+$subscriptionAction,
 
     $name,
     $email,

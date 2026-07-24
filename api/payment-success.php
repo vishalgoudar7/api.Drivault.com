@@ -267,7 +267,9 @@ try {
 |--------------------------------------------------------------------------
 */
 
-$isRenewal = $mode === 'renew';
+$isNewPurchase = $mode === 'new';
+$isRenewal     = $mode === 'renew';
+$isUpgrade     = $mode === 'upgrade';
 
 if ($localSubscriptionId > 0) {
     $stmt = $conn->prepare("SELECT * FROM subscriptions WHERE id = ? LIMIT 1");
@@ -330,20 +332,23 @@ $quotaResult = null;
 $purchasedGB = 0;
 
 if (!$isRenewal) {
-    $quotaText = strtoupper(trim($plan['quota']));
+    $purchasedGB = (int)$subscription['storage_quota'];
+$freeQuota   = (int)$subscription['free_quota'];
+$currentQuota = (int)$subscription['current_quota'];
+$totalQuota   = (int)$subscription['total_quota'];
 
-    if (strpos($quotaText, 'TB') !== false) {
+    // if (strpos($quotaText, 'TB') !== false) {
 
-        $planQuotaGB =
-            (float) str_replace('TB', '', $quotaText) * 1024;
+    //     $planQuotaGB =
+    //         (float) str_replace('TB', '', $quotaText) * 1024;
 
-    } else {
+    // } else {
 
-        $planQuotaGB =
-            (float) str_replace('GB', '', $quotaText);
-    }
+    //     $planQuotaGB =
+    //         (float) str_replace('GB', '', $quotaText);
+    // }
 
-    $purchasedGB = $planQuotaGB;
+    // $purchasedGB = $planQuotaGB;
 }
 
 /*
@@ -407,14 +412,16 @@ if ($isRenewal) {
         exit;
     }
 
-    $restoreGB = round(
-        $previousQuota /
-        1024 /
-        1024 /
-        1024
-    );
+    // $restoreGB = round(
+    //     $previousQuota /
+    //     1024 /
+    //     1024 /
+    //     1024
+    // );
 
-    $restoreQuota = $restoreGB . "GB";
+    // $restoreQuota = $restoreGB . "GB";
+    $restoreGB = (int)$subscription['previous_quota'];
+$restoreQuota = $restoreGB . "GB";
 
     $ch = curl_init();
 
@@ -538,7 +545,7 @@ if (!$isRenewal) {
     );
 
     // Add purchased quota
-    $newGB = $currentGB + $purchasedGB;
+   $newGB = $totalQuota;
 
     $newQuota = $newGB . "GB";
 
@@ -602,38 +609,106 @@ if ($subscription['billing_cycle'] === 'yearly') {
 
 $newExpiry = $base->format('Y-m-d H:i:s');
 $newStart = date('Y-m-d H:i:s');
-$paymentType = $isRenewal ? 'renewal' : 'upgrade';
+if ($isNewPurchase) {
+    $paymentType = 'new';
+} elseif ($isUpgrade) {
+    $paymentType = 'upgrade';
+} else {
+    $paymentType = 'renewal';
+}
+if ($isUpgrade) {
 
-$stmt = $conn->prepare(
-    "UPDATE subscriptions
-     SET
-       status='active',
-       payment_status='Success',
-       previous_quota=NULL,
-       payment_type=?,
-       razorpay_order_id=?,
-       razorpay_subscription_id=?,
-       razorpay_payment_id=?,
-       razorpay_signature=?,
-       start_date=?,
-       expiry_date=?,
-       reminder_7_sent=0,
-       reminder_3_sent=0,
-       reminder_1_sent=0
-     WHERE id = ?"
-);
+    $stmt = $conn->prepare("
+        UPDATE subscriptions
+        SET status='expired'
+        WHERE user_id = ?
+          AND status='active'
+          AND id <> ?
+    ");
 
-$stmt->bind_param(
-    "sssssssi",
-    $paymentType,
-    $orderId,
-    $razorpaySubscriptionId,
-    $paymentId,
-    $signature,
-    $newStart,
-    $newExpiry,
-    $subscription['id']
-);
+    $stmt->bind_param(
+        "si",
+        $userId,
+        $subscription['id']
+    );
+
+    $stmt->execute();
+}
+if ($isRenewal) {
+
+    $stmt = $conn->prepare(
+        "UPDATE subscriptions
+         SET
+           status='active',
+           payment_status='Success',
+           payment_type=?,
+           razorpay_order_id=?,
+           razorpay_subscription_id=?,
+           razorpay_payment_id=?,
+           razorpay_signature=?,
+           start_date=?,
+           expiry_date=?,
+           reminder_7_sent=0,
+           reminder_3_sent=0,
+           reminder_1_sent=0
+         WHERE id=?"
+    );
+
+    $stmt->bind_param(
+        "sssssssi",
+        $paymentType,
+        $orderId,
+        $razorpaySubscriptionId,
+        $paymentId,
+        $signature,
+        $newStart,
+        $newExpiry,
+        $subscription['id']
+    );
+
+} else {
+
+    $stmt = $conn->prepare(
+        "UPDATE subscriptions
+         SET
+           status='active',
+           payment_status='Success',
+           previous_quota=?,
+           payment_type=?,
+           razorpay_order_id=?,
+           razorpay_subscription_id=?,
+           razorpay_payment_id=?,
+           razorpay_signature=?,
+           start_date=?,
+           expiry_date=?,
+           reminder_7_sent=0,
+           reminder_3_sent=0,
+           reminder_1_sent=0
+         WHERE id=?"
+    );
+
+    $stmt->bind_param(
+        "isssssssi",
+        $currentQuota,
+        $paymentType,
+        $orderId,
+        $razorpaySubscriptionId,
+        $paymentId,
+        $signature,
+        $newStart,
+        $newExpiry,
+        $subscription['id']
+    );
+
+}
+
+if (!$stmt->execute()) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Unable to update subscription: ' . $stmt->error
+    ]);
+    exit;
+}
 
 if (!$stmt->execute()) {
     echo json_encode([
@@ -718,9 +793,13 @@ try {
 | Success Response
 |--------------------------------------------------------------------------
 */
-$successMessage = $isRenewal
-    ? 'Payment successful. Subscription renewed.'
-    : 'Payment successful. Storage upgraded.';
+if ($isNewPurchase) {
+    $successMessage = 'Payment successful. Subscription activated.';
+} elseif ($isUpgrade) {
+    $successMessage = 'Payment successful. Subscription upgraded.';
+} else {
+    $successMessage = 'Payment successful. Subscription renewed.';
+}
 
 echo json_encode([
     'success' => true,
