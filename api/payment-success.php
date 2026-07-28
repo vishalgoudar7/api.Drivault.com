@@ -2,6 +2,19 @@
 
 $logFile = __DIR__ . '/payment-debug.log';
 
+function paymentDebugLog(string $message, array $context = []): void
+{
+    global $logFile;
+
+    file_put_contents(
+        $logFile,
+        '[payment-success] ' . date('Y-m-d H:i:s') . ' ' . $message .
+        ($context ? ' ' . json_encode($context) : '') .
+        PHP_EOL,
+        FILE_APPEND
+    );
+}
+
 file_put_contents(
     $logFile,
     "\n=============================\n" .
@@ -223,6 +236,14 @@ $localSubscriptionId = (int)($_POST['subscription_id'] ?? 0);
 
 
 if ((!$orderId && !$razorpaySubscriptionId) || !$paymentId || !$signature) {
+    paymentDebugLog('Missing payment details', [
+        'order_id' => $orderId,
+        'razorpay_subscription_id' => $razorpaySubscriptionId,
+        'payment_id' => $paymentId,
+        'has_signature' => $signature !== '',
+        'local_subscription_id' => $localSubscriptionId,
+        'mode' => $mode
+    ]);
 
     echo json_encode([
         'success' => false,
@@ -245,14 +266,32 @@ try {
     ];
 
     if ($orderId !== '') {
+        // Manual Payment
         $signaturePayload['razorpay_order_id'] = $orderId;
     } else {
+        // Auto Renewal
         $signaturePayload['razorpay_subscription_id'] = $razorpaySubscriptionId;
     }
 
+    paymentDebugLog('Verifying Razorpay signature', [
+        'payment_mode' => $orderId !== '' ? 'manual' : 'auto',
+        'signature_payload_keys' => array_keys($signaturePayload),
+        'order_id' => $orderId,
+        'razorpay_subscription_id' => $razorpaySubscriptionId,
+        'payment_id' => $paymentId
+    ]);
+
     $api->utility->verifyPaymentSignature($signaturePayload);
 
+    paymentDebugLog('Razorpay signature verified');
+
 } catch (SignatureVerificationError $e) {
+    paymentDebugLog('Razorpay signature verification failed', [
+        'error' => $e->getMessage(),
+        'order_id' => $orderId,
+        'razorpay_subscription_id' => $razorpaySubscriptionId,
+        'payment_id' => $paymentId
+    ]);
 
     echo json_encode([
         'success' => false,
@@ -272,12 +311,21 @@ $isRenewal     = $mode === 'renew';
 $isUpgrade     = $mode === 'upgrade';
 
 if ($localSubscriptionId > 0) {
+    paymentDebugLog('Looking up subscription by local id', [
+        'subscription_id' => $localSubscriptionId
+    ]);
     $stmt = $conn->prepare("SELECT * FROM subscriptions WHERE id = ? LIMIT 1");
     $stmt->bind_param("i", $localSubscriptionId);
 } elseif ($razorpaySubscriptionId !== '') {
+    paymentDebugLog('Looking up subscription by Razorpay subscription id', [
+        'razorpay_subscription_id' => $razorpaySubscriptionId
+    ]);
     $stmt = $conn->prepare("SELECT * FROM subscriptions WHERE razorpay_subscription_id = ? LIMIT 1");
     $stmt->bind_param("s", $razorpaySubscriptionId);
 } else {
+    paymentDebugLog('Looking up subscription by Razorpay order id', [
+        'order_id' => $orderId
+    ]);
     $stmt = $conn->prepare("SELECT * FROM subscriptions WHERE razorpay_order_id = ? LIMIT 1");
     $stmt->bind_param("s", $orderId);
 }
@@ -287,6 +335,11 @@ $stmt->execute();
 $subscription = $stmt->get_result()->fetch_assoc();
 
 if (!$subscription) {
+    paymentDebugLog('Subscription not found', [
+        'local_subscription_id' => $localSubscriptionId,
+        'order_id' => $orderId,
+        'razorpay_subscription_id' => $razorpaySubscriptionId
+    ]);
 
     echo json_encode([
         'success' => false,
@@ -314,6 +367,10 @@ $stmt->execute();
 $plan = $stmt->get_result()->fetch_assoc();
 
 if (!$plan) {
+    paymentDebugLog('Plan not found', [
+        'plan_id' => $planId,
+        'subscription_id' => $subscription['id'] ?? null
+    ]);
 
     echo json_encode([
         'success' => false,
@@ -398,6 +455,7 @@ if ($drivaultEndpoint === '' || $drivaultApiUsername === '' || $drivaultApiPassw
 }
 
 $url = rtrim($drivaultEndpoint, '/') . '/' . rawurlencode($username);
+// Update Subscription
 if ($isRenewal) {
 
     $previousQuota = (int)$subscription['previous_quota'];
@@ -702,7 +760,20 @@ if ($isRenewal) {
 
 }
 
+paymentDebugLog('Updating subscription', [
+    'subscription_id' => $subscription['id'],
+    'payment_type' => $paymentType,
+    'order_id' => $orderId,
+    'razorpay_subscription_id' => $razorpaySubscriptionId,
+    'payment_id' => $paymentId
+]);
+
 if (!$stmt->execute()) {
+    paymentDebugLog('Unable to update subscription', [
+        'error' => $stmt->error,
+        'subscription_id' => $subscription['id']
+    ]);
+
     echo json_encode([
         'success' => false,
         'message' => 'Unable to update subscription: ' . $stmt->error
@@ -710,13 +781,9 @@ if (!$stmt->execute()) {
     exit;
 }
 
-if (!$stmt->execute()) {
-    echo json_encode([
-        'success' => false,
-        'message' => 'Unable to update subscription: ' . $stmt->error
-    ]);
-    exit;
-}
+paymentDebugLog('Subscription updated', [
+    'subscription_id' => $subscription['id']
+]);
 
 $stmt = $conn->prepare("SELECT * FROM subscriptions WHERE id = ?");
 $stmt->bind_param("i", $subscription['id']);
@@ -735,6 +802,7 @@ $stmt = $conn->prepare(
         user_id,
         subscription_id,
         razorpay_order_id,
+        razorpay_subscription_id,
         razorpay_payment_id,
         amount,
         payment_type,
@@ -742,27 +810,48 @@ $stmt = $conn->prepare(
     )
     VALUES
     (
-        ?, ?, ?, ?, ?, ?, 'success'
+        ?, ?, ?, ?, ?, ?, ?, 'success'
     )"
 );
 
 $stmt->bind_param(
-    "sissds",
+    "sisssds",
     $userId,
     $subscription['id'],
     $orderId,
+    $razorpaySubscriptionId,
     $paymentId,
     $subscription['paid_amount'],
     $paymentType
 );
 
+paymentDebugLog('Saving payment row', [
+    'user_id' => $userId,
+    'subscription_id' => $subscription['id'],
+    'order_id' => $orderId,
+    'razorpay_subscription_id' => $razorpaySubscriptionId,
+    'payment_id' => $paymentId,
+    'payment_type' => $paymentType
+]);
+
 if (!$stmt->execute()) {
+    paymentDebugLog('Unable to save payment row', [
+        'error' => $stmt->error,
+        'subscription_id' => $subscription['id'],
+        'payment_id' => $paymentId
+    ]);
+
     echo json_encode([
         'success' => false,
         'message' => 'Unable to save payment: ' . $stmt->error
     ]);
     exit;
 }
+
+paymentDebugLog('Payment row saved', [
+    'payment_insert_id' => $conn->insert_id,
+    'subscription_id' => $subscription['id']
+]);
 
 /*
 |--------------------------------------------------------------------------
@@ -800,6 +889,14 @@ if ($isNewPurchase) {
 } else {
     $successMessage = 'Payment successful. Subscription renewed.';
 }
+
+paymentDebugLog('Returning success response', [
+    'subscription_id' => $subscription['id'],
+    'payment_id' => $paymentId,
+    'order_id' => $orderId,
+    'razorpay_subscription_id' => $razorpaySubscriptionId,
+    'email_sent' => $emailSent
+]);
 
 echo json_encode([
     'success' => true,

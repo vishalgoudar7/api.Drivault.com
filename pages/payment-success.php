@@ -6,6 +6,7 @@ require_once __DIR__ . '/../cron/send_reminder.php';
 
 $paymentId = trim($_GET['payment_id'] ?? '');
 $orderId = trim($_GET['order_id'] ?? '');
+$razorpaySubscriptionId = trim($_GET['razorpay_subscription_id'] ?? '');
 $subscriptionId = (int)($_GET['subscription_id'] ?? 0);
 $planId = (int)($_GET['plan_id'] ?? 0);
 $mode = $_GET['mode'] ?? 'new';
@@ -89,7 +90,11 @@ if ($subscription) {
 
     $planId = (int)$subscription['plan_id'];
 
+    // Manual Payment
     $orderId = $orderId ?: ($subscription['razorpay_order_id'] ?? '');
+
+    // Auto Renewal
+    $razorpaySubscriptionId = $razorpaySubscriptionId ?: ($subscription['razorpay_subscription_id'] ?? '');
 
     $paymentId = $paymentId ?: ($subscription['razorpay_payment_id'] ?? '');
     $userEnabled = false;
@@ -249,6 +254,8 @@ if ($subscription) {
 
 $amount = $subscription['paid_amount'] ?? 0;
 $billingCycle = $subscription['billing_cycle'] ?? 'monthly';
+$isManualPayment = $orderId !== '';
+$isAutoRenewalPayment = !$isManualPayment && $razorpaySubscriptionId !== '';
 $invoiceUrl = $subscription
     ? '../payment/generate-invoice.php?payment_id=' . urlencode((string) $subscription['id'])
     : '#';
@@ -624,6 +631,22 @@ if ($mode === 'renew') {
                     <div class="detail-icon"><i class="bi bi-wallet2"></i></div>
                     <div class="detail-label">Payment ID</div>
                     <div class="detail-value"><?= htmlspecialchars($paymentId) ?></div>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($isManualPayment): ?>
+                <!-- Manual Payment -->
+                <div class="detail-row">
+                    <div class="detail-icon"><i class="bi bi-receipt"></i></div>
+                    <div class="detail-label">Order ID</div>
+                    <div class="detail-value"><?= htmlspecialchars($orderId) ?></div>
+                </div>
+            <?php elseif ($isAutoRenewalPayment): ?>
+                <!-- Auto Renewal -->
+                <div class="detail-row">
+                    <div class="detail-icon"><i class="bi bi-arrow-repeat"></i></div>
+                    <div class="detail-label">Subscription ID</div>
+                    <div class="detail-value"><?= htmlspecialchars($razorpaySubscriptionId) ?></div>
                 </div>
             <?php endif; ?>
         <?php else: ?>

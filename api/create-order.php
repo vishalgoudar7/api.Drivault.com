@@ -18,6 +18,9 @@ session_start();
 $user_id = trim((string) ($_POST['user_id'] ?? ''));
 $plan_id = (int) ($_POST['plan_id'] ?? 0);
 $billing_cycle = strtolower(trim((string) ($_POST['billing_cycle'] ?? 'monthly')));
+// ===== START RENEWAL MODE UPDATE =====
+$renewalMode = $_POST['renewal_mode'] ?? 'manual';
+// ===== END RENEWAL MODE UPDATE =====
 $mode = $_POST['mode'] ?? 'new';
 $subscriptionId = (int)($_POST['subscription_id'] ?? 0);
 $name  = $_POST['name'] ?? '';
@@ -64,6 +67,20 @@ if (!$plan) {
         'message' => 'Plan not found'
     ]));
 }
+
+// ===== START MANUAL QUOTA UPDATE =====
+$freeQuota = $_SESSION['free_quota'] ?? 0;
+$currentQuota = $_SESSION['current_quota'] ?? 0;
+
+$planQuota = (int) filter_var(
+    $plan['quota'],
+    FILTER_SANITIZE_NUMBER_INT
+);
+
+$storageQuota = (int)$planQuota;
+
+$totalQuota = $freeQuota + $storageQuota;
+// ===== END MANUAL QUOTA UPDATE =====
 /*
 |--------------------------------------------------------------------------
 | Plan Details
@@ -147,6 +164,7 @@ $paymentStatus = "Pending";
 $subscriptionStatus = "Pending";
 $paymentType = "upgrade";
 
+// ===== START RENEWAL MODE UPDATE =====
 $stmt = $conn->prepare("
 INSERT INTO subscriptions
 (
@@ -155,8 +173,13 @@ INSERT INTO subscriptions
     plan_name,
     storage_quota,
     billing_cycle,
+    renewal_mode,
     paid_amount,
     razorpay_order_id,
+
+    free_quota,
+    current_quota,
+    total_quota,
 
     drivault_display_name,
     drivault_email,
@@ -175,20 +198,30 @@ INSERT INTO subscriptions
 )
 VALUES
 (
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 )
 ");
+// ===== END RENEWAL MODE UPDATE =====
 
 $stmt->bind_param(
-    "sisssdssssdddidssss",
+    "sissssdsiiisssdddidssss",
 
     $user_id,
     $plan_id,
     $planName,
     $storageQuota,
     $billing_cycle,
+    // ===== START RENEWAL MODE UPDATE =====
+    $renewalMode,
+    // ===== END RENEWAL MODE UPDATE =====
     $totalAmount,
     $orderId,
+
+    // ===== START MANUAL QUOTA UPDATE =====
+    $freeQuota,
+    $currentQuota,
+    $totalQuota,
+    // ===== END MANUAL QUOTA UPDATE =====
 
     $name,
     $email,

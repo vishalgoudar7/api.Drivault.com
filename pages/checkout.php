@@ -266,6 +266,7 @@ $total = ceil($price + $gst);
 href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 
 <style>
 
@@ -766,6 +767,254 @@ body{
     flex-shrink:0;
 }
 
+.payment-method-modal{
+    font-family:Inter, Arial, sans-serif;
+}
+
+.payment-method-modal .modal-dialog{
+    max-width:920px;
+    width:95%;
+    margin-left:auto;
+    margin-right:auto;
+}
+
+.payment-method-modal .modal-content{
+    background:#ffffff;
+    border:1px solid #e5e7eb;
+    border-radius:18px;
+    box-shadow:0 20px 60px rgba(0,0,0,.08);
+    overflow:hidden;
+    max-height:calc(100vh - 32px);
+    animation:paymentModalIn .25s ease forwards;
+}
+
+.payment-method-modal .modal-header{
+    display:flex;
+    align-items:flex-start;
+    gap:16px;
+    padding:24px 28px;
+    border-bottom:1px solid #e5e7eb;
+}
+
+.payment-modal-icon{
+    width:48px;
+    height:48px;
+    border-radius:14px;
+    background:#dcfce7;
+    color:#16a34a;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:26px;
+    flex-shrink:0;
+}
+
+.payment-method-modal .modal-title{
+    color:#111827;
+    font-size:30px;
+    line-height:1.15;
+    font-weight:800;
+    margin:0 0 4px;
+}
+
+.payment-modal-subtitle{
+    color:#6b7280;
+    font-size:16px;
+    line-height:1.5;
+    margin:0;
+}
+
+.payment-method-modal .modal-body{
+    padding:24px 28px;
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:24px;
+    overflow:auto;
+}
+
+.payment-option-card{
+    display:block;
+    border:1px solid #e5e7eb;
+    border-radius:18px;
+    background:#ffffff;
+    padding:20px;
+    cursor:pointer;
+    transition:transform .25s ease, border-color .25s ease, background .25s ease, box-shadow .25s ease;
+}
+
+.payment-option-card:hover{
+    transform:translateY(-2px);
+}
+
+.payment-option-card.is-selected{
+    border:2px solid #16a34a;
+    background:#f0fdf4;
+    box-shadow:0 10px 30px rgba(22,163,74,.12);
+}
+
+.payment-option-top{
+    display:grid;
+    grid-template-columns:auto minmax(0,1fr);
+    gap:12px;
+    align-items:flex-start;
+}
+
+.payment-option-radio{
+    width:20px;
+    height:20px;
+    margin-top:4px;
+    border-color:#d1d5db;
+}
+
+.payment-option-radio:checked{
+    background-color:#16a34a;
+    border-color:#16a34a;
+}
+
+.payment-option-radio:focus{
+    box-shadow:0 0 0 .2rem rgba(22,163,74,.18);
+}
+
+.payment-option-heading{
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:10px;
+    color:#111827;
+    font-size:21px;
+    line-height:1.25;
+    font-weight:700;
+    margin-bottom:8px;
+}
+
+.payment-option-badge{
+    display:inline-flex;
+    align-items:center;
+    min-height:26px;
+    padding:4px 10px;
+    border-radius:999px;
+    background:#dcfce7;
+    color:#16a34a;
+    font-size:14px;
+    font-weight:700;
+}
+
+.payment-option-description{
+    color:#6b7280;
+    font-size:15px;
+    line-height:1.5;
+    margin:0;
+}
+
+.payment-option-info{
+    margin-top:16px;
+    border-radius:14px;
+    padding:14px 16px;
+    display:grid;
+    gap:8px;
+    font-size:14px;
+    line-height:1.35;
+}
+
+.payment-option-info span{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.payment-option-info-green{
+    background:#dcfce7;
+    color:#166534;
+}
+
+.payment-option-info-muted{
+    background:#f9fafb;
+    color:#6b7280;
+}
+
+.payment-option-info i{
+    color:#16a34a;
+    font-size:16px;
+    flex-shrink:0;
+}
+
+.payment-method-modal .modal-footer{
+    padding:0 28px 24px;
+    border-top:0;
+    display:grid;
+    grid-template-columns:max-content max-content;
+    justify-content:end;
+    gap:12px;
+}
+
+.payment-modal-btn{
+    min-height:48px;
+    border-radius:12px;
+    padding:0 22px;
+    font-size:16px;
+    font-weight:700;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+}
+
+.payment-modal-cancel{
+    background:#ffffff;
+    color:#374151;
+    border:1px solid #d1d5db;
+}
+
+.payment-modal-cancel:hover{
+    background:#f9fafb;
+    color:#111827;
+    border-color:#9ca3af;
+}
+
+.payment-modal-continue{
+    background:#16a34a;
+    color:#ffffff;
+    border:1px solid #16a34a;
+}
+
+.payment-modal-continue:hover{
+    background:#15803d;
+    color:#ffffff;
+    border-color:#15803d;
+}
+
+.payment-modal-btn .pay-spinner{
+    margin-right:0;
+    border-color:rgba(22,163,74,.24);
+    border-top-color:#16a34a;
+}
+
+.payment-modal-btn:disabled{
+    opacity:1;
+}
+
+.payment-modal-spinner{
+    width:18px;
+    height:18px;
+    border:2px solid rgba(22,163,74,.25);
+    border-top-color:#16a34a;
+    border-radius:50%;
+    display:inline-block;
+    flex-shrink:0;
+    animation:paySpin .8s linear infinite;
+}
+
+@keyframes paymentModalIn{
+    from{
+        opacity:0;
+        transform:scale(.95);
+    }
+    to{
+        opacity:1;
+        transform:scale(1);
+    }
+}
+
 @media (max-width: 991px){
     .checkout-grid{
         grid-template-columns:1fr;
@@ -912,6 +1161,154 @@ body{
 
     .row .col-md-6:first-child{
         margin-bottom:30px;
+    }
+
+    .payment-method-modal .modal-dialog{
+        width:calc(100% - 16px);
+        margin:.25rem auto;
+    }
+
+    .payment-method-modal .modal-content{
+        max-height:calc(100vh - 8px);
+    }
+
+    .payment-method-modal .modal-header{
+        gap:10px;
+        padding:12px 14px;
+    }
+
+    .payment-method-modal .modal-body{
+        display:flex;
+        flex-direction:row;
+        gap:8px;
+        padding:12px 14px;
+        overflow:visible;
+    }
+
+    .payment-method-modal .modal-footer{
+        padding:0 14px 12px;
+    }
+
+    .payment-method-modal .modal-title{
+        font-size:20px;
+    }
+
+    .payment-modal-subtitle{
+        font-size:12px;
+        line-height:1.25;
+    }
+
+    .payment-modal-icon{
+        width:38px;
+        height:38px;
+        border-radius:12px;
+        font-size:20px;
+    }
+
+    .payment-option-card{
+        flex:1 1 0;
+        min-width:0;
+        padding:9px;
+        border-radius:12px;
+    }
+
+    .payment-option-top{
+        grid-template-columns:1fr;
+        gap:6px;
+    }
+
+    .payment-option-radio{
+        width:16px;
+        height:16px;
+        margin-top:0;
+    }
+
+    .payment-option-heading{
+        align-items:flex-start;
+        flex-direction:column;
+        gap:4px;
+        font-size:14px;
+        margin-bottom:4px;
+    }
+
+    .payment-option-badge{
+        min-height:18px;
+        padding:2px 6px;
+        font-size:10px;
+    }
+
+    .payment-option-description{
+        font-size:11px;
+        line-height:1.25;
+    }
+
+    .payment-option-info{
+        margin-top:7px;
+        padding:7px;
+        gap:5px;
+        font-size:10px;
+        line-height:1.2;
+        border-radius:10px;
+    }
+
+    .payment-option-info span{
+        align-items:flex-start;
+        gap:4px;
+    }
+
+    .payment-option-info i{
+        font-size:12px;
+    }
+
+    .payment-method-modal .modal-footer{
+        grid-template-columns:1fr 1fr;
+        align-items:center;
+    }
+
+    .payment-modal-btn{
+        width:100%;
+        min-height:40px;
+        font-size:14px;
+        padding:0 12px;
+    }
+}
+
+@media (max-width: 430px){
+    .payment-method-modal .modal-dialog{
+        width:calc(100% - 8px);
+    }
+
+    .payment-method-modal .modal-header{
+        padding:10px;
+    }
+
+    .payment-method-modal .modal-body{
+        gap:6px;
+        padding:10px;
+    }
+
+    .payment-option-card{
+        padding:8px;
+    }
+
+    .payment-option-heading{
+        font-size:13px;
+    }
+
+    .payment-option-description,
+    .payment-option-info{
+        font-size:9px;
+    }
+
+    .payment-method-modal .modal-footer{
+        padding:0 10px 10px;
+        gap:6px;
+    }
+
+    .payment-modal-btn{
+        min-height:38px;
+        font-size:13px;
+        padding:0 8px;
     }
 }
 </style>
@@ -1065,6 +1462,107 @@ body{
 </section>
 
 </div>
+<div class="modal fade payment-method-modal" id="paymentModeModal" tabindex="-1" aria-labelledby="paymentModeModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <div class="payment-modal-icon">
+                    <i class="bi bi-credit-card"></i>
+                </div>
+                <div>
+                    <h5 class="modal-title" id="paymentModeModalTitle">
+                        Choose Payment Method
+                    </h5>
+                    <p class="payment-modal-subtitle">
+                        Select how you'd like your subscription to renew.
+                    </p>
+                </div>
+            </div>
+
+            <div class="modal-body">
+
+                <label class="payment-option-card is-selected" tabindex="0">
+                    <div class="payment-option-top">
+                        <input
+                            class="form-check-input payment-option-radio"
+                            type="radio"
+                            name="payment_mode"
+                            value="auto"
+                            checked>
+
+                        <div>
+                            <div class="payment-option-heading">
+                                <span>Auto Pay</span>
+                                <span class="payment-option-badge">Recommended</span>
+                            </div>
+
+                            <p class="payment-option-description">
+                                Automatically renew every billing cycle.
+                            </p>
+
+                            <div class="payment-option-info payment-option-info-green">
+                                <span><i class="bi bi-check-lg"></i>Hassle-free experience</span>
+                                <span><i class="bi bi-check-lg"></i>Never miss a renewal</span>
+                                <span><i class="bi bi-check-lg"></i>Auto billing each cycle</span>
+                            </div>
+                        </div>
+                    </div>
+                </label>
+
+                <label class="payment-option-card" tabindex="0">
+                    <div class="payment-option-top">
+                        <input
+                            class="form-check-input payment-option-radio"
+                            type="radio"
+                            name="payment_mode"
+                            value="manual">
+
+                        <div>
+                            <div class="payment-option-heading">
+                                <span>Monthly Pay</span>
+                            </div>
+
+                            <p class="payment-option-description">
+                                Renew manually whenever required.
+                            </p>
+
+                            <div class="payment-option-info payment-option-info-muted">
+                                <span><i class="bi bi-check-lg"></i>Renewal reminder emails before your plan expires</span>
+                                <span><i class="bi bi-check-lg"></i>Renew only when you choose</span>
+                                <span><i class="bi bi-check-lg"></i>Service may be interrupted until your payment is completed</span>
+                            </div>
+                        </div>
+                    </div>
+                </label>
+
+
+            </div>
+
+            <div class="modal-footer">
+
+                <button
+                    class="btn payment-modal-btn payment-modal-cancel"
+                    data-bs-dismiss="modal">
+
+                    Cancel
+
+                </button>
+
+                <button
+                    class="btn payment-modal-btn payment-modal-continue"
+                    id="continuePayment">
+
+                    <span>Continue</span>
+                    <i class="bi bi-arrow-right"></i>
+
+                </button>
+
+            </div>
+
+        </div>
+    </div>
+</div>
 
 <div class="checkout-action">
     <button
@@ -1094,17 +1592,23 @@ body{
 </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
 <script>
 
 const payBtn = document.getElementById('payBtn');
+const continuePaymentBtn = document.getElementById('continuePayment');
 const verifiedUser = <?= json_encode($verifiedUser, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
 console.log("Verified User:", verifiedUser);
 console.log("Quota:", verifiedUser.quota);
 console.log("Used:", verifiedUser.quota.used);
 console.log("Total:", verifiedUser.quota.total);
-const payButtonText = '<i class="bi bi-lock-fill"></i><span>Proceed to Pay</span>';
+const payButtonText = payBtn.innerHTML;
+const continuePaymentButtonText = continuePaymentBtn.innerHTML;
+// ===== START MANUAL/AUTO PAYMENT UPDATE =====
+let paymentMode = "auto";
+// ===== END MANUAL/AUTO PAYMENT UPDATE =====
 
 function showToast(message, type = 'error') {
 
@@ -1140,11 +1644,15 @@ function displayValue(value) {
 function setPayLoading(text) {
     payBtn.innerHTML = '<span class="pay-spinner"></span>' + text;
     payBtn.disabled = true;
+    continuePaymentBtn.innerHTML = '<span class="payment-modal-spinner"></span><span>Processing</span>';
+    continuePaymentBtn.disabled = true;
 }
 
 function resetPayButton() {
     payBtn.innerHTML = payButtonText;
     payBtn.disabled = false;
+    continuePaymentBtn.innerHTML = continuePaymentButtonText;
+    continuePaymentBtn.disabled = false;
 }
 
 function showPaymentProcessing(title, text, isComplete = false) {
@@ -1178,12 +1686,65 @@ function redirectAfterProcessing(url) {
     }, 500);
 }
 
-payBtn.addEventListener('click', async function() {
+// ===== START PAYMENT MODAL UI UPDATE =====
+document.querySelectorAll('.payment-option-card').forEach((card) => {
+    const radio = card.querySelector('input[name="payment_mode"]');
+
+    function selectPaymentCard() {
+        radio.checked = true;
+
+        document.querySelectorAll('.payment-option-card').forEach((option) => {
+            option.classList.toggle(
+                'is-selected',
+                option.querySelector('input[name="payment_mode"]').checked
+            );
+        });
+    }
+
+    card.addEventListener('click', selectPaymentCard);
+
+    card.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            selectPaymentCard();
+        }
+    });
+
+    radio.addEventListener('change', selectPaymentCard);
+});
+// ===== END PAYMENT MODAL UI UPDATE =====
+
+// ===== START MANUAL/AUTO PAYMENT UPDATE =====
+payBtn.addEventListener("click", function () {
+
+    const modal = new bootstrap.Modal(
+        document.getElementById("paymentModeModal")
+    );
+
+    modal.show();
+
+});
+continuePaymentBtn.addEventListener("click", function () {
+
+    paymentMode =
+        document.querySelector(
+            'input[name="payment_mode"]:checked'
+        ).value;
+
+    startPayment();
+
+});
+
+async function startPayment() {
     const customerName = displayValue(verifiedUser.displayname);
     const customerEmail = displayValue(verifiedUser.email);
     const customerUserId = displayValue(verifiedUser.id);
     const customerPhone = verifiedUser.phone ? String(verifiedUser.phone) : '';
     const storageAccountId = customerUserId;
+    const apiUrl =
+        paymentMode === "manual"
+            ? "../api/create-order.php"
+            : "../api/create-subscription.php";
 
     setPayLoading('Creating order...');
 
@@ -1191,7 +1752,7 @@ payBtn.addEventListener('click', async function() {
 
     try {
         let response = await fetch(
-            '../api/create-subscription.php',
+            apiUrl,
             {
                 method: 'POST',
                 headers: {
@@ -1202,6 +1763,9 @@ payBtn.addEventListener('click', async function() {
     user_id: customerUserId,
     plan_id: '<?= $planId ?>',
     billing_cycle: '<?= $billingCycle ?>',
+    // ===== START RENEWAL MODE UPDATE =====
+    renewal_mode: paymentMode,
+    // ===== END RENEWAL MODE UPDATE =====
     mode: '<?= $mode ?>',
     subscription_id: '<?= $subscriptionId ?>',
     name: customerName,
@@ -1239,16 +1803,12 @@ payBtn.addEventListener('click', async function() {
 
         key:data.key,
 
-        // amount:data.amount,
-
         currency:"INR",
 
         name:"Drivault",
 
         description:
         "Storage Upgrade",
-
-        subscription_id:data.razorpay_subscription_id,
 
         prefill:{
             name: customerName,
@@ -1264,6 +1824,35 @@ payBtn.addEventListener('click', async function() {
                 'Please wait while we confirm your payment and prepare your subscription.'
             );
 
+            const paymentSuccessParams = new URLSearchParams({
+                razorpay_payment_id: payment.razorpay_payment_id,
+                razorpay_signature: payment.razorpay_signature,
+
+                mode: '<?= $mode ?>',
+                subscription_id: data.subscription_id || '<?= $subscriptionId ?>',
+
+                name: customerName,
+                email: customerEmail,
+                phone: customerPhone || storageAccountId
+            });
+
+            if (paymentMode === "manual") {
+                paymentSuccessParams.set(
+                    'razorpay_order_id',
+                    payment.razorpay_order_id || data.order_id
+                );
+            } else {
+                paymentSuccessParams.set(
+                    'razorpay_subscription_id',
+                    payment.razorpay_subscription_id || data.razorpay_subscription_id
+                );
+            }
+
+            console.log('Payment verification request:', {
+                paymentMode: paymentMode,
+                params: Object.fromEntries(paymentSuccessParams.entries())
+            });
+
             fetch(
                 '../api/payment-success.php',
                 {
@@ -1272,51 +1861,85 @@ payBtn.addEventListener('click', async function() {
                         'Content-Type':
                         'application/x-www-form-urlencoded'
                     },
-                   body:new URLSearchParams({
-    razorpay_subscription_id: payment.razorpay_subscription_id,
-    razorpay_payment_id: payment.razorpay_payment_id,
-    razorpay_signature: payment.razorpay_signature,
-
-    mode: '<?= $mode ?>',
-    subscription_id: data.subscription_id || '<?= $subscriptionId ?>',
-
-    name: customerName,
-    email: customerEmail,
-    phone: customerPhone || storageAccountId
-})
+                   body: paymentSuccessParams
                 }
             )
-            .then(r=>r.json())
+            .then(async (r) => {
+                const responseText = await r.text();
+
+                console.log('Payment verification response:', {
+                    status: r.status,
+                    ok: r.ok,
+                    body: responseText
+                });
+
+                try {
+                    return JSON.parse(responseText);
+                } catch (error) {
+                    console.error('Payment verification JSON parse failed:', error);
+                    throw error;
+                }
+            })
            .then(res=>{
     if(res.success){
 
-       const successUrl =
-"payment-success.php?payment_id=" +
-encodeURIComponent(res.payment_id) +
-"&razorpay_subscription_id=" +
-encodeURIComponent(res.razorpay_subscription_id) +
-"&subscription_id=" +
-encodeURIComponent(res.subscription_id) +
-"&mode=<?= $mode ?>" +
-"&plan_id=<?= $planId ?>";
+       let successUrl =
+            "payment-success.php?payment_id=" +
+            encodeURIComponent(res.payment_id) +
+            "&subscription_id=" +
+            encodeURIComponent(res.subscription_id) +
+            "&mode=<?= $mode ?>" +
+            "&plan_id=<?= $planId ?>";
+
+        if (paymentMode === "manual") {
+            successUrl +=
+                "&order_id=" +
+                encodeURIComponent(res.order_id || data.order_id || '');
+        } else {
+            successUrl +=
+                "&razorpay_subscription_id=" +
+                encodeURIComponent(
+                    res.razorpay_subscription_id ||
+                    data.razorpay_subscription_id ||
+                    ''
+                );
+        }
 
         redirectAfterProcessing(successUrl);
         return;
     }
 
+    let failedUrl =
+        "payment-failed.php?plan_id=<?= $planId ?>" +
+        "&subscription_id=" +
+        encodeURIComponent(data.subscription_id || '<?= $subscriptionId ?>');
+
+    if (paymentMode === "manual") {
+        failedUrl +=
+            "&order_id=" +
+            encodeURIComponent(
+                payment.razorpay_order_id ||
+                data.order_id ||
+                ''
+            );
+    } else {
+        failedUrl +=
+            "&razorpay_subscription_id=" +
+            encodeURIComponent(
+                payment.razorpay_subscription_id ||
+                data.razorpay_subscription_id ||
+                ''
+            );
+    }
+
     window.location =
-    "payment-failed.php?plan_id=<?= $planId ?>" +
-    "&subscription_id=" +
-    encodeURIComponent(data.subscription_id || '<?= $subscriptionId ?>') +
-    "&razorpay_subscription_id=" +
-    encodeURIComponent(
-        payment.razorpay_subscription_id ||
-        data.razorpay_subscription_id
-    ) +
-    "&reason=" +
-    encodeURIComponent(res.message || "Payment verification failed");
+        failedUrl +
+        "&reason=" +
+        encodeURIComponent(res.message || "Payment verification failed");
 })
-            .catch(()=>{
+            .catch((error)=>{
+                console.error('Payment verification request failed:', error);
+
                 window.location =
                     "payment-failed.php?plan_id=<?= $planId ?>&reason=" +
                     encodeURIComponent("Unable to verify payment. Please try again.");
@@ -1326,6 +1949,13 @@ encodeURIComponent(res.subscription_id) +
 
     };
 
+    if (paymentMode === "manual") {
+        options.amount = data.amount;
+        options.order_id = data.order_id;
+    } else {
+        options.subscription_id = data.razorpay_subscription_id;
+    }
+
     let rzp = new Razorpay(options);
 
     rzp.on('payment.failed', function(response){
@@ -1333,21 +1963,40 @@ encodeURIComponent(res.subscription_id) +
             ? response.error.description
             : "Payment failed. Please try again.";
 
-    window.location =
-    "payment-failed.php?plan_id=<?= $planId ?>" +
-    "&subscription_id=" +
-    encodeURIComponent(data.subscription_id || '<?= $subscriptionId ?>') +
-    "&razorpay_subscription_id=" +
-    encodeURIComponent(data.razorpay_subscription_id || '') +
-    "&reason=" +
-    encodeURIComponent(message);
+        let failedUrl =
+            "payment-failed.php?plan_id=<?= $planId ?>" +
+            "&subscription_id=" +
+            encodeURIComponent(data.subscription_id || '<?= $subscriptionId ?>');
+
+        if (paymentMode === "manual") {
+            failedUrl +=
+                "&order_id=" +
+                encodeURIComponent(data.order_id || '');
+        } else {
+            failedUrl +=
+                "&razorpay_subscription_id=" +
+                encodeURIComponent(data.razorpay_subscription_id || '');
+        }
+
+        window.location =
+            failedUrl +
+            "&reason=" +
+            encodeURIComponent(message);
     });
 
     setPayLoading('Complete payment in Razorpay...');
 
+    bootstrap.Modal
+        .getInstance(document.getElementById("paymentModeModal"))
+        .hide();
+
+    continuePaymentBtn.innerHTML = continuePaymentButtonText;
+    continuePaymentBtn.disabled = false;
+
     rzp.open();
 
-});
+}
+// ===== END MANUAL/AUTO PAYMENT UPDATE =====
 
 </script>
 <div id="paymentProcessingOverlay" class="payment-processing-overlay" aria-live="polite" aria-hidden="true">

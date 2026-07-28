@@ -518,3 +518,115 @@ Array
 RAW INPUT:
 razorpay_subscription_id=sub_TGvtCNjz4nvCSV&razorpay_payment_id=pay_TGvtRzi2Qn32Ml&razorpay_signature=91b7f3239eb74750b44b78ffee1c45ab1e21c885ca288f5149d5bf6b9bb6af55&mode=upgrade&subscription_id=5&name=vishnu&email=vishalgoudar012%40gmail.com&phone=9598979496
 =============================
+
+=============================
+2026-07-28 06:33:32
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_payment_id] => pay_TInAYjtG1gsln0
+    [razorpay_signature] => 59a84b8a066bd6eac476474c8b6e9fe414929017155dffafc7ff8bafa232e066
+    [mode] => upgrade
+    [subscription_id] => 1
+    [name] => Vishalgouda Goudar
+    [email] => vishalgoudar143@gmail.com
+    [phone] => vishalgoudar143
+    [razorpay_subscription_id] => sub_TIn8ni44cRMuZ1
+)
+
+RAW INPUT:
+razorpay_payment_id=pay_TInAYjtG1gsln0&razorpay_signature=59a84b8a066bd6eac476474c8b6e9fe414929017155dffafc7ff8bafa232e066&mode=upgrade&subscription_id=1&name=Vishalgouda+Goudar&email=vishalgoudar143%40gmail.com&phone=vishalgoudar143&razorpay_subscription_id=sub_TIn8ni44cRMuZ1
+=============================
+[payment-success] 2026-07-28 06:33:32 Verifying Razorpay signature {"payment_mode":"auto","signature_payload_keys":["razorpay_payment_id","razorpay_signature","razorpay_subscription_id"],"order_id":"","razorpay_subscription_id":"sub_TIn8ni44cRMuZ1","payment_id":"pay_TInAYjtG1gsln0"}
+[payment-success] 2026-07-28 06:33:32 Razorpay signature verified
+[payment-success] 2026-07-28 06:33:32 Looking up subscription by local id {"subscription_id":1}
+[payment-success] 2026-07-28 06:33:35 Updating subscription {"subscription_id":1,"payment_type":"upgrade","order_id":"","razorpay_subscription_id":"sub_TIn8ni44cRMuZ1","payment_id":"pay_TInAYjtG1gsln0"}
+[payment-success] 2026-07-28 06:33:35 Subscription updated {"subscription_id":1}
+[payment-success] 2026-07-28 06:33:35 Saving payment row {"user_id":"vishalgoudar143","subscription_id":1,"order_id":"","razorpay_subscription_id":"sub_TIn8ni44cRMuZ1","payment_id":"pay_TInAYjtG1gsln0","payment_type":"upgrade"}
+[payment-success] 2026-07-28 06:33:35 Payment row saved {"payment_insert_id":1,"subscription_id":1}
+[payment-success] 2026-07-28 06:33:49 Returning success response {"subscription_id":1,"payment_id":"pay_TInAYjtG1gsln0","order_id":"","razorpay_subscription_id":"sub_TIn8ni44cRMuZ1","email_sent":true}
+
+=============================
+2026-07-28 06:37:04
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_payment_id] => pay_TInENooONXJ7Ul
+    [razorpay_signature] => 8c3c31b7322e864c650f82ef284fa27a44bd094f77b2887e3377d0c8fe856580
+    [mode] => upgrade
+    [subscription_id] => 2
+    [name] => rahul
+    [email] => yoyot52549@duvips.com
+    [phone] => rahul
+    [razorpay_order_id] => order_TInEFETl0diEw7
+)
+
+RAW INPUT:
+razorpay_payment_id=pay_TInENooONXJ7Ul&razorpay_signature=8c3c31b7322e864c650f82ef284fa27a44bd094f77b2887e3377d0c8fe856580&mode=upgrade&subscription_id=2&name=rahul&email=yoyot52549%40duvips.com&phone=rahul&razorpay_order_id=order_TInEFETl0diEw7
+=============================
+[payment-success] 2026-07-28 06:37:04 Verifying Razorpay signature {"payment_mode":"manual","signature_payload_keys":["razorpay_payment_id","razorpay_signature","razorpay_order_id"],"order_id":"order_TInEFETl0diEw7","razorpay_subscription_id":"","payment_id":"pay_TInENooONXJ7Ul"}
+[payment-success] 2026-07-28 06:37:04 Razorpay signature verified
+[payment-success] 2026-07-28 06:37:04 Looking up subscription by local id {"subscription_id":2}
+[payment-success] 2026-07-28 06:37:06 Updating subscription {"subscription_id":2,"payment_type":"upgrade","order_id":"order_TInEFETl0diEw7","razorpay_subscription_id":"","payment_id":"pay_TInENooONXJ7Ul"}
+[payment-success] 2026-07-28 06:37:06 Subscription updated {"subscription_id":2}
+[payment-success] 2026-07-28 06:37:06 Saving payment row {"user_id":"rahul","subscription_id":2,"order_id":"order_TInEFETl0diEw7","razorpay_subscription_id":"","payment_id":"pay_TInENooONXJ7Ul","payment_type":"upgrade"}
+[payment-success] 2026-07-28 06:37:06 Payment row saved {"payment_insert_id":2,"subscription_id":2}
+[payment-success] 2026-07-28 06:37:10 Returning success response {"subscription_id":2,"payment_id":"pay_TInENooONXJ7Ul","order_id":"order_TInEFETl0diEw7","razorpay_subscription_id":"","email_sent":true}
+
+=============================
+2026-07-28 06:41:40
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_payment_id] => pay_TInJFzRJZ1obxG
+    [razorpay_signature] => f74f96c61b2540d22ad4c0e7032de1162db28768a3866390e2a5397dca346e78
+    [mode] => renew
+    [subscription_id] => 2
+    [name] => rahul
+    [email] => yoyot52549@duvips.com
+    [phone] => rahul
+    [razorpay_order_id] => order_TInJ9tZ7d47d86
+)
+
+RAW INPUT:
+razorpay_payment_id=pay_TInJFzRJZ1obxG&razorpay_signature=f74f96c61b2540d22ad4c0e7032de1162db28768a3866390e2a5397dca346e78&mode=renew&subscription_id=2&name=rahul&email=yoyot52549%40duvips.com&phone=rahul&razorpay_order_id=order_TInJ9tZ7d47d86
+=============================
+[payment-success] 2026-07-28 06:41:40 Verifying Razorpay signature {"payment_mode":"manual","signature_payload_keys":["razorpay_payment_id","razorpay_signature","razorpay_order_id"],"order_id":"order_TInJ9tZ7d47d86","razorpay_subscription_id":"","payment_id":"pay_TInJFzRJZ1obxG"}
+[payment-success] 2026-07-28 06:41:40 Razorpay signature verified
+[payment-success] 2026-07-28 06:41:40 Looking up subscription by local id {"subscription_id":2}
+[payment-success] 2026-07-28 06:41:41 Updating subscription {"subscription_id":2,"payment_type":"renewal","order_id":"order_TInJ9tZ7d47d86","razorpay_subscription_id":"","payment_id":"pay_TInJFzRJZ1obxG"}
+[payment-success] 2026-07-28 06:41:41 Subscription updated {"subscription_id":2}
+[payment-success] 2026-07-28 06:41:41 Saving payment row {"user_id":"rahul","subscription_id":2,"order_id":"order_TInJ9tZ7d47d86","razorpay_subscription_id":"","payment_id":"pay_TInJFzRJZ1obxG","payment_type":"renewal"}
+[payment-success] 2026-07-28 06:41:41 Payment row saved {"payment_insert_id":3,"subscription_id":2}
+[payment-success] 2026-07-28 06:41:44 Returning success response {"subscription_id":2,"payment_id":"pay_TInJFzRJZ1obxG","order_id":"order_TInJ9tZ7d47d86","razorpay_subscription_id":"","email_sent":true}
+
+=============================
+2026-07-28 06:43:09
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_payment_id] => pay_TInKqUTRFCi5oa
+    [razorpay_signature] => cfe27489eb121828578ef1d259065f1fc8f17ad52329586d055cfc104772f13d
+    [mode] => upgrade
+    [subscription_id] => 3
+    [name] => rahul
+    [email] => yoyot52549@duvips.com
+    [phone] => rahul
+    [razorpay_order_id] => order_TInKlx8zfH6s11
+)
+
+RAW INPUT:
+razorpay_payment_id=pay_TInKqUTRFCi5oa&razorpay_signature=cfe27489eb121828578ef1d259065f1fc8f17ad52329586d055cfc104772f13d&mode=upgrade&subscription_id=3&name=rahul&email=yoyot52549%40duvips.com&phone=rahul&razorpay_order_id=order_TInKlx8zfH6s11
+=============================
+[payment-success] 2026-07-28 06:43:09 Verifying Razorpay signature {"payment_mode":"manual","signature_payload_keys":["razorpay_payment_id","razorpay_signature","razorpay_order_id"],"order_id":"order_TInKlx8zfH6s11","razorpay_subscription_id":"","payment_id":"pay_TInKqUTRFCi5oa"}
+[payment-success] 2026-07-28 06:43:09 Razorpay signature verified
+[payment-success] 2026-07-28 06:43:09 Looking up subscription by local id {"subscription_id":3}
+[payment-success] 2026-07-28 06:43:12 Updating subscription {"subscription_id":3,"payment_type":"upgrade","order_id":"order_TInKlx8zfH6s11","razorpay_subscription_id":"","payment_id":"pay_TInKqUTRFCi5oa"}
+[payment-success] 2026-07-28 06:43:12 Subscription updated {"subscription_id":3}
+[payment-success] 2026-07-28 06:43:12 Saving payment row {"user_id":"rahul","subscription_id":3,"order_id":"order_TInKlx8zfH6s11","razorpay_subscription_id":"","payment_id":"pay_TInKqUTRFCi5oa","payment_type":"upgrade"}
+[payment-success] 2026-07-28 06:43:12 Payment row saved {"payment_insert_id":4,"subscription_id":3}
+[payment-success] 2026-07-28 06:43:15 Returning success response {"subscription_id":3,"payment_id":"pay_TInKqUTRFCi5oa","order_id":"order_TInKlx8zfH6s11","razorpay_subscription_id":"","email_sent":true}

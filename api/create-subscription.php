@@ -33,6 +33,9 @@ session_start();
 $user_id = trim((string) ($_POST['user_id'] ?? ''));
 $plan_id = (int) ($_POST['plan_id'] ?? 0);
 $billing_cycle = strtolower(trim((string) ($_POST['billing_cycle'] ?? 'monthly')));
+// ===== START RENEWAL MODE UPDATE =====
+$renewalMode = $_POST['renewal_mode'] ?? 'auto';
+// ===== END RENEWAL MODE UPDATE =====
 $mode = $_POST['mode'] ?? 'new';
 $subscriptionAction = match ($mode) {
     'renew'   => 'renewal',
@@ -225,6 +228,7 @@ $paymentStatus = "Pending";
 $subscriptionStatus = "Pending";
 $paymentType = $mode;
 
+// ===== START RENEWAL MODE UPDATE =====
 $stmt = $conn->prepare("
 INSERT INTO subscriptions
 (
@@ -233,6 +237,7 @@ INSERT INTO subscriptions
     plan_name,
     storage_quota,
     billing_cycle,
+    renewal_mode,
     paid_amount,
     razorpay_subscription_id,
 
@@ -259,18 +264,22 @@ subscription_action,
 VALUES
 
 (
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 )
     ");
+// ===== END RENEWAL MODE UPDATE =====
 
 $stmt->bind_param(
-    "sisssdsiiissssdddidssss",
+    "sissssdsiiissssdddidssss",
 
     $user_id,
     $plan_id,
     $planName,
     $storageQuota,
     $billing_cycle,
+    // ===== START RENEWAL MODE UPDATE =====
+    $renewalMode,
+    // ===== END RENEWAL MODE UPDATE =====
     $totalAmount,
     $razorpaySubscriptionId,
 $freeQuota,
