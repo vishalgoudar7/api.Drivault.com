@@ -801,7 +801,7 @@ body{
     height:48px;
     border-radius:14px;
     background:#dcfce7;
-    color:#16a34a;
+    color:#38d989;
     display:flex;
     align-items:center;
     justify-content:center;
@@ -847,9 +847,9 @@ body{
 }
 
 .payment-option-card.is-selected{
-    border:2px solid #16a34a;
+    border:2px solid #38d989;
     background:#f0fdf4;
-    box-shadow:0 10px 30px rgba(22,163,74,.12);
+    box-shadow:0 10px 30px rgba(56,217,137,.12);
 }
 
 .payment-option-top{
@@ -867,12 +867,12 @@ body{
 }
 
 .payment-option-radio:checked{
-    background-color:#16a34a;
-    border-color:#16a34a;
+    background-color:#38d989;
+    border-color:#38d989;
 }
 
 .payment-option-radio:focus{
-    box-shadow:0 0 0 .2rem rgba(22,163,74,.18);
+    box-shadow:0 0 0 .2rem rgba(56,217,137,.18);
 }
 
 .payment-option-heading{
@@ -894,7 +894,7 @@ body{
     padding:4px 10px;
     border-radius:999px;
     background:#dcfce7;
-    color:#16a34a;
+    color:#38d989;
     font-size:14px;
     font-weight:700;
 }
@@ -933,7 +933,7 @@ body{
 }
 
 .payment-option-info i{
-    color:#16a34a;
+    color:#38d989;
     font-size:16px;
     flex-shrink:0;
 }
@@ -972,9 +972,9 @@ body{
 }
 
 .payment-modal-continue{
-    background:#16a34a;
+    background:#38d989;
     color:#ffffff;
-    border:1px solid #16a34a;
+    border:1px solid #38d989;
 }
 
 .payment-modal-continue:hover{
@@ -985,8 +985,8 @@ body{
 
 .payment-modal-btn .pay-spinner{
     margin-right:0;
-    border-color:rgba(22,163,74,.24);
-    border-top-color:#16a34a;
+    border-color:rgba(56,217,137,.24);
+    border-top-color:#38d989;
 }
 
 .payment-modal-btn:disabled{
@@ -996,8 +996,8 @@ body{
 .payment-modal-spinner{
     width:18px;
     height:18px;
-    border:2px solid rgba(22,163,74,.25);
-    border-top-color:#16a34a;
+    border:2px solid rgba(56,217,137,.25);
+    border-top-color:#38d989;
     border-radius:50%;
     display:inline-block;
     flex-shrink:0;

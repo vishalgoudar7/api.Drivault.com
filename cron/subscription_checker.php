@@ -94,28 +94,110 @@ function sendExpiredQuotaReducedEmail(array $row): bool
     $to = (string) ($row['drivault_email'] ?? '');
     $customerName = trim((string) ($row['drivault_display_name'] ?? 'Customer'));
     $renewUrl = buildRenewButtonUrl((int) $row['id']);
+    $mailConfig = require __DIR__ . '/../config/mail.php';
 
-    $message = sprintf(
-        '<div style="font-family:Arial,Helvetica,sans-serif;background:#f4f6f8;padding:10px;color:#111827;">
-            <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:4px;overflow:hidden;">
-                <div style="padding:24px 42px 32px;">
-                    <h1 style="margin:0 0 18px;color:#12b76a;font-size:26px;">Subscription Expired</h1>
-                    <p style="margin:0 0 14px;font-size:14px;">Hello <strong style="color:#12b76a;">%1$s</strong>,</p>
-                    <p style="margin:0 0 18px;font-size:14px;line-height:22px;color:#374151;">
-                        Your subscription has expired.<br>
-                        Your storage quota has been reduced to 1GB.<br>
-                        Your files remain available.<br>
-                        Renew your subscription to restore your previous storage.
-                    </p>
-                    <div style="text-align:center;margin:26px 0 10px;">
-                        <a href="%2$s" style="display:inline-block;background:#12b76a;color:#ffffff;text-decoration:none;border-radius:7px;padding:13px 24px;font-size:14px;font-weight:700;">Renew Subscription</a>
-                    </div>
-                </div>
+    $previousQuota = (int) ($row['previous_quota'] ?? 0);
+
+    if ($previousQuota <= 0) {
+        $previousQuota = (int) ($row['total_quota'] ?? 0);
+    }
+
+    $customerNameHtml = htmlspecialchars($customerName !== '' ? $customerName : 'Customer', ENT_QUOTES, 'UTF-8');
+    $renewUrlHtml = htmlspecialchars($renewUrl, ENT_QUOTES, 'UTF-8');
+    $currentStorageHtml = '1GB';
+    $previousStorageHtml = $previousQuota > 0
+        ? htmlspecialchars($previousQuota . 'GB', ENT_QUOTES, 'UTF-8')
+        : htmlspecialchars((string) ($row['storage_quota'] ?? 'your previous storage'), ENT_QUOTES, 'UTF-8');
+    $supportEmailHtml = htmlspecialchars((string) ($mailConfig['support_email'] ?? 'support@drivault.com'), ENT_QUOTES, 'UTF-8');
+    $websiteDisplayHtml = htmlspecialchars(getMailWebsiteDisplay(), ENT_QUOTES, 'UTF-8');
+
+    $message = <<<HTML
+<div style="font-family:Arial,Helvetica,sans-serif;background:#f4f6f8;padding:10px;color:#111827;">
+    <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:4px;overflow:hidden;">
+        <div style="text-align:center;padding:26px 20px 22px;border-bottom:3px solid #12b76a;">
+            <img src="cid:drivault-logo" width="38" height="38" alt="Drivault" style="display:inline-block;border:0;vertical-align:middle;margin-right:8px;">
+            <span style="display:inline-block;vertical-align:middle;font-size:34px;font-weight:700;color:#111827;line-height:38px;">Drivault</span>
+            <div style="margin-top:8px;color:#4b5563;font-size:13px;line-height:18px;">Secure Cloud Storage</div>
+        </div>
+
+        <div style="padding:24px 42px 32px;">
+            <div style="width:66px;height:66px;border-radius:50%;background:#fff7ed;margin:0 auto 14px;text-align:center;line-height:66px;color:#f59e0b;font-size:34px;font-weight:700;">!</div>
+            <h1 style="margin:0;text-align:center;color:#f59e0b;font-size:28px;line-height:34px;">Subscription Expired</h1>
+            <p style="margin:8px 0 32px;text-align:center;color:#4b5563;font-size:13px;line-height:20px;">Your Drivault storage plan has expired, but your files remain safe.</p>
+
+            <p style="margin:0 0 14px;font-size:14px;line-height:22px;">Hello <strong style="color:#12b76a;">{$customerNameHtml}</strong>,</p>
+            <p style="margin:0 0 22px;font-size:14px;color:#374151;line-height:22px;">Your Drivault subscription has expired. Your account remains accessible, but your storage quota has been reduced and premium features are temporarily limited until renewal.</p>
+
+            <table role="presentation" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:separate;border-spacing:0;border:1px solid #dfe3e8;border-radius:7px;overflow:hidden;font-size:14px;margin:0 0 22px;">
+                <tr>
+                    <td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;font-weight:600;">Current Storage</td>
+                    <td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;text-align:right;color:#dc2626;font-weight:700;">{$currentStorageHtml}</td>
+                </tr>
+                <tr>
+                    <td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;font-weight:600;">Previous Storage</td>
+                    <td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:700;">{$previousStorageHtml}</td>
+                </tr>
+                <tr>
+                    <td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;font-weight:600;">Files</td>
+                    <td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;text-align:right;color:#12b76a;font-weight:700;">Safe &amp; Accessible</td>
+                </tr>
+                <tr>
+                    <td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;font-weight:600;">Uploads</td>
+                    <td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;text-align:right;color:#dc2626;font-weight:700;">Temporarily Restricted</td>
+                </tr>
+                <tr>
+                    <td style="padding:14px 16px;font-weight:600;">Premium Features</td>
+                    <td style="padding:14px 16px;text-align:right;color:#dc2626;font-weight:700;">Unavailable</td>
+                </tr>
+            </table>
+
+            <div style="border:1px solid #f5d58a;background:#fffbeb;border-radius:6px;padding:16px 20px;margin:0 0 24px;color:#92400e;font-size:14px;line-height:22px;">
+                <strong>Important Notice</strong><br>
+                Your files remain safe and accessible. Renew your subscription to restore your previous storage quota of <strong>{$previousStorageHtml}</strong>, enable uploads again, and continue using all premium features without interruption.
             </div>
-        </div>',
-        htmlspecialchars($customerName, ENT_QUOTES, 'UTF-8'),
-        htmlspecialchars($renewUrl, ENT_QUOTES, 'UTF-8')
-    );
+
+            <table role="presentation" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:separate;border-spacing:0;margin:0 0 24px;">
+                <tr>
+                    <td style="padding:0 6px 12px 0;width:50%;">
+                        <div style="border:1px solid #dce5df;background:#f2faf5;border-radius:6px;padding:12px 14px;color:#374151;font-size:13px;line-height:20px;"><span style="color:#12b76a;font-weight:700;">&#10003;</span>&nbsp; Restore previous storage</div>
+                    </td>
+                    <td style="padding:0 0 12px 6px;width:50%;">
+                        <div style="border:1px solid #dce5df;background:#f2faf5;border-radius:6px;padding:12px 14px;color:#374151;font-size:13px;line-height:20px;"><span style="color:#12b76a;font-weight:700;">&#10003;</span>&nbsp; No data loss</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:0 6px 0 0;width:50%;">
+                        <div style="border:1px solid #dce5df;background:#f2faf5;border-radius:6px;padding:12px 14px;color:#374151;font-size:13px;line-height:20px;"><span style="color:#12b76a;font-weight:700;">&#10003;</span>&nbsp; Instant reactivation</div>
+                    </td>
+                    <td style="padding:0 0 0 6px;width:50%;">
+                        <div style="border:1px solid #dce5df;background:#f2faf5;border-radius:6px;padding:12px 14px;color:#374151;font-size:13px;line-height:20px;"><span style="color:#12b76a;font-weight:700;">&#10003;</span>&nbsp; Secure payment</div>
+                    </td>
+                </tr>
+            </table>
+
+            <div style="text-align:center;margin:0 0 28px;">
+                <a href="{$renewUrlHtml}" style="display:inline-block;background:#12b76a;color:#ffffff;text-decoration:none;border-radius:7px;padding:14px 28px;font-size:14px;font-weight:700;">Renew Subscription</a>
+            </div>
+
+            <div style="border:1px solid #dce5df;background:#f2faf5;border-radius:6px;padding:16px 20px;margin:0 0 26px;color:#374151;font-size:14px;line-height:22px;">
+                Your account will be reactivated immediately after successful payment. Your previous storage quota will be restored automatically.
+            </div>
+
+            <p style="margin:0 0 4px;font-size:14px;">Thank you,</p>
+            <p style="margin:0 0 24px;color:#12b76a;font-size:15px;font-weight:700;">Drivault Team</p>
+
+            <div style="border-top:1px solid #d9dee5;padding-top:22px;">
+                <table role="presentation" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;color:#4b5563;font-size:13px;">
+                    <tr>
+                        <td style="width:50%;text-align:center;padding:0 10px;border-right:1px solid #d9dee5;">&#9993;&nbsp;&nbsp;<a href="mailto:{$supportEmailHtml}" style="color:#4b5563;text-decoration:none;">{$supportEmailHtml}</a></td>
+                        <td style="width:50%;text-align:center;padding:0 10px;">&#9711;&nbsp;&nbsp;{$websiteDisplayHtml}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+HTML;
 
     return sendMail($to, 'Your Drivault Subscription Has Expired', $message);
 }
