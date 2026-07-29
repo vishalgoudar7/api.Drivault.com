@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 $basePath = '/' . trim(getenv('APP_BASE_PATH') ?: '', '/');
 
-$localUrl = rtrim(getenv('APP_LOCAL_URL') ?: 'http://103.174.148.208', '/') . $basePath;
-// $localUrl = rtrim(getenv('APP_LOCAL_URL') ?: 'http://localhost/New%20folder', '/') . $basePath;
+// $localUrl = rtrim(getenv('APP_LOCAL_URL') ?: 'http://103.174.148.208', '/') . $basePath;
+$localUrl = rtrim(getenv('APP_LOCAL_URL') ?: 'http://localhost/New%20folder', '/') . $basePath;
 
 $androidEmulatorUrl = rtrim(getenv('APP_ANDROID_EMULATOR_URL') ?: 'http://10.0.2.2', '/') . $basePath;
 

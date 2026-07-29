@@ -266,6 +266,7 @@ $invoiceUrl = $subscription
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Payment Successful - Drivault</title>
+<link rel="icon" type="image/x-icon" href="../assets/Photos/favicon.ico">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <style>
@@ -305,6 +306,7 @@ body{
 .success-card{
     width:100%;
     max-width:1000px;
+    box-sizing:border-box;
     margin:0 auto;
     background:rgba(255,255,255,.74);
     border:1px solid #e5e7eb;
@@ -365,10 +367,10 @@ body{
 
 .detail-row{
     display:grid;
-    grid-template-columns:44px minmax(120px,1fr) minmax(0,1fr);
+    grid-template-columns:36px minmax(110px,1fr) minmax(0,1.35fr);
     align-items:center;
-    gap:16px;
-    padding:10px 8px;
+    gap:12px;
+    padding:8px 0;
     border-bottom:1px solid #e5e7eb;
 }
 
@@ -377,15 +379,15 @@ body{
 }
 
 .detail-icon{
-    width:40px;
-    height:40px;
-    border-radius:50%;
+    width:36px;
+    height:36px;
+    border-radius:12px;
     background:#e8fff2;
     color:#38d989;
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size:20px;
+    font-size:18px;
 }
 
 .detail-label{
@@ -530,6 +532,25 @@ body{
     }
 }
 
+@media (max-width: 768px){
+    .success-page{
+        padding-left:0 !important;
+        padding-right:0 !important;
+    }
+
+    .success-card{
+        border-radius:0;
+        border-left:0;
+        border-right:0;
+        padding:18px 14px 26px;
+    }
+
+    .detail-icon{
+        width:46px;
+        height:46px;
+    }
+}
+
 @media (max-width: 576px){
     .brand{
         font-size:24px;
@@ -545,9 +566,6 @@ body{
     }
 
     .success-card{
-        border-radius:0;
-        border-left:0;
-        border-right:0;
         min-height:100vh;
     }
 
