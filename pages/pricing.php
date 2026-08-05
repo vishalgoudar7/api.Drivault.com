@@ -1234,18 +1234,18 @@ body{
                         Verify Your <span>Drivault</span> Account
                     </h5>
                     <p class="verify-subtitle">
-                        Enter your Drivault username or email to verify your account before purchasing additional cloud storage.
+                        Enter your Drivault Account Name or email to verify your account before purchasing additional cloud storage.
                     </p>
                 </div>
 
-                <label class="verify-form-label" for="modalUsername">Enter your Drivault Username or Email</label>
+                <label class="verify-form-label" for="modalUsername">Enter your Drivault Account Name or Email</label>
                 <div class="verify-input-wrap">
                     <i class="bi bi-person verify-input-icon"></i>
                     <input type="text"
                            class="form-control verify-input"
                            id="modalUsername"
                            autocomplete="off"
-                           placeholder="Enter your Drivault Username or Email">
+                           placeholder="Enter your Drivault Account Name or Email">
                 </div>
                 <div id="modalUsernameError" class="text-danger small mt-2"></div>
 
@@ -1388,7 +1388,7 @@ async function verifySelectedPlan() {
     modalUsernameError.innerText = '';
 
     if (username === '') {
-        modalUsernameError.innerText = 'Please enter your Drivault username or email.';
+        modalUsernameError.innerText = 'Please enter your Drivault Account Name or email.';
         modalUsernameInput.focus();
         return;
     }

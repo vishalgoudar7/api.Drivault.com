@@ -104,7 +104,11 @@ function sendExpiredQuotaReducedEmail(array $row): bool
 
     $customerNameHtml = htmlspecialchars($customerName !== '' ? $customerName : 'Customer', ENT_QUOTES, 'UTF-8');
     $renewUrlHtml = htmlspecialchars($renewUrl, ENT_QUOTES, 'UTF-8');
-    $currentStorageHtml = '1GB';
+    $currentStorageHtml = htmlspecialchars(
+    ((int)$row['free_quota']) . 'GB',
+    ENT_QUOTES,
+    'UTF-8'
+);
     $previousStorageHtml = $previousQuota > 0
         ? htmlspecialchars($previousQuota . 'GB', ENT_QUOTES, 'UTF-8')
         : htmlspecialchars((string) ($row['storage_quota'] ?? 'your previous storage'), ENT_QUOTES, 'UTF-8');
@@ -421,7 +425,9 @@ $stmt->bind_param(
 $stmt->execute();
 $stmt->close();
 
-$restoreQuota = "1GB";
+$freeQuota = (int)$row['free_quota'];
+
+$restoreQuota = $freeQuota . "GB";
 $curl = curl_init();
 
 curl_setopt_array($curl,[
@@ -475,7 +481,9 @@ echo "<b>HTTP Code:</b> " . $httpCode . "<br>";
 echo "<pre>" . htmlspecialchars((string) $updateResponse) . "</pre>";
 
     if ($httpCode != 200) {
-        echo "<span style='color:red'>Failed to reduce user quota to 1GB.</span><br>";
+        echo "<span style='color:red'>
+Failed to restore user free quota.
+</span><br>";
         continue;
     }
 
@@ -500,8 +508,8 @@ if (!$stmt->execute()) {
 
 $stmt->close();
 
-       echo "<span style='color:red;font-weight:bold'>
-✓ User Quota Reduced To 1 GB
+       echo "<span style='color:green;font-weight:bold'>
+✓ User quota restored to {$restoreQuota}
 </span><br>";
 
         if (sendExpiredQuotaReducedEmail($row)) {
