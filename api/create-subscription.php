@@ -226,7 +226,7 @@ if ($mode === 'renew') {
 $paymentMethod = "Razorpay";
 $paymentStatus = "Pending";
 $subscriptionStatus = "Pending";
-$paymentType = $mode;
+$paymentType = $mode === 'new' ? 'upgrade' : $mode;
 
 // ===== START RENEWAL MODE UPDATE =====
 $stmt = $conn->prepare("

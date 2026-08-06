@@ -155,6 +155,7 @@ $planId = (int)$_GET['plan_id'];
 $username = trim((string) ($_GET['username'] ?? ''));
 $billingCycle = strtolower(trim((string) ($_GET['billing_cycle'] ?? 'monthly')));
 $mode = $_GET['mode'] ?? 'new';
+$paymentModeForApi = $mode === 'purchase' ? 'new' : $mode;
 $subscriptionId = (int)($_GET['subscription_id'] ?? 0);
 
 
@@ -207,7 +208,7 @@ $currentQuotaGb = round($currentQuotaBytes / (1024 * 1024 * 1024));
 */
 
 // New user
-if ($mode == 'new') {
+if ($paymentModeForApi == 'new') {
 
     $_SESSION['free_quota'] = $currentQuotaGb;
 }
@@ -243,7 +244,7 @@ $_SESSION['drivault_username'] = $verifiedUser['id'];
 
 $_SESSION['selected_plan_id'] = $planId;
 $_SESSION['billing_cycle'] = $billingCycle;
-$_SESSION['checkout_mode'] = $mode;
+$_SESSION['checkout_mode'] = $paymentModeForApi;
 
 $price = $billingCycle === 'yearly'
     ? (float) $plan['yearly_price']
@@ -1766,7 +1767,7 @@ async function startPayment() {
     // ===== START RENEWAL MODE UPDATE =====
     renewal_mode: paymentMode,
     // ===== END RENEWAL MODE UPDATE =====
-    mode: '<?= $mode ?>',
+    mode: '<?= $paymentModeForApi ?>',
     subscription_id: '<?= $subscriptionId ?>',
     name: customerName,
     email: customerEmail,
@@ -1828,7 +1829,7 @@ async function startPayment() {
                 razorpay_payment_id: payment.razorpay_payment_id,
                 razorpay_signature: payment.razorpay_signature,
 
-                mode: '<?= $mode ?>',
+                mode: '<?= $paymentModeForApi ?>',
                 subscription_id: data.subscription_id || '<?= $subscriptionId ?>',
 
                 name: customerName,
@@ -1888,7 +1889,7 @@ async function startPayment() {
             encodeURIComponent(res.payment_id) +
             "&subscription_id=" +
             encodeURIComponent(res.subscription_id) +
-            "&mode=<?= $mode ?>" +
+            "&mode=<?= $paymentModeForApi ?>" +
             "&plan_id=<?= $planId ?>";
 
         if (paymentMode === "manual") {

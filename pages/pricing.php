@@ -632,6 +632,18 @@ body{
     color:#fff;
 }
 
+.btn-verify-modal.summary-action{
+    background:#38d989;
+    border-color:#38d989;
+    color:#fff;
+}
+
+.btn-verify-modal.summary-action:hover{
+    background:#2ec477;
+    border-color:#2ec477;
+    color:#fff;
+}
+
 .btn-verify-modal:disabled{
     opacity:.78;
     pointer-events:none;
@@ -1279,9 +1291,11 @@ body{
 <div id="toast" class="custom-toast"></div>
 <script>
 const verifyPlanModalElement = document.getElementById('verifyPlanModal');
-const modalUsernameInput = document.getElementById('modalUsername');
-const modalUsernameError = document.getElementById('modalUsernameError');
-const continueVerifyBtn = document.getElementById('continueVerifyBtn');
+const verifyModalBody = verifyPlanModalElement.querySelector('.verify-modal-body');
+const initialVerifyModalBodyHtml = verifyModalBody.innerHTML;
+let modalUsernameInput = document.getElementById('modalUsername');
+let modalUsernameError = document.getElementById('modalUsernameError');
+let continueVerifyBtn = document.getElementById('continueVerifyBtn');
 
 let verifyPlanModal = null;
 let selectedPlanId = '';
@@ -1289,6 +1303,8 @@ let selectedPlanButton = null;
 let selectedBillingCycle = 'monthly';
 let isVerifying = false;
 let planPopupTimer = null;
+let verifiedCheckoutUsername = '';
+let selectedSubscriptionId = '';
 
 function showToast(message, type = 'error') {
     const toast = document.getElementById('toast');
@@ -1327,17 +1343,27 @@ function getVerifyPlanModal() {
     return verifyPlanModal;
 }
 
+function refreshVerifyModalElements() {
+    modalUsernameInput = document.getElementById('modalUsername');
+    modalUsernameError = document.getElementById('modalUsernameError');
+    continueVerifyBtn = document.getElementById('continueVerifyBtn');
+}
+
 function resetVerifyModal() {
+    verifyModalBody.innerHTML = initialVerifyModalBodyHtml;
+    refreshVerifyModalElements();
     modalUsernameInput.value = '';
     modalUsernameInput.disabled = false;
     modalUsernameError.innerText = '';
+    verifiedCheckoutUsername = '';
+    selectedSubscriptionId = '';
     setContinueLoading(false);
 }
 
-function setContinueLoading(isLoading) {
+function setContinueLoading(isLoading, text = 'Verifying...') {
     continueVerifyBtn.disabled = isLoading;
     continueVerifyBtn.innerHTML = isLoading
-        ? '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Verifying...'
+        ? '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>' + text
         : '<span>Verify &amp; Continue</span>';
 }
 
@@ -1377,13 +1403,154 @@ function resetPlanButtons() {
     });
 }
 
+function escapeHtml(value) {
+    return String(displayValue(value))
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function getActionConfig(action) {
+    const configs = {
+        purchase: {
+            icon: 'bi-check-circle-fill',
+            label: 'Purchase Now',
+            heading: 'No active subscription found.',
+            message: 'You are purchasing storage for the first time.',
+            recommended: 'Purchase',
+            disabled: false
+        },
+        renew: {
+            icon: 'bi-arrow-repeat',
+            label: 'Renew Subscription',
+            heading: 'You already have this storage plan.',
+            message: 'Purchasing this plan again will renew your subscription.',
+            recommended: 'Renew',
+            disabled: false
+        },
+        upgrade: {
+            icon: 'bi-arrow-up-circle-fill',
+            label: 'Upgrade Storage',
+            heading: 'Upgrade Storage',
+            message: 'Your storage will be upgraded',
+            recommended: 'Upgrade',
+            disabled: false
+        },
+        downgrade: {
+            icon: 'bi-arrow-down-circle-fill',
+            label: 'Continue with Downgrade',
+            heading: 'Downgrade Selected',
+            message: 'Your selected plan is smaller than your current plan. Downgrading will reduce your available storage after your current subscription ends.',
+            recommended: 'Downgrade',
+            disabled: false
+        }
+    };
+
+    return configs[action] || configs.purchase;
+}
+
+function buildCheckoutUrl(action) {
+    const params = new URLSearchParams({
+        plan_id: selectedPlanId,
+        username: verifiedCheckoutUsername,
+        billing_cycle: selectedBillingCycle,
+        mode: action
+    });
+
+    if (action === 'renew' && selectedSubscriptionId) {
+        params.set('subscription_id', selectedSubscriptionId);
+    }
+
+    return 'checkout.php?' + params.toString();
+}
+
+function continueToCheckout(action) {
+    if (selectedPlanButton) {
+        setCheckoutLoading(selectedPlanButton);
+    }
+
+    continueVerifyBtn.disabled = true;
+    continueVerifyBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Processing...';
+    window.location.href = buildCheckoutUrl(action);
+}
+
+function showSubscriptionSummary(data) {
+    const action = data.action || 'purchase';
+    const config = getActionConfig(action);
+    const currentPlan = data.current_plan || 'None';
+    const expiry = data.expiry_date_label || data.expiry_date || '-';
+    const downgradeDisabled = action === 'downgrade' && data.downgrade_supported === false;
+    const buttonDisabled = config.disabled || downgradeDisabled;
+    const actionMessage = downgradeDisabled
+        ? 'Downgrades are available only after your current subscription expires.'
+        : config.message;
+
+    selectedSubscriptionId = data.subscription_id || '';
+
+    verifyModalBody.innerHTML = `
+        <div class="verify-hero">
+            <div class="verify-logo-halo">
+                <img src="../assets/Photos/icon-192.png" alt="Drivault" class="verify-logo">
+            </div>
+            <h5 class="modal-title verify-modal-title">
+                <i class="bi ${config.icon} text-success me-1"></i>
+                Account <span>Verified</span>
+            </h5>
+        </div>
+
+        <div class="card border-success-subtle bg-light-subtle mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between gap-3 py-2 border-bottom">
+                    <span class="text-muted fw-semibold">Account Name or email</span>
+                    <span class="fw-bold text-end">${escapeHtml(data.username)}</span>
+                </div>
+                <div class="d-flex justify-content-between gap-3 py-2 border-bottom">
+                    <span class="text-muted fw-semibold">Current Plan</span>
+                    <span class="fw-bold text-end">${escapeHtml(currentPlan)}</span>
+                </div>
+                <div class="d-flex justify-content-between gap-3 py-2 border-bottom">
+                    <span class="text-muted fw-semibold">Selected Plan</span>
+                    <span class="fw-bold text-success text-end">${escapeHtml(data.selected_plan)}</span>
+                </div>
+                <div class="d-flex justify-content-between gap-3 py-2 border-bottom">
+                    <span class="text-muted fw-semibold">Expiry Date</span>
+                    <span class="fw-bold text-end">${escapeHtml(expiry)}</span>
+                </div>
+                <div class="d-flex justify-content-between gap-3 py-2">
+                    <span class="text-muted fw-semibold">Recommended Action</span>
+                    <span class="fw-bold text-success text-end">${escapeHtml(config.recommended)}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mb-3">
+            <h6 class="fw-bold mb-2">${escapeHtml(config.heading)}</h6>
+            <p class="text-muted mb-0">${escapeHtml(actionMessage)}</p>
+        </div>
+
+        <div class="modal-footer verify-modal-footer">
+            <button type="button"
+                    class="btn btn-verify-modal summary-action"
+                    id="continueVerifyBtn"
+                    data-checkout-action="${escapeHtml(action)}"
+                    ${buttonDisabled ? 'disabled' : ''}>
+                <i class="bi ${config.icon} me-2"></i>
+                <span>${escapeHtml(config.label)}</span>
+            </button>
+        </div>
+    `;
+
+    refreshVerifyModalElements();
+}
+
 async function verifySelectedPlan() {
     if (isVerifying) {
         return;
     }
 
     const username = modalUsernameInput.value.trim();
-    let shouldRedirect = false;
 
     modalUsernameError.innerText = '';
 
@@ -1396,10 +1563,11 @@ async function verifySelectedPlan() {
     isVerifying = true;
     setContinueLoading(true);
     let timeoutId = null;
+    let summaryShown = false;
 
     try {
         const controller = new AbortController();
-        timeoutId = setTimeout(() => controller.abort(), 5000);
+        timeoutId = setTimeout(() => controller.abort(), 8000);
         const response = await fetch(
             'pricing.php?action=get_user_details&username=' + encodeURIComponent(username),
             {
@@ -1411,6 +1579,7 @@ async function verifySelectedPlan() {
             }
         );
         clearTimeout(timeoutId);
+        timeoutId = null;
 
         const data = await response.json();
 
@@ -1420,25 +1589,39 @@ async function verifySelectedPlan() {
         }
 
         const verifiedUsername = data.username || username;
-        const url =
-            'checkout.php?plan_id=' +
-            encodeURIComponent(selectedPlanId) +
-            '&username=' +
-            encodeURIComponent(verifiedUsername) +
-            '&billing_cycle=' +
-            encodeURIComponent(selectedBillingCycle) +
-            '&mode=upgrade';
+        verifiedCheckoutUsername = verifiedUsername;
+        setContinueLoading(true, 'Checking subscription...');
+        timeoutId = setTimeout(() => controller.abort(), 8000);
 
-        shouldRedirect = true;
-        continueVerifyBtn.disabled = true;
-        continueVerifyBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Processing...';
-        modalUsernameInput.disabled = true;
+        const subscriptionResponse = await fetch(
+            '../api/check-subscription.php',
+            {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({
+                    username: verifiedUsername,
+                    selected_plan_id: selectedPlanId,
+                    billing_cycle: selectedBillingCycle
+                }),
+                signal: controller.signal
+            }
+        );
+        clearTimeout(timeoutId);
+        timeoutId = null;
 
-        if (selectedPlanButton) {
-            setCheckoutLoading(selectedPlanButton);
+        const subscriptionData = await subscriptionResponse.json();
+
+        if (!subscriptionData.success) {
+            modalUsernameError.innerText = subscriptionData.message || 'Unable to check subscription.';
+            return;
         }
 
-        window.location.href = url;
+        modalUsernameInput.disabled = true;
+        showSubscriptionSummary(subscriptionData);
+        summaryShown = true;
 
     } catch (error) {
         console.error(error);
@@ -1446,22 +1629,40 @@ async function verifySelectedPlan() {
             ? 'Verification is taking too long. Please try again.'
             : 'Unable to verify user.';
     } finally {
-        if (!shouldRedirect) {
-            if (timeoutId) {
-                clearTimeout(timeoutId);
-            }
-            isVerifying = false;
+        if (timeoutId) {
+            clearTimeout(timeoutId);
+        }
+        isVerifying = false;
+        if (!summaryShown && continueVerifyBtn) {
             setContinueLoading(false);
         }
     }
 }
 
-continueVerifyBtn.addEventListener('click', verifySelectedPlan);
+verifyPlanModalElement.addEventListener('click', function(event) {
+    const button = event.target.closest('#continueVerifyBtn');
 
-modalUsernameInput.addEventListener('keydown', function(event) {
+    if (!button) {
+        return;
+    }
+
+    const checkoutAction = button.getAttribute('data-checkout-action');
+
+    if (checkoutAction) {
+        continueToCheckout(checkoutAction);
+        return;
+    }
+
+    verifySelectedPlan();
+});
+
+verifyPlanModalElement.addEventListener('keydown', function(event) {
     if (event.key === 'Enter') {
         event.preventDefault();
-        verifySelectedPlan();
+
+        if (event.target && event.target.id === 'modalUsername') {
+            verifySelectedPlan();
+        }
     }
 });
 

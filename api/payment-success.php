@@ -668,7 +668,7 @@ if ($subscription['billing_cycle'] === 'yearly') {
 $newExpiry = $base->format('Y-m-d H:i:s');
 $newStart = date('Y-m-d H:i:s');
 if ($isNewPurchase) {
-    $paymentType = 'new';
+    $paymentType = 'upgrade';
 } elseif ($isUpgrade) {
     $paymentType = 'upgrade';
 } else {
