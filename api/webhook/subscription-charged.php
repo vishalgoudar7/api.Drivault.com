@@ -1,0 +1,482 @@
+<?php
+
+declare(strict_types=1);
+
+use PHPMailer\PHPMailer\Exception as MailerException;
+use PHPMailer\PHPMailer\PHPMailer;
+
+header('Content-Type: application/json');
+
+require __DIR__ . '/../../config/db.php';
+require __DIR__ . '/../../vendor/autoload.php';
+require __DIR__ . '/../../payment/invoice-helper.php';
+
+$logFile = __DIR__ . '/../payment-debug.log';
+$mailConfig = require __DIR__ . '/../../config/mail.php';
+$drivaultConfig = require __DIR__ . '/../../config/drivault.php';
+
+function webhookChargedLog(string $message, array $context = []): void
+{
+    global $logFile;
+
+    file_put_contents(
+        $logFile,
+        '[subscription-charged] ' . date('Y-m-d H:i:s') . ' ' . $message .
+        ($context ? ' ' . json_encode($context) : '') .
+        PHP_EOL,
+        FILE_APPEND
+    );
+}
+
+function webhookChargedResponse(int $statusCode, array $payload): void
+{
+    http_response_code($statusCode);
+    echo json_encode($payload);
+    exit;
+}
+
+function getWebhookPayload(): array
+{
+    if (isset($GLOBALS['razorpayWebhookPayload']) && is_array($GLOBALS['razorpayWebhookPayload'])) {
+        return $GLOBALS['razorpayWebhookPayload'];
+    }
+
+    $rawPayload = file_get_contents('php://input');
+    $decodedPayload = json_decode((string) $rawPayload, true);
+
+    return is_array($decodedPayload) ? $decodedPayload : [];
+}
+
+function getWebhookDrivaultUsername(array $subscription): string
+{
+    $candidates = [
+        $subscription['drivault_phone'] ?? '',
+        $subscription['drivault_email'] ?? '',
+        $subscription['drivault_display_name'] ?? '',
+        $subscription['user_id'] ?? '',
+    ];
+
+    foreach ($candidates as $candidate) {
+        $candidate = trim((string) $candidate);
+
+        if ($candidate !== '' && $candidate !== '-' && $candidate !== '0' && $candidate !== '2147483647') {
+            return $candidate;
+        }
+    }
+
+    return '';
+}
+
+function updateWebhookDrivaultQuota(array $subscription, array $drivaultConfig): array
+{
+    $endpoint = trim((string) ($drivaultConfig['endpoint'] ?? 'https://login.drivault.com/ocs/v1.php/cloud/users'));
+    $apiUsername = trim((string) ($drivaultConfig['username'] ?? ''));
+    $apiPassword = trim((string) ($drivaultConfig['password'] ?? ''));
+    $username = getWebhookDrivaultUsername($subscription);
+
+    if ($endpoint === '' || $apiUsername === '' || $apiPassword === '') {
+        throw new RuntimeException('Drivault API is not configured.');
+    }
+
+    if ($username === '') {
+        throw new RuntimeException('Drivault username not found.');
+    }
+
+    $restoreGb = (int) ($subscription['previous_quota'] ?? 0);
+
+    if ($restoreGb <= 0) {
+        $restoreGb = (int) ($subscription['total_quota'] ?? 0);
+    }
+
+    if ($restoreGb <= 0) {
+        throw new RuntimeException('Storage quota not found.');
+    }
+
+    $curlHandle = curl_init(rtrim($endpoint, '/') . '/' . rawurlencode($username));
+
+    curl_setopt_array($curlHandle, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CUSTOMREQUEST => 'PUT',
+        CURLOPT_POSTFIELDS => http_build_query([
+            'key' => 'quota',
+            'value' => $restoreGb . 'GB',
+        ]),
+        CURLOPT_USERPWD => $apiUsername . ':' . $apiPassword,
+        CURLOPT_HTTPHEADER => [
+            'OCS-APIRequest: true',
+            'Accept: application/json',
+        ],
+    ]);
+
+    $responseBody = curl_exec($curlHandle);
+    $curlError = curl_error($curlHandle);
+    $httpCode = (int) curl_getinfo($curlHandle, CURLINFO_HTTP_CODE);
+    curl_close($curlHandle);
+
+    if ($responseBody === false) {
+        throw new RuntimeException('Unable to update Drivault quota: ' . $curlError);
+    }
+
+    if ($httpCode < 200 || $httpCode >= 300) {
+        throw new RuntimeException('Unable to update Drivault quota.');
+    }
+
+    return [
+        'username' => $username,
+        'quota' => $restoreGb . 'GB',
+        'response_code' => $httpCode,
+    ];
+}
+
+function sendWebhookPaymentSuccessEmail(array $subscription, array $plan, array $mailConfig): bool
+{
+    $customerEmail = trim((string) ($subscription['drivault_email'] ?? ''));
+
+    if ($customerEmail === '' || filter_var($customerEmail, FILTER_VALIDATE_EMAIL) === false) {
+        return false;
+    }
+
+    $smtpHost = (string) ($mailConfig['host'] ?? '');
+    $smtpPort = (int) ($mailConfig['port'] ?? 0);
+    $smtpEncryption = (string) ($mailConfig['encryption'] ?? '');
+    $smtpUsername = trim((string) ($mailConfig['username'] ?? ''));
+    $smtpPassword = trim((string) ($mailConfig['password'] ?? ''));
+    $smtpFromName = trim((string) ($mailConfig['from_name'] ?? 'Drivault'));
+    $fromAddress = trim((string) ($mailConfig['from_address'] ?? $smtpUsername));
+
+    if ($smtpHost === '' || $smtpPort <= 0 || $smtpUsername === '' || $smtpPassword === '') {
+        return false;
+    }
+
+    $customerName = trim((string) ($subscription['drivault_display_name'] ?? 'Customer'));
+    $planName = (string) ($plan['name'] ?? $subscription['plan_name'] ?? 'Drivault Plan');
+    $quota = (string) ($plan['quota'] ?? $subscription['storage_quota'] ?? '');
+    $billingCycle = ucfirst((string) ($subscription['billing_cycle'] ?? ''));
+    $amount = number_format((float) ($subscription['paid_amount'] ?? 0), 2);
+    $paymentId = (string) ($subscription['razorpay_payment_id'] ?? '');
+    $invoiceNumber = 'INV-' . date('Ymd') . '-' . $subscription['id'];
+    $supportEmail = trim((string) ($mailConfig['support_email'] ?? 'support@drivault.com'));
+    $websiteUrl = trim((string) ($mailConfig['website_url'] ?? 'www.drivault.com'));
+    $websiteDisplay = preg_replace('#^https?://#', '', rtrim($websiteUrl, '/'));
+    $logoPath = realpath(__DIR__ . '/../../assets/Photos/icon-192.png');
+    $logoHtml = '<span style="display:inline-block;width:34px;height:34px;border:2px solid #12b76a;border-radius:10px;color:#12b76a;line-height:30px;font-size:18px;vertical-align:middle;">D</span>';
+    $invoiceHtml = buildInvoiceHtml($subscription + [
+        'plan_name' => $planName,
+        'quota' => $quota,
+    ]);
+    $invoicePdf = renderInvoicePdf($invoiceHtml);
+    $mail = new PHPMailer(true);
+
+    $mail->CharSet = 'UTF-8';
+    $mail->isSMTP();
+    $mail->Host = $smtpHost;
+    $mail->SMTPAuth = true;
+    $mail->Username = $smtpUsername;
+    $mail->Password = $smtpPassword;
+    $mail->SMTPSecure = $smtpEncryption === 'ssl'
+        ? PHPMailer::ENCRYPTION_SMTPS
+        : PHPMailer::ENCRYPTION_STARTTLS;
+    $mail->Port = $smtpPort;
+    $mail->setFrom($fromAddress !== '' ? $fromAddress : $smtpUsername, $smtpFromName);
+    $mail->addAddress($customerEmail, $customerName);
+    $mail->isHTML(true);
+    $mail->Subject = 'Payment Successful - Your Drivault Invoice';
+
+    if ($logoPath) {
+        $mail->addEmbeddedImage($logoPath, 'drivault-logo', 'drivault-logo.png');
+        $logoHtml = '<img src="cid:drivault-logo" width="38" height="38" alt="Drivault" style="display:inline-block;border:0;vertical-align:middle;margin-right:8px;">';
+    }
+
+    $mail->Body = sprintf(
+        '<div style="font-family:Arial,Helvetica,sans-serif;background:#f4f6f8;padding:10px;color:#111827;">
+            <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:4px;overflow:hidden;">
+                <div style="text-align:center;padding:26px 20px 22px;border-bottom:3px solid #12b76a;">
+                    %8$s
+                    <span style="display:inline-block;vertical-align:middle;font-size:34px;font-weight:700;color:#111827;line-height:38px;">Drivault</span>
+                </div>
+                <div style="padding:24px 42px 32px;">
+                    <div style="width:66px;height:66px;border-radius:50%%;background:#eaf8f0;margin:0 auto 14px;text-align:center;line-height:66px;color:#12b76a;font-size:36px;font-weight:700;">&#10003;</div>
+                    <h1 style="margin:0;text-align:center;color:#12b76a;font-size:28px;line-height:34px;">Subscription Renewed!</h1>
+                    <p style="margin:8px 0 32px;text-align:center;color:#4b5563;font-size:13px;">Your Drivault storage subscription has renewed successfully.</p>
+                    <p style="margin:0 0 14px;font-size:14px;">Hello <strong style="color:#12b76a;">%1$s</strong>,</p>
+                    <p style="margin:0 0 22px;font-size:14px;color:#374151;">Thank you for your renewal payment. Below are your transaction details.</p>
+                    <table role="presentation" cellspacing="0" cellpadding="0" style="width:100%%;border-collapse:separate;border-spacing:0;border:1px solid #dfe3e8;border-radius:7px;overflow:hidden;font-size:14px;margin:0 0 22px;">
+                        <tr><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;font-weight:600;">Plan</td><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:700;">%2$s</td></tr>
+                        <tr><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;font-weight:600;">Storage</td><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;text-align:right;">%3$s</td></tr>
+                        <tr><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;font-weight:600;">Billing Cycle</td><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;text-align:right;">%4$s</td></tr>
+                        <tr><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;font-weight:600;">Amount Paid</td><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;text-align:right;color:#12b76a;font-weight:700;">Rs %5$s</td></tr>
+                        <tr><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;font-weight:600;">Payment ID</td><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;text-align:right;">%6$s</td></tr>
+                        <tr><td style="padding:14px 16px;font-weight:600;">Invoice No</td><td style="padding:14px 16px;text-align:right;">%7$s</td></tr>
+                    </table>
+                    <div style="border:1px solid #dce5df;background:#f2faf5;border-radius:6px;padding:16px 20px;margin:0 0 28px;">
+                        <table role="presentation" cellspacing="0" cellpadding="0" style="width:100%%;border-collapse:collapse;">
+                            <tr><td style="width:40px;vertical-align:middle;"><div style="width:26px;height:32px;background:#7ee0a5;border-radius:3px;color:#ffffff;text-align:center;line-height:32px;font-size:10px;font-weight:700;">PDF</div></td><td style="vertical-align:middle;color:#374151;font-size:14px;">Your renewal invoice PDF is attached with this email.</td></tr>
+                        </table>
+                    </div>
+                    <p style="margin:0 0 4px;font-size:14px;">Thank you,</p>
+                    <p style="margin:0 0 24px;color:#12b76a;font-size:15px;font-weight:700;">Drivault Team</p>
+                    <div style="border-top:1px solid #d9dee5;padding-top:22px;">
+                        <table role="presentation" cellspacing="0" cellpadding="0" style="width:100%%;border-collapse:collapse;color:#4b5563;font-size:13px;">
+                            <tr><td style="width:50%%;text-align:center;padding:0 10px;border-right:1px solid #d9dee5;">&#9993;&nbsp;&nbsp;%9$s</td><td style="width:50%%;text-align:center;padding:0 10px;">&#9711;&nbsp;&nbsp;%10$s</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>',
+        htmlspecialchars($customerName, ENT_QUOTES, 'UTF-8'),
+        htmlspecialchars($planName, ENT_QUOTES, 'UTF-8'),
+        htmlspecialchars($quota, ENT_QUOTES, 'UTF-8'),
+        htmlspecialchars($billingCycle, ENT_QUOTES, 'UTF-8'),
+        $amount,
+        htmlspecialchars($paymentId, ENT_QUOTES, 'UTF-8'),
+        htmlspecialchars($invoiceNumber, ENT_QUOTES, 'UTF-8'),
+        $logoHtml,
+        htmlspecialchars($supportEmail, ENT_QUOTES, 'UTF-8'),
+        htmlspecialchars((string) $websiteDisplay, ENT_QUOTES, 'UTF-8')
+    );
+
+    $mail->AltBody = sprintf(
+        "Hello %s,\n\nYour Drivault subscription has renewed successfully.\n\nPlan: %s\nStorage: %s\nBilling Cycle: %s\nAmount Paid: Rs %s\nPayment ID: %s\nInvoice No: %s\n\nYour invoice PDF is attached with this email.\n\nThank you,\nDrivault Team",
+        $customerName,
+        $planName,
+        $quota,
+        $billingCycle,
+        $amount,
+        $paymentId,
+        $invoiceNumber
+    );
+
+    $mail->addStringAttachment(
+        $invoicePdf,
+        'Drivault-Invoice-' . $subscription['id'] . '.pdf',
+        'base64',
+        'application/pdf'
+    );
+
+    $mail->send();
+
+    return true;
+}
+
+try {
+    $payload = getWebhookPayload();
+    $payment = $payload['payload']['payment']['entity'] ?? [];
+    $subscriptionEntity = $payload['payload']['subscription']['entity'] ?? [];
+    $razorpaySubscriptionId = trim((string) ($payment['subscription_id'] ?? $subscriptionEntity['id'] ?? ''));
+    $paymentId = trim((string) ($payment['id'] ?? ''));
+    $orderId = trim((string) ($payment['order_id'] ?? ''));
+    $amount = isset($payment['amount']) && is_numeric($payment['amount'])
+        ? ((float) $payment['amount'] / 100)
+        : null;
+    $rawResponse = json_encode($payload);
+
+    webhookChargedLog('Webhook received', [
+        'event' => $payload['event'] ?? '',
+        'razorpay_subscription_id' => $razorpaySubscriptionId,
+        'payment_id' => $paymentId,
+    ]);
+
+    if ($razorpaySubscriptionId === '' || $paymentId === '') {
+        webhookChargedResponse(422, [
+            'success' => false,
+            'message' => 'Missing subscription or payment id.',
+        ]);
+    }
+
+    $conn->begin_transaction();
+
+    $stmt = $conn->prepare('SELECT * FROM subscriptions WHERE razorpay_subscription_id = ? LIMIT 1 FOR UPDATE');
+    $stmt->bind_param('s', $razorpaySubscriptionId);
+    $stmt->execute();
+    $subscription = $stmt->get_result()->fetch_assoc();
+
+    if (!$subscription) {
+        throw new RuntimeException('Subscription not found.');
+    }
+
+    $stmt = $conn->prepare("SELECT id FROM payments WHERE razorpay_payment_id = ? AND status = 'success' LIMIT 1");
+    $stmt->bind_param('s', $paymentId);
+    $stmt->execute();
+    $existingPayment = $stmt->get_result()->fetch_assoc();
+
+    if ($existingPayment) {
+        $conn->commit();
+        webhookChargedLog('Duplicate webhook ignored', [
+            'payment_id' => $paymentId,
+            'subscription_id' => $subscription['id'],
+        ]);
+
+        webhookChargedResponse(200, [
+            'success' => true,
+            'message' => 'Duplicate webhook ignored.',
+            'subscription_id' => (int) $subscription['id'],
+            'payment_id' => $paymentId,
+        ]);
+    }
+
+    $base = new DateTime();
+
+    if (!empty($subscription['expiry_date']) && strtotime((string) $subscription['expiry_date']) > time()) {
+        $base = new DateTime((string) $subscription['expiry_date']);
+    }
+
+    if ($subscription['billing_cycle'] === 'yearly') {
+        $base->modify('+1 year');
+    } else {
+        $base->modify('+1 month');
+    }
+
+    $newStart = date('Y-m-d H:i:s');
+    $newExpiry = $base->format('Y-m-d H:i:s');
+    $paidAmount = $amount ?? (float) ($subscription['paid_amount'] ?? 0);
+    $subscriptionId = (int) $subscription['id'];
+    $userId = (string) $subscription['user_id'];
+    $planId = (int) $subscription['plan_id'];
+
+    $quotaResult = updateWebhookDrivaultQuota($subscription, $drivaultConfig);
+    webhookChargedLog('Drivault quota restored', $quotaResult);
+
+    $stmt = $conn->prepare(
+        "UPDATE subscriptions
+         SET status='active',
+             payment_status='Success',
+             payment_type='renewal',
+             subscription_action='renewal',
+             razorpay_order_id=?,
+             razorpay_payment_id=?,
+             paid_amount=?,
+             start_date=?,
+             expiry_date=?,
+             reminder_7_sent=0,
+             reminder_3_sent=0,
+             reminder_1_sent=0,
+             disabled_at=NULL
+         WHERE id=?"
+    );
+    $stmt->bind_param(
+        'ssdssi',
+        $orderId,
+        $paymentId,
+        $paidAmount,
+        $newStart,
+        $newExpiry,
+        $subscriptionId
+    );
+
+    if (!$stmt->execute()) {
+        throw new RuntimeException('Unable to update subscription: ' . $stmt->error);
+    }
+
+    webhookChargedLog('Subscription renewed', [
+        'subscription_id' => $subscriptionId,
+        'new_expiry' => $newExpiry,
+    ]);
+
+    $paymentType = 'renewal';
+    $paymentStatus = 'success';
+    $stmt = $conn->prepare(
+        'INSERT INTO payments
+        (
+            user_id,
+            subscription_id,
+            razorpay_order_id,
+            razorpay_subscription_id,
+            razorpay_payment_id,
+            amount,
+            payment_type,
+            status,
+            response
+        )
+        VALUES
+        (
+            ?, ?, ?, ?, ?, ?, ?, ?, ?
+        )'
+    );
+    $stmt->bind_param(
+        'sisssdsss',
+        $userId,
+        $subscriptionId,
+        $orderId,
+        $razorpaySubscriptionId,
+        $paymentId,
+        $paidAmount,
+        $paymentType,
+        $paymentStatus,
+        $rawResponse
+    );
+
+    if (!$stmt->execute()) {
+        throw new RuntimeException('Unable to save payment: ' . $stmt->error);
+    }
+
+    webhookChargedLog('Payment row saved', [
+        'payment_insert_id' => $conn->insert_id,
+        'subscription_id' => $subscriptionId,
+        'payment_id' => $paymentId,
+    ]);
+
+    $stmt = $conn->prepare('SELECT * FROM plans WHERE id = ? LIMIT 1');
+    $stmt->bind_param('i', $planId);
+    $stmt->execute();
+    $plan = $stmt->get_result()->fetch_assoc();
+
+    if (!$plan) {
+        throw new RuntimeException('Plan not found.');
+    }
+
+    $stmt = $conn->prepare('SELECT * FROM subscriptions WHERE id = ? LIMIT 1');
+    $stmt->bind_param('i', $subscriptionId);
+    $stmt->execute();
+    $updatedSubscription = $stmt->get_result()->fetch_assoc() ?: $subscription;
+    $updatedSubscription['razorpay_payment_id'] = $paymentId;
+    $updatedSubscription['paid_amount'] = $paidAmount;
+    $updatedSubscription['payment_status'] = 'Success';
+    $updatedSubscription['status'] = 'active';
+    $updatedSubscription['plan_name'] = $plan['name'] ?? ($updatedSubscription['plan_name'] ?? '');
+    $updatedSubscription['storage_quota'] = $plan['quota'] ?? ($updatedSubscription['storage_quota'] ?? '');
+    $updatedSubscription['quota'] = $plan['quota'] ?? '';
+
+    $emailSent = false;
+
+    try {
+        $emailSent = sendWebhookPaymentSuccessEmail($updatedSubscription, $plan, $mailConfig);
+    } catch (MailerException $exception) {
+        webhookChargedLog('Renewal email failed', ['error' => $exception->getMessage()]);
+    } catch (Throwable $exception) {
+        webhookChargedLog('Renewal email error', ['error' => $exception->getMessage()]);
+    }
+
+    $conn->commit();
+
+    webhookChargedLog('Webhook processed successfully', [
+        'subscription_id' => $subscription['id'],
+        'payment_id' => $paymentId,
+        'email_sent' => $emailSent,
+    ]);
+
+    webhookChargedResponse(200, [
+        'success' => true,
+        'message' => 'Subscription charged webhook processed.',
+        'subscription_id' => $subscriptionId,
+        'payment_id' => $paymentId,
+        'expiry_date' => $newExpiry,
+        'email_sent' => $emailSent,
+        'quota' => $quotaResult,
+    ]);
+} catch (Throwable $exception) {
+    if (isset($conn) && $conn instanceof mysqli) {
+        try {
+            $conn->rollback();
+        } catch (Throwable) {
+        }
+    }
+
+    webhookChargedLog('Webhook failed', [
+        'error' => $exception->getMessage(),
+    ]);
+
+    webhookChargedResponse(500, [
+        'success' => false,
+        'message' => $exception->getMessage(),
+    ]);
+}

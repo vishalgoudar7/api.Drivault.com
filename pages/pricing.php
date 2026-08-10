@@ -141,6 +141,53 @@ body{
     background:#f8fafc;
     font-family:Arial,sans-serif;
 }
+
+.drivault-navbar{
+    position:sticky;
+    top:0;
+    z-index:1030;
+    background:#fff;
+    min-height:72px;
+    padding:0 48px;
+    border-bottom:1px solid #edf1f5;
+    box-shadow:0 2px 14px rgba(15,23,42,.06);
+}
+
+.drivault-navbar .container-fluid{
+    padding:0;
+    min-height:72px;
+    display:flex;
+    align-items:center;
+    justify-content:flex-start;
+}
+
+.drivault-navbar .navbar-brand{
+    display:inline-flex;
+    align-items:center;
+    gap:12px;
+    margin:0;
+    padding:0;
+}
+
+.drivault-navbar .navbar-brand img{
+    width:32px;
+    height:32px;
+    object-fit:contain;
+    flex-shrink:0;
+}
+
+.drivault-navbar .navbar-brand strong{
+    color:#0f172a;
+    font-size:1.5rem;
+    font-weight:700;
+    line-height:2rem;
+}
+
+.drivault-navbar .navbar-toggler,
+.drivault-navbar .navbar-collapse{
+    display:none;
+}
+
 .old-price{
     color:#999;
     text-decoration:line-through;
@@ -233,6 +280,23 @@ body{
     color:#0f172a;
     margin-top:0;
     margin-bottom:8px;
+}
+
+.plan-name-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    align-self:center;
+    max-width:100%;
+    margin:0 auto 20px;
+    padding:8px 18px;
+    border-radius:8px;
+    background:#e8fff2;
+    color:#07983f;
+    font-size:15px;
+    font-weight:700;
+    line-height:1.2;
+    font-family:Arial,sans-serif;
 }
 
 .pricing-card .text-muted{
@@ -745,9 +809,9 @@ body{
 }
 
 .billing-option.active{
-    background:linear-gradient(135deg,#08c75a 0%,#00ad48 100%);
+    background:#40e095;
     color:#fff;
-    box-shadow:0 7px 16px rgba(0,185,80,.25);
+    box-shadow:0 7px 16px rgba(64,224,149,.28);
 }
 
 .billing-option.active small{
@@ -755,7 +819,7 @@ body{
 }
 
 .billing-option:focus-visible{
-    outline:3px solid rgba(0,185,80,.22);
+    outline:3px solid rgba(64,224,149,.28);
     outline-offset:2px;
 }
 
@@ -947,39 +1011,35 @@ body{
         padding-right:15px;
     }
 
-    .navbar{
-        padding-top:12px;
-        padding-bottom:12px;
+    .drivault-navbar{
+        min-height:64px;
+        padding:0 20px;
     }
 
-    .navbar .container{
-        display:flex;
+    .drivault-navbar .container-fluid{
+        min-height:64px;
         align-items:center;
-        justify-content:space-between;
+        justify-content:flex-start;
         flex-direction:row;
         flex-wrap:nowrap;
-        gap:12px;
     }
 
-    .navbar-brand.d-flex.align-items-center{
+    .drivault-navbar .navbar-brand{
         flex-direction:row;
         text-align:left;
         min-width:0;
         margin-right:0;
     }
 
-    .navbar-brand img{
-        width:36px;
-        height:36px;
-        margin-right:8px !important;
+    .drivault-navbar .navbar-brand img{
+        width:28px;
+        height:28px;
+        margin-right:0 !important;
         flex-shrink:0;
     }
 
-    .navbar-toggler{
-        width:52px;
-        height:44px;
-        padding:6px 10px;
-        flex-shrink:0;
+    .drivault-navbar .navbar-brand strong{
+        font-size:24px !important;
     }
 
     .pricing-card{
@@ -1017,25 +1077,16 @@ body{
 
 </head>
 <body>
-<nav class="navbar navbar-expand-lg bg-white shadow-sm">
-    <div class="container">
+<nav class="navbar drivault-navbar">
+    <div class="container-fluid">
 
-        <a class="navbar-brand d-flex align-items-center" href="#">
-            <img src="/New%20folder/assets/Photos/icon-192.png"
-                 alt="Drivault"
-                 width="40"
-                 height="40"
-                 class="me-2">
-            <strong style="font-size:30px;color:#0f172a;">Drivault</strong>
-        </a>
-
-        <button class="navbar-toggler" type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-
-        <div class="collapse navbar-collapse" id="navbarNav"></div>
+        <div class="navbar-brand d-flex align-items-center">
+            <img src="../assets/Photos/nav-logo.png"
+                 alt="Drivault logo"
+                 width="38"
+                 height="38">
+            <strong>Drivault</strong>
+        </div>
 
     </div>
 </nav>
@@ -1090,6 +1141,10 @@ body{
         <path d="M20 3C11 3 4 6 4 10v20c0 4 7 7 16 7s16-3 16-7V10c0-4-7-7-16-7zm0 4c7 0 12 2 12 3s-5 3-12 3-12-2-12-3 5-3 12-3zm0 10c7 0 12-2 12-3v5c0 1-5 3-12 3s-12-2-12-3v-5c0 1 5 3 12 3zm0 10c7 0 12-2 12-3v5c0 1-5 3-12 3s-12-2-12-3v-5c0 1 5 3 12 3z"/>
     </svg>
 </div>
+
+                    <div class="plan-name-badge">
+                        <?= htmlspecialchars((string) $plan['name']); ?>
+                    </div>
 
                     <div class="storage">
                         <?= htmlspecialchars((string) $plan['quota']); ?>
@@ -1495,7 +1550,6 @@ function showSubscriptionSummary(data) {
                 <img src="../assets/Photos/icon-192.png" alt="Drivault" class="verify-logo">
             </div>
             <h5 class="modal-title verify-modal-title">
-                <i class="bi ${config.icon} text-success me-1"></i>
                 Account <span>Verified</span>
             </h5>
         </div>
