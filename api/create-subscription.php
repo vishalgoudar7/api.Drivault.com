@@ -35,6 +35,7 @@ $plan_id = (int) ($_POST['plan_id'] ?? 0);
 $billing_cycle = strtolower(trim((string) ($_POST['billing_cycle'] ?? 'monthly')));
 // ===== START RENEWAL MODE UPDATE =====
 $renewalMode = $_POST['renewal_mode'] ?? 'auto';
+$autoRenew = $renewalMode === 'auto' ? 1 : 0;
 // ===== END RENEWAL MODE UPDATE =====
 $mode = $_POST['mode'] ?? 'new';
 $subscriptionAction = match ($mode) {
@@ -238,6 +239,7 @@ INSERT INTO subscriptions
     storage_quota,
     billing_cycle,
     renewal_mode,
+    auto_renew,
     paid_amount,
     razorpay_subscription_id,
 
@@ -264,13 +266,13 @@ subscription_action,
 VALUES
 
 (
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 )
     ");
 // ===== END RENEWAL MODE UPDATE =====
 
 $stmt->bind_param(
-    "sissssdsiiissssdddidssss",
+    "sissssidsiiissssdddidssss",
 
     $user_id,
     $plan_id,
@@ -279,6 +281,7 @@ $stmt->bind_param(
     $billing_cycle,
     // ===== START RENEWAL MODE UPDATE =====
     $renewalMode,
+    $autoRenew,
     // ===== END RENEWAL MODE UPDATE =====
     $totalAmount,
     $razorpaySubscriptionId,

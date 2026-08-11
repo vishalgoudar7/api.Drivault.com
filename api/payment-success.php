@@ -674,6 +674,10 @@ if ($isNewPurchase) {
 } else {
     $paymentType = 'renewal';
 }
+
+$renewalMode = $razorpaySubscriptionId !== '' ? 'auto' : 'manual';
+$autoRenew = $renewalMode === 'auto' ? 1 : 0;
+
 if ($isUpgrade) {
 
     $stmt = $conn->prepare("
@@ -704,6 +708,8 @@ if ($isRenewal) {
            razorpay_subscription_id=?,
            razorpay_payment_id=?,
            razorpay_signature=?,
+           renewal_mode=?,
+           auto_renew=?,
            start_date=?,
            expiry_date=?,
            reminder_7_sent=0,
@@ -713,12 +719,14 @@ if ($isRenewal) {
     );
 
     $stmt->bind_param(
-        "sssssssi",
+        "ssssssissi",
         $paymentType,
         $orderId,
         $razorpaySubscriptionId,
         $paymentId,
         $signature,
+        $renewalMode,
+        $autoRenew,
         $newStart,
         $newExpiry,
         $subscription['id']
@@ -737,6 +745,8 @@ if ($isRenewal) {
            razorpay_subscription_id=?,
            razorpay_payment_id=?,
            razorpay_signature=?,
+           renewal_mode=?,
+           auto_renew=?,
            start_date=?,
            expiry_date=?,
            reminder_7_sent=0,
@@ -746,13 +756,15 @@ if ($isRenewal) {
     );
 
     $stmt->bind_param(
-        "isssssssi",
+        "issssssissi",
         $currentQuota,
         $paymentType,
         $orderId,
         $razorpaySubscriptionId,
         $paymentId,
         $signature,
+        $renewalMode,
+        $autoRenew,
         $newStart,
         $newExpiry,
         $subscription['id']

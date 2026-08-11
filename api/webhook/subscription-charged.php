@@ -342,6 +342,8 @@ try {
              payment_status='Success',
              payment_type='renewal',
              subscription_action='renewal',
+             renewal_mode='auto',
+             auto_renew=1,
              razorpay_order_id=?,
              razorpay_payment_id=?,
              paid_amount=?,

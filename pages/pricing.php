@@ -1453,8 +1453,19 @@ function setPlanOpening(btn, isLoading) {
 }
 
 function resetPlanButtons() {
-    document.querySelectorAll('.btn-plan.opening').forEach((button) => {
-        setPlanOpening(button, false);
+    document.querySelectorAll('.btn-plan.opening, .btn-plan.loading').forEach((button) => {
+        button.classList.remove('opening', 'loading');
+        button.disabled = false;
+        button.setAttribute('aria-busy', 'false');
+        button.style.pointerEvents = '';
+
+        const label = button.querySelector('.btn-plan-label');
+
+        if (label) {
+            label.innerHTML = 'Choose Plan';
+        } else {
+            button.innerHTML = '<span class="btn-plan-label">Choose Plan</span>';
+        }
     });
 }
 
@@ -1724,6 +1735,41 @@ verifyPlanModalElement.addEventListener('hidden.bs.modal', function() {
     if (!isVerifying) {
         resetVerifyModal();
         resetPlanButtons();
+    }
+});
+
+window.addEventListener('pageshow', function () {
+    isVerifying = false;
+
+    if (planPopupTimer) {
+        clearTimeout(planPopupTimer);
+        planPopupTimer = null;
+    }
+
+    if (verifyPlanModalElement.classList.contains('show')) {
+        if (window.bootstrap && bootstrap.Modal) {
+            const restoredModal = bootstrap.Modal.getInstance(verifyPlanModalElement) || getVerifyPlanModal();
+            restoredModal.hide();
+        } else {
+            verifyPlanModalElement.classList.remove('show');
+            verifyPlanModalElement.style.display = 'none';
+            verifyPlanModalElement.setAttribute('aria-hidden', 'true');
+            verifyPlanModalElement.removeAttribute('aria-modal');
+            verifyPlanModalElement.removeAttribute('role');
+        }
+    }
+
+    document.querySelectorAll('.modal-backdrop').forEach((backdrop) => {
+        backdrop.remove();
+    });
+    document.body.classList.remove('modal-open');
+    document.body.style.overflow = '';
+    document.body.style.paddingRight = '';
+
+    resetPlanButtons();
+
+    if (typeof resetVerifyModal === 'function') {
+        resetVerifyModal();
     }
 });
 

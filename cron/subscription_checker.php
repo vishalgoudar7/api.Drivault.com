@@ -282,6 +282,14 @@ while ($row = mysqli_fetch_assoc($result)) {
 
     // Subscription Expired
     if ($daysLeft <= 0 && strtolower($row['status']) == 'active') {
+        if (
+            ($row['renewal_mode'] ?? '') === 'auto'
+            && (int) ($row['auto_renew'] ?? 0) === 1
+            && !empty($row['razorpay_subscription_id'])
+        ) {
+            echo "<span style='color:blue'>Auto-renew subscription skipped. Waiting for Razorpay webhook.</span><br>";
+            continue;
+        }
 
         $username = getSubscriptionUsername($row);
 
