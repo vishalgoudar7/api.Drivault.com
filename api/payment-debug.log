@@ -1022,3 +1022,9 @@ razorpay_payment_id=pay_TOpQw0mH4ZqcrI&razorpay_signature=410c773b30d0348cf58327
 [payment-success] 2026-08-12 12:40:24 Saving payment row {"user_id":"9598979496v","subscription_id":4,"order_id":"order_TOpQoEIWwEbvog","razorpay_subscription_id":"","payment_id":"pay_TOpQw0mH4ZqcrI","payment_type":"upgrade"}
 [payment-success] 2026-08-12 12:40:24 Payment row saved {"payment_insert_id":18,"subscription_id":4}
 [payment-success] 2026-08-12 12:40:31 Returning success response {"subscription_id":4,"payment_id":"pay_TOpQw0mH4ZqcrI","order_id":"order_TOpQoEIWwEbvog","razorpay_subscription_id":"","email_sent":true}
+[razorpay-webhook] 2026-08-12 18:49:18 Webhook verified {"event":"subscription.pending"}
+[razorpay-webhook] 2026-08-12 18:49:18 Subscription payment issue webhook received {"event":"subscription.pending","razorpay_subscription_id":"sub_TORIOz9aPUlzUr","payment_id":"pay_test_subscription_pending"}
+[razorpay-webhook] 2026-08-12 18:49:18 Subscription payment issue processed {"event":"subscription.pending","subscription_id":2,"payment_id":"pay_test_subscription_pending","payment_insert_id":19,"auto_renew":1}
+[razorpay-webhook] 2026-08-12 18:49:18 Webhook verified {"event":"subscription.halted"}
+[razorpay-webhook] 2026-08-12 18:49:18 Subscription payment issue webhook received {"event":"subscription.halted","razorpay_subscription_id":"sub_TORIOz9aPUlzUr","payment_id":"pay_test_subscription_halted"}
+[razorpay-webhook] 2026-08-12 18:49:18 Subscription payment issue processed {"event":"subscription.halted","subscription_id":2,"payment_id":"pay_test_subscription_halted","payment_insert_id":20,"auto_renew":0}
