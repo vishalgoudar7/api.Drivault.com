@@ -454,6 +454,19 @@ body{
     color:#fff;
     border-color:#38d989;
 }
+
+.btn-plan:focus-visible,
+.btn-plan:active{
+    border-color:#000 !important;
+    outline:3px solid rgba(0,0,0,.16);
+    outline-offset:3px;
+}
+
+.pricing-card:hover .btn-plan:focus-visible,
+.pricing-card:hover .btn-plan:active{
+    border-color:#000 !important;
+}
+
 .pricing-card:hover .storage-icon{
     background:#dff8ea;
 }
@@ -788,10 +801,11 @@ body{
     flex:1;
     text-align:center;
     padding:7px 14px 8px;
-    border:0;
+    border:1px solid transparent;
     border-radius:999px;
+    background:#fff;
     cursor:pointer;
-    transition:background-color .25s ease, color .25s ease, box-shadow .25s ease, transform .25s ease;
+    transition:background-color .25s ease, border-color .25s ease, color .25s ease, box-shadow .25s ease, transform .25s ease;
     font-size:17px;
     font-weight:700;
     line-height:1.1;
@@ -809,9 +823,10 @@ body{
 }
 
 .billing-option.active{
-    background:#40e095;
+    background:#12b76a;
+    border-color:transparent;
     color:#fff;
-    box-shadow:0 7px 16px rgba(64,224,149,.28);
+    box-shadow:0 10px 22px rgba(18,183,106,.34);
 }
 
 .billing-option.active small{
@@ -819,8 +834,13 @@ body{
 }
 
 .billing-option:focus-visible{
-    outline:3px solid rgba(64,224,149,.28);
+    border-color:#000;
+    outline:3px solid rgba(0,0,0,.16);
     outline-offset:2px;
+}
+
+.billing-option:hover{
+    border-color:transparent;
 }
 
 .billing-option:active{

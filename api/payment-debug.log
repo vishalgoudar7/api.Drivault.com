@@ -938,3 +938,87 @@ razorpay_payment_id=pay_TOLFVGBEy9S9Yf&razorpay_signature=19ed1185bd638193a014c7
 [payment-success] 2026-08-11 07:08:49 Saving payment row {"user_id":"9598979496v","subscription_id":3,"order_id":"order_TOLFP0tzebECin","razorpay_subscription_id":"","payment_id":"pay_TOLFVGBEy9S9Yf","payment_type":"upgrade"}
 [payment-success] 2026-08-11 07:08:49 Payment row saved {"payment_insert_id":15,"subscription_id":3}
 [payment-success] 2026-08-11 07:08:52 Returning success response {"subscription_id":3,"payment_id":"pay_TOLFVGBEy9S9Yf","order_id":"order_TOLFP0tzebECin","razorpay_subscription_id":"","email_sent":true}
+
+=============================
+2026-08-11 12:58:56
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_payment_id] => pay_TORDPcprKfN1N7
+    [razorpay_signature] => 87aff16f10bea60a3ab3dbac0b80cd618dedb875845124cbc16a2a3930a4271c
+    [mode] => new
+    [subscription_id] => 1
+    [name] => vishal
+    [email] => vishalgoudar05@gmail.com
+    [phone] => 9598979496v
+    [razorpay_order_id] => order_TORDBXH8oTYTU0
+)
+
+RAW INPUT:
+razorpay_payment_id=pay_TORDPcprKfN1N7&razorpay_signature=87aff16f10bea60a3ab3dbac0b80cd618dedb875845124cbc16a2a3930a4271c&mode=new&subscription_id=1&name=vishal&email=vishalgoudar05%40gmail.com&phone=9598979496v&razorpay_order_id=order_TORDBXH8oTYTU0
+=============================
+[payment-success] 2026-08-11 12:58:56 Verifying Razorpay signature {"payment_mode":"manual","signature_payload_keys":["razorpay_payment_id","razorpay_signature","razorpay_order_id"],"order_id":"order_TORDBXH8oTYTU0","razorpay_subscription_id":"","payment_id":"pay_TORDPcprKfN1N7"}
+[payment-success] 2026-08-11 12:58:56 Razorpay signature verified
+[payment-success] 2026-08-11 12:58:56 Looking up subscription by local id {"subscription_id":1}
+[payment-success] 2026-08-11 12:58:59 Updating subscription {"subscription_id":1,"payment_type":"upgrade","order_id":"order_TORDBXH8oTYTU0","razorpay_subscription_id":"","payment_id":"pay_TORDPcprKfN1N7"}
+[payment-success] 2026-08-11 12:58:59 Subscription updated {"subscription_id":1}
+[payment-success] 2026-08-11 12:58:59 Saving payment row {"user_id":"9598979496v","subscription_id":1,"order_id":"order_TORDBXH8oTYTU0","razorpay_subscription_id":"","payment_id":"pay_TORDPcprKfN1N7","payment_type":"upgrade"}
+[payment-success] 2026-08-11 12:58:59 Payment row saved {"payment_insert_id":16,"subscription_id":1}
+[payment-success] 2026-08-11 12:59:03 Returning success response {"subscription_id":1,"payment_id":"pay_TORDPcprKfN1N7","order_id":"order_TORDBXH8oTYTU0","razorpay_subscription_id":"","email_sent":true}
+
+=============================
+2026-08-12 08:13:44
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_payment_id] => pay_TOktIvTOS48HJx
+    [razorpay_signature] => f20879dc4952154c1fa6e8b45e77256d3a402032eff9c40dc5bfc7e69df8bc34
+    [mode] => new
+    [subscription_id] => 3
+    [name] => rahul
+    [email] => yoyot52549@duvips.com
+    [phone] => rahul
+    [razorpay_order_id] => order_TOktAj68oDaVr8
+)
+
+RAW INPUT:
+razorpay_payment_id=pay_TOktIvTOS48HJx&razorpay_signature=f20879dc4952154c1fa6e8b45e77256d3a402032eff9c40dc5bfc7e69df8bc34&mode=new&subscription_id=3&name=rahul&email=yoyot52549%40duvips.com&phone=rahul&razorpay_order_id=order_TOktAj68oDaVr8
+=============================
+[payment-success] 2026-08-12 08:13:44 Verifying Razorpay signature {"payment_mode":"manual","signature_payload_keys":["razorpay_payment_id","razorpay_signature","razorpay_order_id"],"order_id":"order_TOktAj68oDaVr8","razorpay_subscription_id":"","payment_id":"pay_TOktIvTOS48HJx"}
+[payment-success] 2026-08-12 08:13:44 Razorpay signature verified
+[payment-success] 2026-08-12 08:13:44 Looking up subscription by local id {"subscription_id":3}
+[payment-success] 2026-08-12 08:13:48 Updating subscription {"subscription_id":3,"payment_type":"upgrade","order_id":"order_TOktAj68oDaVr8","razorpay_subscription_id":"","payment_id":"pay_TOktIvTOS48HJx"}
+[payment-success] 2026-08-12 08:13:48 Subscription updated {"subscription_id":3}
+[payment-success] 2026-08-12 08:13:48 Saving payment row {"user_id":"rahul","subscription_id":3,"order_id":"order_TOktAj68oDaVr8","razorpay_subscription_id":"","payment_id":"pay_TOktIvTOS48HJx","payment_type":"upgrade"}
+[payment-success] 2026-08-12 08:13:48 Payment row saved {"payment_insert_id":17,"subscription_id":3}
+[payment-success] 2026-08-12 08:13:52 Returning success response {"subscription_id":3,"payment_id":"pay_TOktIvTOS48HJx","order_id":"order_TOktAj68oDaVr8","razorpay_subscription_id":"","email_sent":true}
+
+=============================
+2026-08-12 12:40:19
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_payment_id] => pay_TOpQw0mH4ZqcrI
+    [razorpay_signature] => 410c773b30d0348cf58327baec3a1fcb4d87a23ae327296ff86d8dc7d7b33baa
+    [mode] => upgrade
+    [subscription_id] => 4
+    [name] => vishal
+    [email] => vishalgoudar05@gmail.com
+    [phone] => 9598979496v
+    [razorpay_order_id] => order_TOpQoEIWwEbvog
+)
+
+RAW INPUT:
+razorpay_payment_id=pay_TOpQw0mH4ZqcrI&razorpay_signature=410c773b30d0348cf58327baec3a1fcb4d87a23ae327296ff86d8dc7d7b33baa&mode=upgrade&subscription_id=4&name=vishal&email=vishalgoudar05%40gmail.com&phone=9598979496v&razorpay_order_id=order_TOpQoEIWwEbvog
+=============================
+[payment-success] 2026-08-12 12:40:20 Verifying Razorpay signature {"payment_mode":"manual","signature_payload_keys":["razorpay_payment_id","razorpay_signature","razorpay_order_id"],"order_id":"order_TOpQoEIWwEbvog","razorpay_subscription_id":"","payment_id":"pay_TOpQw0mH4ZqcrI"}
+[payment-success] 2026-08-12 12:40:20 Razorpay signature verified
+[payment-success] 2026-08-12 12:40:20 Looking up subscription by local id {"subscription_id":4}
+[payment-success] 2026-08-12 12:40:24 Updating subscription {"subscription_id":4,"payment_type":"upgrade","order_id":"order_TOpQoEIWwEbvog","razorpay_subscription_id":"","payment_id":"pay_TOpQw0mH4ZqcrI"}
+[payment-success] 2026-08-12 12:40:24 Subscription updated {"subscription_id":4}
+[payment-success] 2026-08-12 12:40:24 Saving payment row {"user_id":"9598979496v","subscription_id":4,"order_id":"order_TOpQoEIWwEbvog","razorpay_subscription_id":"","payment_id":"pay_TOpQw0mH4ZqcrI","payment_type":"upgrade"}
+[payment-success] 2026-08-12 12:40:24 Payment row saved {"payment_insert_id":18,"subscription_id":4}
+[payment-success] 2026-08-12 12:40:31 Returning success response {"subscription_id":4,"payment_id":"pay_TOpQw0mH4ZqcrI","order_id":"order_TOpQoEIWwEbvog","razorpay_subscription_id":"","email_sent":true}
