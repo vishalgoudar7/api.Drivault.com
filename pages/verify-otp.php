@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+header('Content-Type: text/html; charset=UTF-8');
+
 require __DIR__ . '/../config/db.php';
 
 $testingConfig = require __DIR__ . '/../config/testing.php';
@@ -472,7 +474,7 @@ button:disabled{
         </div>
 
         <div class="footer">
-            Â© 2026 Drivault
+            &copy; 2026 Drivault
         </div>
 
     </div>

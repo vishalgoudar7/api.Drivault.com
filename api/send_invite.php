@@ -409,10 +409,10 @@ $websiteUrl = trim((string) ($mailConfig['website_url'] ?? 'https://drivault.exa
 $supportEmail = trim((string) ($mailConfig['support_email'] ?? 'support@drivault.example.com'));
 $googlePlayLink = trim((string) ($mailConfig['google_play_link'] ?? 'https://play.google.com/store'));
 $appStoreLink = trim((string) ($mailConfig['app_store_link'] ?? 'https://www.apple.com/app-store/'));
-$logoUrl = "http://103.174.148.208/assets/Photos/icon-192.png";
+$logoUrl = "http://103.174.148.208/assets/Photos/email-logo.png";
 $googlePlayBadgeUrl = "http://103.174.148.208/assets/Photos/googlePlay.png";
 $appStoreBadgeUrl = "http://103.174.148.208/assets/Photos/Apple%20store.png";
-$brandIconPath = __DIR__ . '/../assets/Photos/icon-192.png';
+$brandIconPath = __DIR__ . '/../assets/Photos/email-logo.png';
 $googlePlayImagePath = __DIR__ . '/../assets/Photos/googlePlay.png';
 $appStoreImagePath = __DIR__ . '/../assets/Photos/Apple store.png';
 

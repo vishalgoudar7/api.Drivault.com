@@ -1,0 +1,25 @@
+* text=auto
+
+*.php  text working-tree-encoding=UTF-8 eol=lf
+*.html text working-tree-encoding=UTF-8 eol=lf
+*.css  text working-tree-encoding=UTF-8 eol=lf
+*.js   text working-tree-encoding=UTF-8 eol=lf
+*.json text working-tree-encoding=UTF-8 eol=lf
+*.sql  text working-tree-encoding=UTF-8 eol=lf
+*.md   text working-tree-encoding=UTF-8 eol=lf
+*.txt  text working-tree-encoding=UTF-8 eol=lf
+*.log  text working-tree-encoding=UTF-8 eol=lf
+*.lock text working-tree-encoding=UTF-8 eol=lf
+.htaccess text working-tree-encoding=UTF-8 eol=lf
+.editorconfig text working-tree-encoding=UTF-8 eol=lf
+.gitattributes text working-tree-encoding=UTF-8 eol=lf
+
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.phar binary
+*.tgz  binary
+*.zip  binary

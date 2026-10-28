@@ -379,6 +379,33 @@ button:disabled{
     display:block;
 }
 
+.login-link{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:100%;
+    max-width:396px;
+    margin:18px auto 0;
+    padding:15px 24px;
+    border-radius:14px;
+    background:#10b981;
+    color:#ffffff;
+    font-size:16px;
+    font-weight:600;
+    text-decoration:none;
+    transition:background-color 0.3s, transform 0.2s;
+}
+
+.login-link:hover{
+    background:#22c55e;
+    transform:translateY(-1px);
+}
+
+.login-link:focus-visible{
+    outline:3px solid rgba(16,185,129,0.3);
+    outline-offset:3px;
+}
+
 .app-store-btn{
     display:inline-block;
     padding:14px 24px;
@@ -658,6 +685,13 @@ Your username and password have been set successfully. Your Drivault account is 
     </a>
 
 </div>
+
+            <a
+                class="login-link"
+                href="https://login.drivault.com/"
+            >
+                Log in
+            </a>
 
         </div>
 

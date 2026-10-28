@@ -1,0 +1,7 @@
+# Serve all textual responses as UTF-8 unless an application explicitly
+# provides a different charset.
+AddDefaultCharset UTF-8
+
+<IfModule mod_mime.c>
+    AddCharset UTF-8 .html .css .js .json .xml .txt .csv .md
+</IfModule>
