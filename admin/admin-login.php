@@ -337,11 +337,6 @@ button:hover{
 
         </form>
 
-        <div class="create-link">
-            Default admin email: <strong>admin@drivault.com</strong><br>
-            Default password: <strong>Admin@123</strong>
-        </div>
-
     </div>
 
 </div>

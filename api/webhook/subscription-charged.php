@@ -10,6 +10,7 @@ header('Content-Type: application/json');
 require __DIR__ . '/../../config/db.php';
 require __DIR__ . '/../../vendor/autoload.php';
 require __DIR__ . '/../../payment/invoice-helper.php';
+require_once __DIR__ . '/../../includes/subscription-email-notifications.php';
 
 $logFile = __DIR__ . '/../payment-debug.log';
 $mailConfig = require __DIR__ . '/../../config/mail.php';
@@ -154,6 +155,8 @@ function sendWebhookPaymentSuccessEmail(array $subscription, array $plan, array 
     $billingCycle = ucfirst((string) ($subscription['billing_cycle'] ?? ''));
     $amount = number_format((float) ($subscription['paid_amount'] ?? 0), 2);
     $paymentId = (string) ($subscription['razorpay_payment_id'] ?? '');
+    $paymentDate = (string) ($subscription['payment_date'] ?? date('Y-m-d H:i:s'));
+    $nextRenewal = (string) ($subscription['next_renewal_date'] ?? $subscription['expiry_date'] ?? '');
     $invoiceNumber = 'INV-' . date('Ymd') . '-' . $subscription['id'];
     $supportEmail = trim((string) ($mailConfig['support_email'] ?? 'support@drivault.com'));
     $websiteUrl = trim((string) ($mailConfig['website_url'] ?? 'www.drivault.com'));
@@ -180,7 +183,7 @@ function sendWebhookPaymentSuccessEmail(array $subscription, array $plan, array 
     $mail->setFrom($fromAddress !== '' ? $fromAddress : $smtpUsername, $smtpFromName);
     $mail->addAddress($customerEmail, $customerName);
     $mail->isHTML(true);
-    $mail->Subject = 'Payment Successful - Your Drivault Invoice';
+    $mail->Subject = 'Drivault AutoPay Payment Successful';
 
     if ($logoPath) {
         $mail->addEmbeddedImage($logoPath, 'drivault-logo', 'drivault-logo.png');
@@ -206,6 +209,8 @@ function sendWebhookPaymentSuccessEmail(array $subscription, array $plan, array 
                         <tr><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;font-weight:600;">Billing Cycle</td><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;text-align:right;">%4$s</td></tr>
                         <tr><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;font-weight:600;">Amount Paid</td><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;text-align:right;color:#12b76a;font-weight:700;">Rs %5$s</td></tr>
                         <tr><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;font-weight:600;">Payment ID</td><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;text-align:right;">%6$s</td></tr>
+                        <tr><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;font-weight:600;">Payment Date</td><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;text-align:right;">%11$s</td></tr>
+                        <tr><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;font-weight:600;">Next Renewal</td><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;text-align:right;">%12$s</td></tr>
                         <tr><td style="padding:14px 16px;font-weight:600;">Invoice No</td><td style="padding:14px 16px;text-align:right;">%7$s</td></tr>
                     </table>
                     <div style="border:1px solid #dce5df;background:#f2faf5;border-radius:6px;padding:16px 20px;margin:0 0 28px;">
@@ -232,7 +237,9 @@ function sendWebhookPaymentSuccessEmail(array $subscription, array $plan, array 
         htmlspecialchars($invoiceNumber, ENT_QUOTES, 'UTF-8'),
         $logoHtml,
         htmlspecialchars($supportEmail, ENT_QUOTES, 'UTF-8'),
-        htmlspecialchars((string) $websiteDisplay, ENT_QUOTES, 'UTF-8')
+        htmlspecialchars((string) $websiteDisplay, ENT_QUOTES, 'UTF-8'),
+        htmlspecialchars(date('d F Y', strtotime($paymentDate)), ENT_QUOTES, 'UTF-8'),
+        htmlspecialchars($nextRenewal !== '' ? date('d F Y', strtotime($nextRenewal)) : '-', ENT_QUOTES, 'UTF-8')
     );
 
     $mail->AltBody = sprintf(
@@ -306,6 +313,21 @@ try {
             'subscription_id' => $subscription['id'],
         ]);
 
+        $planStmt = $conn->prepare('SELECT * FROM plans WHERE id = ? LIMIT 1');
+        $duplicatePlanId = (int) $subscription['plan_id'];
+        $planStmt->bind_param('i', $duplicatePlanId);
+        $planStmt->execute();
+        $duplicatePlan = $planStmt->get_result()->fetch_assoc() ?: [];
+        $cycleTimestamp = (int) ($payment['created_at'] ?? time());
+        $notificationId = claimSubscriptionNotification($conn, (int) $subscription['id'], $razorpaySubscriptionId, notificationCycleKeyFromTimestamp($cycleTimestamp), 'payment_success', (string) $subscription['drivault_email'], $paymentId);
+        if ($notificationId !== null) {
+            try {
+                $sent = sendWebhookPaymentSuccessEmail($subscription, $duplicatePlan, $mailConfig);
+                finishSubscriptionNotification($conn, $notificationId, $sent, $sent ? null : 'SMTP send returned false');
+            } catch (Throwable $mailError) {
+                finishSubscriptionNotification($conn, $notificationId, false, $mailError->getMessage());
+            }
+        }
         webhookChargedResponse(200, [
             'success' => true,
             'message' => 'Duplicate webhook ignored.',
@@ -314,20 +336,14 @@ try {
         ]);
     }
 
-    $base = new DateTime();
-
-    if (!empty($subscription['expiry_date']) && strtotime((string) $subscription['expiry_date']) > time()) {
-        $base = new DateTime((string) $subscription['expiry_date']);
+    $kolkata = new DateTimeZone('Asia/Kolkata');
+    $paymentTimestamp = (int) ($payment['created_at'] ?? time());
+    $newStart = (new DateTimeImmutable('@' . $paymentTimestamp))->setTimezone($kolkata)->format('Y-m-d H:i:s');
+    $razorpayPeriodEnd = (int) ($subscriptionEntity['current_end'] ?? $subscriptionEntity['charge_at'] ?? 0);
+    if ($razorpayPeriodEnd <= $paymentTimestamp) {
+        throw new RuntimeException('Razorpay did not provide a valid subscription period end.');
     }
-
-    if ($subscription['billing_cycle'] === 'yearly') {
-        $base->modify('+1 year');
-    } else {
-        $base->modify('+1 month');
-    }
-
-    $newStart = date('Y-m-d H:i:s');
-    $newExpiry = $base->format('Y-m-d H:i:s');
+    $newExpiry = (new DateTimeImmutable('@' . $razorpayPeriodEnd))->setTimezone($kolkata)->format('Y-m-d H:i:s');
     $paidAmount = $amount ?? (float) ($subscription['paid_amount'] ?? 0);
     $subscriptionId = (int) $subscription['id'];
     $userId = (string) $subscription['user_id'];
@@ -437,18 +453,35 @@ try {
     $updatedSubscription['plan_name'] = $plan['name'] ?? ($updatedSubscription['plan_name'] ?? '');
     $updatedSubscription['storage_quota'] = $plan['quota'] ?? ($updatedSubscription['storage_quota'] ?? '');
     $updatedSubscription['quota'] = $plan['quota'] ?? '';
-
-    $emailSent = false;
-
-    try {
-        $emailSent = sendWebhookPaymentSuccessEmail($updatedSubscription, $plan, $mailConfig);
-    } catch (MailerException $exception) {
-        webhookChargedLog('Renewal email failed', ['error' => $exception->getMessage()]);
-    } catch (Throwable $exception) {
-        webhookChargedLog('Renewal email error', ['error' => $exception->getMessage()]);
-    }
+    $updatedSubscription['payment_date'] = $newStart;
+    $updatedSubscription['next_renewal_date'] = $newExpiry;
 
     $conn->commit();
+
+    $emailSent = false;
+    $notificationId = claimSubscriptionNotification(
+        $conn,
+        $subscriptionId,
+        $razorpaySubscriptionId,
+        notificationCycleKeyFromTimestamp($paymentTimestamp),
+        'payment_success',
+        (string) $updatedSubscription['drivault_email'],
+        $paymentId
+    );
+
+    try {
+        if ($notificationId === null) {
+            throw new RuntimeException('Success notification already sent or currently claimed.');
+        }
+        $emailSent = sendWebhookPaymentSuccessEmail($updatedSubscription, $plan, $mailConfig);
+        finishSubscriptionNotification($conn, $notificationId, $emailSent, $emailSent ? null : 'SMTP send returned false');
+    } catch (MailerException $exception) {
+        if ($notificationId !== null) finishSubscriptionNotification($conn, $notificationId, false, $exception->getMessage());
+        webhookChargedLog('Renewal email failed', ['error' => $exception->getMessage()]);
+    } catch (Throwable $exception) {
+        if ($notificationId !== null && $exception->getMessage() !== 'Success notification already sent or currently claimed.') finishSubscriptionNotification($conn, $notificationId, false, $exception->getMessage());
+        webhookChargedLog('Renewal email error', ['error' => $exception->getMessage()]);
+    }
 
     webhookChargedLog('Webhook processed successfully', [
         'subscription_id' => $subscription['id'],

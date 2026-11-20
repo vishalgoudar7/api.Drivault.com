@@ -9,6 +9,10 @@ $drivaultConfig = require __DIR__ . '/../config/drivault.php';
 
 // Reminder Mail
 require_once __DIR__ . '/send_reminder.php';
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../includes/subscription-email-notifications.php';
+
+use Razorpay\Api\Api;
 
 date_default_timezone_set('Asia/Kolkata');
 
@@ -226,6 +230,52 @@ echo "<hr>";
 
 while ($row = mysqli_fetch_assoc($result)) {
 
+    $isAutoPay =
+        strtolower((string) ($row['renewal_mode'] ?? '')) === 'auto'
+        && (int) ($row['auto_renew'] ?? 0) === 1
+        && trim((string) ($row['razorpay_subscription_id'] ?? '')) !== '';
+
+    if ($isAutoPay) {
+        try {
+            $razorpayConfig = require __DIR__ . '/../config/razorpay.php';
+            $razorpay = new Api($razorpayConfig['key_id'], $razorpayConfig['key_secret']);
+            $remote = $razorpay->subscription->fetch((string) $row['razorpay_subscription_id']);
+            $remoteStatus = strtolower((string) ($remote['status'] ?? ''));
+            $chargeAt = (int) ($remote['charge_at'] ?? $remote['current_end'] ?? 0);
+            $allowedStatuses = ['active', 'authenticated'];
+
+            if ($chargeAt > 0 && in_array($remoteStatus, $allowedStatuses, true)) {
+                $kolkata = new DateTimeZone('Asia/Kolkata');
+                $renewalDate = (new DateTimeImmutable('@' . $chargeAt))->setTimezone($kolkata);
+                $tomorrow = (new DateTimeImmutable('tomorrow', $kolkata))->format('Y-m-d');
+
+                if ($renewalDate->format('Y-m-d') === $tomorrow) {
+                    $cycleKey = notificationCycleKeyFromTimestamp($chargeAt);
+                    $notificationId = claimSubscriptionNotification(
+                        $conn,
+                        (int) $row['id'],
+                        (string) $row['razorpay_subscription_id'],
+                        $cycleKey,
+                        'auto_renew_reminder',
+                        (string) $row['drivault_email']
+                    );
+
+                    if ($notificationId !== null) {
+                        try {
+                            $sent = sendAutoPayReminder($row, $renewalDate, (float) ($row['paid_amount'] ?? 0));
+                            finishSubscriptionNotification($conn, $notificationId, $sent, $sent ? null : 'SMTP send returned false');
+                        } catch (Throwable $exception) {
+                            finishSubscriptionNotification($conn, $notificationId, false, $exception->getMessage());
+                            checkerDebug('AutoPay reminder failed for subscription ' . $row['id']);
+                        }
+                    }
+                }
+            }
+        } catch (Throwable $exception) {
+            checkerDebug('Unable to read Razorpay schedule for subscription ' . $row['id'] . ': ' . $exception->getMessage());
+        }
+    }
+
     $today  = new DateTime();
     $expiry = new DateTime($row['expiry_date']);
 
@@ -239,11 +289,11 @@ while ($row = mysqli_fetch_assoc($result)) {
     echo "<b>Days Left :</b> " . $daysLeft . "<br>";
 
     // 7 Day Reminder
-    if ($daysLeft == 7 && !$row['reminder_7_sent']) {
+    if (!$isAutoPay && $daysLeft == 7 && !$row['reminder_7_sent']) {
 
-        sendReminder($row, 7);
+        $sent = sendReminder($row, 7);
 
-        mysqli_query($conn, "
+        if ($sent) mysqli_query($conn, "
             UPDATE subscriptions
             SET reminder_7_sent = 1
             WHERE id = {$row['id']}
@@ -253,11 +303,11 @@ while ($row = mysqli_fetch_assoc($result)) {
     }
 
     // 3 Day Reminder
-    if ($daysLeft == 3 && !$row['reminder_3_sent']) {
+    if (!$isAutoPay && $daysLeft == 3 && !$row['reminder_3_sent']) {
 
-        sendReminder($row, 3);
+        $sent = sendReminder($row, 3);
 
-        mysqli_query($conn, "
+        if ($sent) mysqli_query($conn, "
             UPDATE subscriptions
             SET reminder_3_sent = 1
             WHERE id = {$row['id']}
@@ -267,11 +317,11 @@ while ($row = mysqli_fetch_assoc($result)) {
     }
 
     // 1 Day Reminder
-    if ($daysLeft == 1 && !$row['reminder_1_sent']) {
+    if (!$isAutoPay && $daysLeft == 1 && !$row['reminder_1_sent']) {
 
-        sendReminder($row, 1);
+        $sent = sendReminder($row, 1);
 
-        mysqli_query($conn, "
+        if ($sent) mysqli_query($conn, "
             UPDATE subscriptions
             SET reminder_1_sent = 1
             WHERE id = {$row['id']}
