@@ -30,6 +30,7 @@ file_put_contents(
 
 require '../config/db.php';
 require '../vendor/autoload.php';
+require_once __DIR__ . '/includes/cancel-old-subscription.php';
 require __DIR__ . '/../payment/invoice-helper.php';
 require __DIR__ . '/../cron/send_reminder.php';
 // require '../includes/drivault.php';
@@ -348,8 +349,52 @@ if (!$subscription) {
     exit;
 }
 
+// Bind a posted local row to the identifier covered by Razorpay's verified
+// signature. This prevents an arbitrary local subscription id from being used
+// to activate a plan or authorize cancellation for another customer.
+$storedOrderId = trim((string) ($subscription['razorpay_order_id'] ?? ''));
+$storedRazorpaySubscriptionId = trim((string) ($subscription['razorpay_subscription_id'] ?? ''));
+$verifiedIdentifierMatches = $orderId !== ''
+    ? ($storedOrderId !== '' && hash_equals($storedOrderId, $orderId))
+    : ($storedRazorpaySubscriptionId !== '' && hash_equals($storedRazorpaySubscriptionId, $razorpaySubscriptionId));
+
+if (!$verifiedIdentifierMatches) {
+    paymentDebugLog('Verified Razorpay identifier does not match local subscription', [
+        'subscription_id' => (int) $subscription['id'],
+        'order_id' => $orderId,
+        'razorpay_subscription_id' => $razorpaySubscriptionId,
+    ]);
+
+    echo json_encode([
+        'success' => false,
+        'message' => 'Payment does not match subscription'
+    ]);
+    exit;
+}
+
 $userId = $subscription['user_id'];
 $planId = $subscription['plan_id'];
+
+// Client-supplied mode is only a hint. A plan change must also be supported by
+// an existing, successfully paid subscription for this customer on another plan.
+$confirmedPlanChange = false;
+if ($isUpgrade) {
+    $stmt = $conn->prepare(
+        "SELECT id
+         FROM subscriptions
+         WHERE user_id = ?
+           AND id <> ?
+           AND plan_id <> ?
+           AND payment_status = 'Success'
+           AND status = 'active'
+         LIMIT 1"
+    );
+    $newSubscriptionId = (int) $subscription['id'];
+    $newPlanId = (int) $planId;
+    $stmt->bind_param('sii', $userId, $newSubscriptionId, $newPlanId);
+    $stmt->execute();
+    $confirmedPlanChange = (bool) $stmt->get_result()->fetch_assoc();
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -457,14 +502,16 @@ if ($drivaultEndpoint === '' || $drivaultApiUsername === '' || $drivaultApiPassw
 $url = rtrim($drivaultEndpoint, '/') . '/' . rawurlencode($username);
 // Update Subscription
 if ($isRenewal) {
+    $renewalQuota = (int) ($subscription['total_quota'] ?? 0);
+    if ($renewalQuota <= 0) {
+        $renewalQuota = (int) ($subscription['previous_quota'] ?? 0);
+    }
 
-    $previousQuota = (int)$subscription['previous_quota'];
-
-    if ($previousQuota <= 0) {
+    if ($renewalQuota <= 0) {
 
         echo json_encode([
             "success"=>false,
-            "message"=>"Previous quota not found."
+            "message"=>"Subscription quota not found."
         ]);
 
         exit;
@@ -478,7 +525,7 @@ if ($isRenewal) {
     // );
 
     // $restoreQuota = $restoreGB . "GB";
-    $restoreGB = (int)$subscription['previous_quota'];
+    $restoreGB = $renewalQuota;
 $restoreQuota = $restoreGB . "GB";
 
     $ch = curl_init();
@@ -867,6 +914,25 @@ paymentDebugLog('Payment row saved', [
 
 /*
 |--------------------------------------------------------------------------
+| Cancel Previous Auto Pay Mandates (outside any database transaction)
+|--------------------------------------------------------------------------
+*/
+
+$oldSubscriptionCancellation = null;
+if ($confirmedPlanChange && $paymentType === 'upgrade' && $updatedSubscription['payment_status'] === 'Success') {
+    $oldSubscriptionCancellation = cancelOldSubscription($conn, $userId, (int) $subscription['id']);
+
+    if (!$oldSubscriptionCancellation['success']) {
+        paymentDebugLog('Old Auto Pay cancellation requires retry', [
+            'user_id' => $userId,
+            'new_subscription_id' => (int) $subscription['id'],
+            'failed' => $oldSubscriptionCancellation['failed'],
+        ]);
+    }
+}
+
+/*
+|--------------------------------------------------------------------------
 | Send Payment Email With Invoice
 |--------------------------------------------------------------------------
 */
@@ -918,6 +984,7 @@ echo json_encode([
     'razorpay_subscription_id' => $razorpaySubscriptionId,
     'subscription_id' => $subscription['id'],
     'email_sent' => $emailSent,
+    'old_subscription_cancellation' => $oldSubscriptionCancellation,
     'plan_id' => $planId,
     'quota' => $quotaResult
 ]);

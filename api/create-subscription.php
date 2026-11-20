@@ -2,6 +2,7 @@
 
 require '../config/db.php';
 require '../vendor/autoload.php';
+require_once __DIR__ . '/includes/subscription-quota.php';
 
 use Razorpay\Api\Api;
 
@@ -89,17 +90,26 @@ if (!$plan) {
     ]));
 }
 
-$freeQuota = $_SESSION['free_quota'] ?? 0;
-$currentQuota = $_SESSION['current_quota'] ?? 0;
+$sessionFreeQuota = (int) ($_SESSION['free_quota'] ?? 0);
 
-$planQuota = (int) filter_var(
-    $plan['quota'],
-    FILTER_SANITIZE_NUMBER_INT
-);
-
-$storageQuota = (int)$planQuota;
-
-$totalQuota = $freeQuota + $storageQuota;
+try {
+    $freeQuota = resolveOriginalFreeQuota(
+        $conn,
+        $user_id,
+        $mode,
+        $subscriptionId,
+        $sessionFreeQuota
+    );
+    $currentQuota = $freeQuota;
+    $totalQuota = calculateSubscriptionTotalQuota($freeQuota, $plan['quota']);
+} catch (Throwable $exception) {
+    http_response_code(422);
+    echo json_encode([
+        'success' => false,
+        'message' => $exception->getMessage(),
+    ]);
+    exit;
+}
 /*
 |--------------------------------------------------------------------------
 | Plan Details

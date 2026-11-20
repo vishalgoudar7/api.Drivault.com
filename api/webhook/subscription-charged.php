@@ -83,10 +83,13 @@ function updateWebhookDrivaultQuota(array $subscription, array $drivaultConfig):
         throw new RuntimeException('Drivault username not found.');
     }
 
-    $restoreGb = (int) ($subscription['previous_quota'] ?? 0);
+    // Renewal preserves the current entitlement. The previous paid plan must
+    // never be added again or preferred over the saved final total.
+    $restoreGb = (int) ($subscription['total_quota'] ?? 0);
 
+    // Compatibility fallback for legacy rows created before total_quota.
     if ($restoreGb <= 0) {
-        $restoreGb = (int) ($subscription['total_quota'] ?? 0);
+        $restoreGb = (int) ($subscription['previous_quota'] ?? 0);
     }
 
     if ($restoreGb <= 0) {

@@ -1,4 +1,4 @@
-﻿DRIVAULT SOURCE CODE INDEX
+﻿DRIVAULT BACKEND SOURCE CODE
 
 
 ========== FILE: composer-setup.php ==========
@@ -2085,12 +2085,6 @@ Do not expose real Razorpay secrets publicly. If any real key or secret has been
 //     echo "<h2 style='color:red'>Email Failed</h2>";
 // }
 
-
-========== FILE: .vscode\settings.json ==========
-
-{
-    "search.useGlobalIgnoreFiles": false
-}
 
 ========== FILE: admin\admin-create.php ==========
 
@@ -5296,6 +5290,7 @@ file_put_contents(
 
 require '../config/db.php';
 require '../vendor/autoload.php';
+require_once __DIR__ . '/includes/cancel-old-subscription.php';
 require __DIR__ . '/../payment/invoice-helper.php';
 require __DIR__ . '/../cron/send_reminder.php';
 // require '../includes/drivault.php';
@@ -5614,8 +5609,52 @@ if (!$subscription) {
     exit;
 }
 
+// Bind a posted local row to the identifier covered by Razorpay's verified
+// signature. This prevents an arbitrary local subscription id from being used
+// to activate a plan or authorize cancellation for another customer.
+$storedOrderId = trim((string) ($subscription['razorpay_order_id'] ?? ''));
+$storedRazorpaySubscriptionId = trim((string) ($subscription['razorpay_subscription_id'] ?? ''));
+$verifiedIdentifierMatches = $orderId !== ''
+    ? ($storedOrderId !== '' && hash_equals($storedOrderId, $orderId))
+    : ($storedRazorpaySubscriptionId !== '' && hash_equals($storedRazorpaySubscriptionId, $razorpaySubscriptionId));
+
+if (!$verifiedIdentifierMatches) {
+    paymentDebugLog('Verified Razorpay identifier does not match local subscription', [
+        'subscription_id' => (int) $subscription['id'],
+        'order_id' => $orderId,
+        'razorpay_subscription_id' => $razorpaySubscriptionId,
+    ]);
+
+    echo json_encode([
+        'success' => false,
+        'message' => 'Payment does not match subscription'
+    ]);
+    exit;
+}
+
 $userId = $subscription['user_id'];
 $planId = $subscription['plan_id'];
+
+// Client-supplied mode is only a hint. A plan change must also be supported by
+// an existing, successfully paid subscription for this customer on another plan.
+$confirmedPlanChange = false;
+if ($isUpgrade) {
+    $stmt = $conn->prepare(
+        "SELECT id
+         FROM subscriptions
+         WHERE user_id = ?
+           AND id <> ?
+           AND plan_id <> ?
+           AND payment_status = 'Success'
+           AND status = 'active'
+         LIMIT 1"
+    );
+    $newSubscriptionId = (int) $subscription['id'];
+    $newPlanId = (int) $planId;
+    $stmt->bind_param('sii', $userId, $newSubscriptionId, $newPlanId);
+    $stmt->execute();
+    $confirmedPlanChange = (bool) $stmt->get_result()->fetch_assoc();
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -6133,6 +6172,25 @@ paymentDebugLog('Payment row saved', [
 
 /*
 |--------------------------------------------------------------------------
+| Cancel Previous Auto Pay Mandates (outside any database transaction)
+|--------------------------------------------------------------------------
+*/
+
+$oldSubscriptionCancellation = null;
+if ($confirmedPlanChange && $paymentType === 'upgrade' && $updatedSubscription['payment_status'] === 'Success') {
+    $oldSubscriptionCancellation = cancelOldSubscription($conn, $userId, (int) $subscription['id']);
+
+    if (!$oldSubscriptionCancellation['success']) {
+        paymentDebugLog('Old Auto Pay cancellation requires retry', [
+            'user_id' => $userId,
+            'new_subscription_id' => (int) $subscription['id'],
+            'failed' => $oldSubscriptionCancellation['failed'],
+        ]);
+    }
+}
+
+/*
+|--------------------------------------------------------------------------
 | Send Payment Email With Invoice
 |--------------------------------------------------------------------------
 */
@@ -6184,6 +6242,7 @@ echo json_encode([
     'razorpay_subscription_id' => $razorpaySubscriptionId,
     'subscription_id' => $subscription['id'],
     'email_sent' => $emailSent,
+    'old_subscription_cancellation' => $oldSubscriptionCancellation,
     'plan_id' => $planId,
     'quota' => $quotaResult
 ]);
@@ -8442,6 +8501,152 @@ echo json_encode([
 ]);
 
 exit;
+
+
+========== FILE: api\includes\cancel-old-subscription.php ==========
+
+<?php
+
+declare(strict_types=1);
+
+use Razorpay\Api\Api;
+
+/**
+ * Cancel prior Razorpay Auto Pay mandates after a verified plan change.
+ *
+ * The new local subscription id is always excluded. Database state is changed
+ * only after Razorpay reports a terminal, non-charging state.
+ */
+function cancelOldSubscription(mysqli $conn, string $userId, int $newSubscriptionId): array
+{
+    $result = [
+        'success' => true,
+        'user_id' => $userId,
+        'new_subscription_id' => $newSubscriptionId,
+        'cancelled' => [],
+        'already_terminal' => [],
+        'failed' => [],
+    ];
+
+    try {
+        $stmt = $conn->prepare(
+            "SELECT id, razorpay_subscription_id
+             FROM subscriptions
+             WHERE user_id = ?
+               AND id <> ?
+               AND payment_status = 'Success'
+               AND razorpay_subscription_id IS NOT NULL
+               AND TRIM(razorpay_subscription_id) <> ''"
+        );
+        $stmt->bind_param('si', $userId, $newSubscriptionId);
+        $stmt->execute();
+        $oldSubscriptions = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+        $stmt = $conn->prepare(
+            'SELECT razorpay_subscription_id FROM subscriptions WHERE id = ? AND user_id = ? LIMIT 1'
+        );
+        $stmt->bind_param('is', $newSubscriptionId, $userId);
+        $stmt->execute();
+        $newSubscription = $stmt->get_result()->fetch_assoc();
+
+        if (!$newSubscription) {
+            throw new RuntimeException('The new subscription does not belong to the verified customer.');
+        }
+
+        $newRazorpayId = trim((string) ($newSubscription['razorpay_subscription_id'] ?? ''));
+        $config = require dirname(__DIR__, 2) . '/config/razorpay.php';
+        $api = new Api((string) $config['key_id'], (string) $config['key_secret']);
+        $terminalStatuses = ['cancelled', 'completed', 'expired'];
+        $cancellableStatuses = ['created', 'authenticated', 'active', 'pending', 'halted', 'paused'];
+
+        foreach ($oldSubscriptions as $oldSubscription) {
+            $localId = (int) $oldSubscription['id'];
+            $razorpayId = trim((string) $oldSubscription['razorpay_subscription_id']);
+
+            // Defence in depth for inconsistent/duplicate local data.
+            if ($razorpayId === '' || ($newRazorpayId !== '' && hash_equals($newRazorpayId, $razorpayId))) {
+                continue;
+            }
+
+            try {
+                $remote = $api->subscription->fetch($razorpayId);
+                $status = strtolower((string) ($remote['status'] ?? ''));
+
+                if (in_array($status, $terminalStatuses, true)) {
+                    if ($status === 'cancelled') {
+                        markOldSubscriptionCancelled($conn, $userId, $localId, $razorpayId);
+                    }
+                    $result['already_terminal'][] = [
+                        'subscription_id' => $localId,
+                        'razorpay_subscription_id' => $razorpayId,
+                        'status' => $status,
+                    ];
+                    continue;
+                }
+
+                if (!in_array($status, $cancellableStatuses, true)) {
+                    throw new RuntimeException('Razorpay subscription is not in a cancellable state: ' . $status);
+                }
+
+                $cancelled = $remote->cancel(['cancel_at_cycle_end' => 0]);
+                $finalStatus = strtolower((string) ($cancelled['status'] ?? ''));
+
+                if ($finalStatus !== 'cancelled') {
+                    $confirmed = $api->subscription->fetch($razorpayId);
+                    $finalStatus = strtolower((string) ($confirmed['status'] ?? ''));
+                }
+
+                if ($finalStatus !== 'cancelled') {
+                    throw new RuntimeException('Razorpay did not confirm immediate cancellation.');
+                }
+
+                markOldSubscriptionCancelled($conn, $userId, $localId, $razorpayId);
+                $result['cancelled'][] = [
+                    'subscription_id' => $localId,
+                    'razorpay_subscription_id' => $razorpayId,
+                    'status' => $finalStatus,
+                ];
+            } catch (Throwable $exception) {
+                $result['success'] = false;
+                $result['failed'][] = [
+                    'subscription_id' => $localId,
+                    'razorpay_subscription_id' => $razorpayId,
+                    'message' => 'Unable to confirm cancellation.',
+                ];
+                error_log(sprintf(
+                    '[cancel-old-subscription] Cancellation failed for local subscription %d / Razorpay subscription %s: %s',
+                    $localId,
+                    $razorpayId,
+                    $exception->getMessage()
+                ));
+            }
+        }
+    } catch (Throwable $exception) {
+        $result['success'] = false;
+        $result['failed'][] = ['message' => 'Unable to inspect previous subscriptions.'];
+        error_log('[cancel-old-subscription] Setup failed: ' . $exception->getMessage());
+    }
+
+    return $result;
+}
+
+function markOldSubscriptionCancelled(
+    mysqli $conn,
+    string $userId,
+    int $localSubscriptionId,
+    string $razorpaySubscriptionId
+): void {
+    $stmt = $conn->prepare(
+        "UPDATE subscriptions
+         SET status = 'cancelled', auto_renew = 0, renewal_mode = 'manual'
+         WHERE id = ? AND user_id = ? AND razorpay_subscription_id = ?"
+    );
+    $stmt->bind_param('iss', $localSubscriptionId, $userId, $razorpaySubscriptionId);
+
+    if (!$stmt->execute()) {
+        throw new RuntimeException('Unable to update the cancelled local subscription.');
+    }
+}
 
 
 ========== FILE: api\includes\drivault-user-status.php ==========
