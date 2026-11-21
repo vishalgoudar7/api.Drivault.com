@@ -1197,6 +1197,7 @@ razorpay_payment_id=pay_U1dQbane64mCua&razorpay_signature=42efd358fe3024cbb75d60
 [payment-success] 2026-11-18 13:16:53 Payment row saved {"payment_insert_id":26,"subscription_id":12}
 [payment-success] 2026-11-18 13:17:00 Returning success response {"subscription_id":12,"payment_id":"pay_U1dQbane64mCua","order_id":"","razorpay_subscription_id":"sub_U1dQJwLXc34Yjz","email_sent":true}
 [razorpay-webhook] 2026-11-19 05:22:15 Invalid webhook signature {"error":"Invalid signature passed"}
+<<<<<<< HEAD
 [razorpay-webhook] 2026-11-20 06:29:06 Invalid webhook signature {"error":"Invalid signature passed"}
 [razorpay-webhook] 2026-11-21 09:29:40 Webhook verified {"event":"payment.captured"}
 
@@ -1308,3 +1309,5 @@ razorpay_payment_id=pay_U2mVSPz90lhhbj&razorpay_signature=7a1b80f13e89f895e136d0
 [payment-failed-webhook] 2026-11-21 10:47:19 Failed payment row saved {"payment_insert_id":25,"subscription_id":36,"payment_id":"pay_U2nVhvbOPJjevq"}
 [payment-failed-webhook] 2026-11-21 10:47:21 Webhook processed successfully {"subscription_id":36,"payment_id":"pay_U2nVhvbOPJjevq","email_sent":true}
 [razorpay-webhook] 2026-11-21 10:54:23 Invalid webhook signature {"error":"Invalid signature passed"}
+=======
+>>>>>>> fd87cdc9eb46419dda82712f7d0cf34583619e83

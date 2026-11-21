@@ -322,7 +322,11 @@ try {
         $planStmt->execute();
         $duplicatePlan = $planStmt->get_result()->fetch_assoc() ?: [];
         $cycleTimestamp = (int) ($payment['created_at'] ?? time());
+<<<<<<< HEAD
         $notificationId = claimSubscriptionNotification($conn, (int) $subscription['id'], $razorpaySubscriptionId, 'payment:' . $paymentId, 'payment_success', (string) $subscription['drivault_email'], $paymentId);
+=======
+        $notificationId = claimSubscriptionNotification($conn, (int) $subscription['id'], $razorpaySubscriptionId, notificationCycleKeyFromTimestamp($cycleTimestamp), 'payment_success', (string) $subscription['drivault_email'], $paymentId);
+>>>>>>> fd87cdc9eb46419dda82712f7d0cf34583619e83
         if ($notificationId !== null) {
             try {
                 $sent = sendWebhookPaymentSuccessEmail($subscription, $duplicatePlan, $mailConfig);
@@ -466,7 +470,11 @@ try {
         $conn,
         $subscriptionId,
         $razorpaySubscriptionId,
+<<<<<<< HEAD
         'payment:' . $paymentId,
+=======
+        notificationCycleKeyFromTimestamp($paymentTimestamp),
+>>>>>>> fd87cdc9eb46419dda82712f7d0cf34583619e83
         'payment_success',
         (string) $updatedSubscription['drivault_email'],
         $paymentId

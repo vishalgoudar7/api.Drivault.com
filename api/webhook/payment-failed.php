@@ -367,6 +367,7 @@ if ($razorpaySubscriptionId === '' && $invoiceId !== '') {
         'payment_id' => $paymentId,
     ]);
 
+<<<<<<< HEAD
     if (!$preservePaidAccess) {
         $subscription['payment_status'] = 'Failed';
         $subscription['status'] = 'pending';
@@ -401,6 +402,40 @@ if ($razorpaySubscriptionId === '' && $invoiceId !== '') {
         webhookFailedLog('Payment failed email error', ['error' => $exception->getMessage()]);
     }
 
+=======
+    $subscription['payment_status'] = 'Failed';
+    $subscription['status'] = 'pending';
+    $subscription['razorpay_payment_id'] = $paymentId;
+
+    $conn->commit();
+
+    $emailSent = false;
+    $cycleTimestamp = (int) ($subscriptionEntity['current_end'] ?? $subscriptionEntity['charge_at'] ?? strtotime((string) ($subscription['expiry_date'] ?? 'now')));
+    $notificationId = claimSubscriptionNotification(
+        $conn,
+        $subscriptionId,
+        $razorpaySubscriptionId,
+        notificationCycleKeyFromTimestamp($cycleTimestamp),
+        'payment_failed',
+        (string) $subscription['drivault_email'],
+        $paymentId
+    );
+
+    try {
+        if ($notificationId === null) {
+            throw new RuntimeException('Failure notification already sent or currently claimed.');
+        }
+        $emailSent = sendPaymentFailedEmail($subscription, $payment, $mailConfig);
+        finishSubscriptionNotification($conn, $notificationId, $emailSent, $emailSent ? null : 'SMTP send returned false');
+    } catch (MailerException $exception) {
+        if ($notificationId !== null) finishSubscriptionNotification($conn, $notificationId, false, $exception->getMessage());
+        webhookFailedLog('Payment failed email failed', ['error' => $exception->getMessage()]);
+    } catch (Throwable $exception) {
+        if ($notificationId !== null && $exception->getMessage() !== 'Failure notification already sent or currently claimed.') finishSubscriptionNotification($conn, $notificationId, false, $exception->getMessage());
+        webhookFailedLog('Payment failed email error', ['error' => $exception->getMessage()]);
+    }
+
+>>>>>>> fd87cdc9eb46419dda82712f7d0cf34583619e83
     webhookFailedLog('Webhook processed successfully', [
         'subscription_id' => $subscriptionId,
         'payment_id' => $paymentId,
