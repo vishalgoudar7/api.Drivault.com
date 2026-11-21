@@ -3,7 +3,7 @@
 $host = "localhost";
 $dbname = "invitation_system";
 $username = "drivault_user";
-$password = "Drivault@123";
+$password = "Drivault@2027";
 
 
 //for local testing

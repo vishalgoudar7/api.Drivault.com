@@ -1545,7 +1545,10 @@ function buildCheckoutUrl(action) {
         mode: action
     });
 
-    if (action === 'renew' && selectedSubscriptionId) {
+    // Renewals and upgrades both replace an existing subscription. Pass that
+    // row to checkout so the server can verify ownership and retain only the
+    // customer's original free quota.
+    if ((action === 'renew' || action === 'upgrade') && selectedSubscriptionId) {
         params.set('subscription_id', selectedSubscriptionId);
     }
 

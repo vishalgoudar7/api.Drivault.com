@@ -216,6 +216,24 @@ function sendReminder(array $row, int $days): bool
     return sendMail($to, $subject, $message);
 }
 
+function sendAutoPayReminder(array $row, DateTimeInterface $renewalDate, float $amount): bool
+{
+    $to = trim((string) ($row['drivault_email'] ?? ''));
+    if ($to === '' || filter_var($to, FILTER_VALIDATE_EMAIL) === false) {
+        return false;
+    }
+
+    $name = htmlspecialchars(trim((string) ($row['drivault_display_name'] ?? 'Customer')) ?: 'Customer', ENT_QUOTES, 'UTF-8');
+    $plan = htmlspecialchars((string) ($row['plan_name'] ?? 'Drivault Plan'), ENT_QUOTES, 'UTF-8');
+    $storage = htmlspecialchars((string) ($row['storage_quota'] ?? (($row['total_quota'] ?? '') . 'GB')), ENT_QUOTES, 'UTF-8');
+    $date = htmlspecialchars($renewalDate->format('d F Y'), ENT_QUOTES, 'UTF-8');
+    $formattedAmount = number_format($amount, 2);
+    $message = <<<HTML
+<div style="font-family:Arial,sans-serif;background:#f4f6f8;padding:16px;color:#111827"><div style="max-width:620px;margin:auto;background:#fff;border-top:4px solid #12b76a;padding:28px"><h1 style="font-size:24px">AutoPay scheduled for tomorrow</h1><p>Hello <strong>{$name}</strong>,</p><p>Your Drivault subscription will automatically renew tomorrow.</p><table style="width:100%;border-collapse:collapse"><tr><td style="padding:10px;border-bottom:1px solid #eee">Plan</td><td style="text-align:right">{$plan}</td></tr><tr><td style="padding:10px;border-bottom:1px solid #eee">Storage</td><td style="text-align:right">{$storage}</td></tr><tr><td style="padding:10px;border-bottom:1px solid #eee">Renewal Amount (including GST)</td><td style="text-align:right">&#8377;{$formattedAmount}</td></tr><tr><td style="padding:10px;border-bottom:1px solid #eee">Renewal Date</td><td style="text-align:right">{$date}</td></tr><tr><td style="padding:10px">Payment Mode</td><td style="text-align:right;color:#12b76a;font-weight:bold">AutoPay</td></tr></table><p>Your authorized payment method will be charged automatically.</p><p><strong>No action is required.</strong> Please ensure sufficient funds are available.</p><p>Thank you,<br>Drivault Team</p></div></div>
+HTML;
+    return sendMail($to, 'Your Drivault AutoPay is Scheduled for Tomorrow', $message);
+}
+
 function sendAccountDisabledEmail(array $row): bool
 {
     $to = (string) ($row['drivault_email'] ?? '');

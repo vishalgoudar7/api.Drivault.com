@@ -107,9 +107,41 @@ Enable these events:
 subscription.charged
 payment.failed
 subscription.cancelled
+subscription.pending
+subscription.halted
 ```
 
-## 6. Expected Auto-Renew Flow
+## 6. Install the notification migration
+
+Apply `database/2026_11_05_subscription_email_notifications.sql` before deploying
+the PHP changes. It is additive and does not modify existing subscription data.
+
+## 7. Production cron entries
+
+Run the subscription checker frequently enough to cover the calendar-day reminder
+window, and retry transient SMTP failures separately:
+
+```cron
+15 8 * * * /usr/bin/php /var/www/html/cron/subscription_checker.php >> /var/log/drivault-subscriptions.log 2>&1
+*/10 * * * * /usr/bin/php /var/www/html/cron/retry_subscription_emails.php >> /var/log/drivault-email-retries.log 2>&1
+```
+
+Optional worker settings (defaults shown) can be exported by the cron environment:
+
+```text
+SUBSCRIPTION_EMAIL_MAX_ATTEMPTS=10
+SUBSCRIPTION_EMAIL_RETRY_BACKOFF_SECONDS=300
+SUBSCRIPTION_EMAIL_STALE_SECONDS=900
+```
+
+The retry backoff is clamped to a minimum of 300 seconds. Apply
+`database/2026_11_05_subscription_email_notifications_skipped.sql` when upgrading
+an existing installation so obsolete reminders can be closed with `skipped` status.
+
+Replace `/var/www/html` with the production release path. Do not run overlapping
+copies through another scheduler unless they use the same notification database.
+
+## 8. Expected Auto-Renew Flow
 
 When Razorpay auto-debits the customer:
 
@@ -131,6 +163,6 @@ restore/update Drivault quota
 send invoice email
 ```
 
-## 7. Important Note
+## 9. Important Note
 
 Do not expose real Razorpay secrets publicly. If any real key or secret has been shared in code, rotate it from Razorpay Dashboard.

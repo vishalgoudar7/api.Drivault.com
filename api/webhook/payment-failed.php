@@ -9,6 +9,7 @@ header('Content-Type: application/json');
 
 require __DIR__ . '/../../config/db.php';
 require __DIR__ . '/../../vendor/autoload.php';
+require_once __DIR__ . '/../../includes/subscription-email-notifications.php';
 
 $logFile = __DIR__ . '/../payment-debug.log';
 $mailConfig = require __DIR__ . '/../../config/mail.php';
@@ -72,6 +73,7 @@ function sendPaymentFailedEmail(array $subscription, array $payment, array $mail
         ? number_format(((float) $payment['amount']) / 100, 2)
         : number_format((float) ($subscription['paid_amount'] ?? 0), 2);
     $paymentId = trim((string) ($payment['id'] ?? ''));
+    $attemptDate = date('d F Y', (int) ($payment['created_at'] ?? time()));
     $errorDescription = trim((string) ($payment['error_description'] ?? $payment['error_reason'] ?? 'Payment failed.'));
     $supportEmail = trim((string) ($mailConfig['support_email'] ?? 'support@drivault.com'));
     $websiteUrl = trim((string) ($mailConfig['website_url'] ?? 'www.drivault.com'));
@@ -97,7 +99,7 @@ function sendPaymentFailedEmail(array $subscription, array $payment, array $mail
     $mail->setFrom($fromAddress !== '' ? $fromAddress : $smtpUsername, $smtpFromName);
     $mail->addAddress($customerEmail, $customerName);
     $mail->isHTML(true);
-    $mail->Subject = 'Payment Failed - Drivault Subscription';
+    $mail->Subject = 'Drivault AutoPay Payment Failed';
 
     if ($logoPath) {
         $mail->addEmbeddedImage($logoPath, 'drivault-logo', 'drivault-logo.png');
@@ -122,6 +124,8 @@ function sendPaymentFailedEmail(array $subscription, array $payment, array $mail
                         <tr><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;font-weight:600;">Billing Cycle</td><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;text-align:right;">%3$s</td></tr>
                         <tr><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;font-weight:600;">Amount</td><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;text-align:right;">Rs %4$s</td></tr>
                         <tr><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;font-weight:600;">Payment ID</td><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;text-align:right;">%5$s</td></tr>
+                        <tr><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;font-weight:600;">Attempt Date</td><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;text-align:right;">%12$s</td></tr>
+                        <tr><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;font-weight:600;">Payment Status</td><td style="padding:14px 16px;border-bottom:1px solid #e5e7eb;text-align:right;color:#dc2626;font-weight:700;">Failed</td></tr>
                         <tr><td style="padding:14px 16px;font-weight:600;">Reason</td><td style="padding:14px 16px;text-align:right;color:#dc2626;font-weight:700;">%6$s</td></tr>
                     </table>
                     <div style="border:1px solid #fecaca;background:#fef2f2;border-radius:6px;padding:16px 20px;margin:0 0 28px;color:#991b1b;font-size:14px;line-height:22px;">
@@ -151,7 +155,8 @@ function sendPaymentFailedEmail(array $subscription, array $payment, array $mail
         $logoHtml,
         htmlspecialchars($supportEmail, ENT_QUOTES, 'UTF-8'),
         htmlspecialchars((string) $websiteDisplay, ENT_QUOTES, 'UTF-8'),
-        htmlspecialchars($renewUrl, ENT_QUOTES, 'UTF-8')
+        htmlspecialchars($renewUrl, ENT_QUOTES, 'UTF-8'),
+        htmlspecialchars($attemptDate, ENT_QUOTES, 'UTF-8')
     );
 
     $mail->AltBody = sprintf(
@@ -177,6 +182,37 @@ try {
     $razorpaySubscriptionId = trim((string) ($payment['subscription_id'] ?? $subscriptionEntity['id'] ?? ''));
     $paymentId = trim((string) ($payment['id'] ?? ''));
     $orderId = trim((string) ($payment['order_id'] ?? ''));
+$invoiceId = trim((string) ($payment['invoice_id'] ?? ''));
+
+if ($razorpaySubscriptionId === '' && $invoiceId !== '') {
+    try {
+        $razorpayConfig = require __DIR__ . '/../../config/razorpay.php';
+
+        $razorpayApi = new \Razorpay\Api\Api(
+            $razorpayConfig['key_id'],
+            $razorpayConfig['key_secret']
+        );
+
+        $invoice = $razorpayApi->invoice->fetch($invoiceId);
+
+        $razorpaySubscriptionId = trim(
+            (string) ($invoice->subscription_id ?? '')
+        );
+
+        webhookFailedLog('Subscription resolved from invoice', [
+            'invoice_id' => $invoiceId,
+            'razorpay_subscription_id' => $razorpaySubscriptionId
+        ]);
+
+    } catch (Throwable $exception) {
+        webhookFailedLog('Invoice lookup failed', [
+            'invoice_id' => $invoiceId,
+            'error' => $exception->getMessage()
+        ]);
+
+        throw $exception;
+    }
+}
     $amount = isset($payment['amount']) && is_numeric($payment['amount'])
         ? ((float) $payment['amount'] / 100)
         : 0.0;
@@ -228,6 +264,16 @@ try {
                 'subscription_id' => $subscriptionId,
             ]);
 
+            $cycleTimestamp = (int) ($subscriptionEntity['current_end'] ?? $subscriptionEntity['charge_at'] ?? strtotime((string) ($subscription['expiry_date'] ?? 'now')));
+            $notificationId = claimSubscriptionNotification($conn, $subscriptionId, $razorpaySubscriptionId, notificationCycleKeyFromTimestamp($cycleTimestamp), 'payment_failed', (string) $subscription['drivault_email'], $paymentId);
+            if ($notificationId !== null) {
+                try {
+                    $sent = sendPaymentFailedEmail($subscription, $payment, $mailConfig);
+                    finishSubscriptionNotification($conn, $notificationId, $sent, $sent ? null : 'SMTP send returned false');
+                } catch (Throwable $mailError) {
+                    finishSubscriptionNotification($conn, $notificationId, false, $mailError->getMessage());
+                }
+            }
             webhookFailedResponse(200, [
                 'success' => true,
                 'message' => 'Duplicate failed webhook ignored.',
@@ -237,25 +283,45 @@ try {
         }
     }
 
-    $stmt = $conn->prepare(
-        "UPDATE subscriptions
-         SET payment_status='Failed',
-             status='pending',
-             razorpay_order_id=?,
-             razorpay_payment_id=?,
-             disabled_at=NULL
-         WHERE id=?"
-    );
-    $stmt->bind_param('ssi', $orderId, $paymentId, $subscriptionId);
+    // Keep already-paid, unexpired subscriptions active.
+    $expiryDate = trim((string) ($subscription['expiry_date'] ?? ''));
+    $paidUntil = $expiryDate !== ''
+        ? new DateTimeImmutable($expiryDate, new DateTimeZone('Asia/Kolkata'))
+        : null;
 
-    if (!$stmt->execute()) {
-        throw new RuntimeException('Unable to update subscription: ' . $stmt->error);
+    $preservePaidAccess =
+        strtolower((string) ($subscription['status'] ?? '')) === 'active'
+        && strtolower((string) ($subscription['payment_status'] ?? '')) === 'success'
+        && $paidUntil !== null
+        && $paidUntil > new DateTimeImmutable('now', new DateTimeZone('Asia/Kolkata'));
+
+    if ($preservePaidAccess) {
+        webhookFailedLog('Paid subscription preserved after failed charge', [
+            'subscription_id' => $subscriptionId,
+            'payment_id' => $paymentId,
+            'expiry_date' => $expiryDate,
+        ]);
+    } else {
+        $stmt = $conn->prepare(
+            "UPDATE subscriptions
+             SET payment_status='Failed',
+                 status='pending',
+                 razorpay_order_id=?,
+                 razorpay_payment_id=?,
+                 disabled_at=NULL
+             WHERE id=?"
+        );
+        $stmt->bind_param('ssi', $orderId, $paymentId, $subscriptionId);
+
+        if (!$stmt->execute()) {
+            throw new RuntimeException('Unable to update subscription: ' . $stmt->error);
+        }
+
+        webhookFailedLog('Subscription marked failed', [
+            'subscription_id' => $subscriptionId,
+            'payment_id' => $paymentId,
+        ]);
     }
-
-    webhookFailedLog('Subscription marked failed', [
-        'subscription_id' => $subscriptionId,
-        'payment_id' => $paymentId,
-    ]);
 
     $paymentType = 'renewal';
     $paymentStatus = 'failed';
@@ -301,21 +367,39 @@ try {
         'payment_id' => $paymentId,
     ]);
 
-    $subscription['payment_status'] = 'Failed';
-    $subscription['status'] = 'pending';
-    $subscription['razorpay_payment_id'] = $paymentId;
-
-    $emailSent = false;
-
-    try {
-        $emailSent = sendPaymentFailedEmail($subscription, $payment, $mailConfig);
-    } catch (MailerException $exception) {
-        webhookFailedLog('Payment failed email failed', ['error' => $exception->getMessage()]);
-    } catch (Throwable $exception) {
-        webhookFailedLog('Payment failed email error', ['error' => $exception->getMessage()]);
+    if (!$preservePaidAccess) {
+        $subscription['payment_status'] = 'Failed';
+        $subscription['status'] = 'pending';
+        $subscription['razorpay_payment_id'] = $paymentId;
     }
 
     $conn->commit();
+
+    $emailSent = false;
+    $cycleTimestamp = (int) ($subscriptionEntity['current_end'] ?? $subscriptionEntity['charge_at'] ?? strtotime((string) ($subscription['expiry_date'] ?? 'now')));
+    $notificationId = claimSubscriptionNotification(
+        $conn,
+        $subscriptionId,
+        $razorpaySubscriptionId,
+        notificationCycleKeyFromTimestamp($cycleTimestamp),
+        'payment_failed',
+        (string) $subscription['drivault_email'],
+        $paymentId
+    );
+
+    try {
+        if ($notificationId === null) {
+            throw new RuntimeException('Failure notification already sent or currently claimed.');
+        }
+        $emailSent = sendPaymentFailedEmail($subscription, $payment, $mailConfig);
+        finishSubscriptionNotification($conn, $notificationId, $emailSent, $emailSent ? null : 'SMTP send returned false');
+    } catch (MailerException $exception) {
+        if ($notificationId !== null) finishSubscriptionNotification($conn, $notificationId, false, $exception->getMessage());
+        webhookFailedLog('Payment failed email failed', ['error' => $exception->getMessage()]);
+    } catch (Throwable $exception) {
+        if ($notificationId !== null && $exception->getMessage() !== 'Failure notification already sent or currently claimed.') finishSubscriptionNotification($conn, $notificationId, false, $exception->getMessage());
+        webhookFailedLog('Payment failed email error', ['error' => $exception->getMessage()]);
+    }
 
     webhookFailedLog('Webhook processed successfully', [
         'subscription_id' => $subscriptionId,

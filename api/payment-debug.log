@@ -1028,3 +1028,283 @@ razorpay_payment_id=pay_TOpQw0mH4ZqcrI&razorpay_signature=410c773b30d0348cf58327
 [razorpay-webhook] 2026-08-12 18:49:18 Webhook verified {"event":"subscription.halted"}
 [razorpay-webhook] 2026-08-12 18:49:18 Subscription payment issue webhook received {"event":"subscription.halted","razorpay_subscription_id":"sub_TORIOz9aPUlzUr","payment_id":"pay_test_subscription_halted"}
 [razorpay-webhook] 2026-08-12 18:49:18 Subscription payment issue processed {"event":"subscription.halted","subscription_id":2,"payment_id":"pay_test_subscription_halted","payment_insert_id":20,"auto_renew":0}
+
+=============================
+2026-11-18 06:18:30
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_payment_id] => pay_U1WIUnmKPfrQkM
+    [razorpay_signature] => 58e170b1b554aa867785f13ca6feb36a0570692a46429d793d7a1c62c635b222
+    [mode] => new
+    [subscription_id] => 7
+    [name] => Vishal Gouda Goudar
+    [email] => vishalgoudar143@gmail.com
+    [phone] => vishalgoudar1435
+    [razorpay_subscription_id] => sub_U1WGznpSeeeBNM
+)
+
+RAW INPUT:
+razorpay_payment_id=pay_U1WIUnmKPfrQkM&razorpay_signature=58e170b1b554aa867785f13ca6feb36a0570692a46429d793d7a1c62c635b222&mode=new&subscription_id=7&name=Vishal+Gouda+Goudar&email=vishalgoudar143%40gmail.com&phone=vishalgoudar1435&razorpay_subscription_id=sub_U1WGznpSeeeBNM
+=============================
+[payment-success] 2026-11-18 06:18:31 Verifying Razorpay signature {"payment_mode":"auto","signature_payload_keys":["razorpay_payment_id","razorpay_signature","razorpay_subscription_id"],"order_id":"","razorpay_subscription_id":"sub_U1WGznpSeeeBNM","payment_id":"pay_U1WIUnmKPfrQkM"}
+[payment-success] 2026-11-18 06:18:31 Razorpay signature verified
+[payment-success] 2026-11-18 06:18:31 Looking up subscription by local id {"subscription_id":7}
+[payment-success] 2026-11-18 06:18:33 Updating subscription {"subscription_id":7,"payment_type":"upgrade","order_id":"","razorpay_subscription_id":"sub_U1WGznpSeeeBNM","payment_id":"pay_U1WIUnmKPfrQkM"}
+[payment-success] 2026-11-18 06:18:33 Subscription updated {"subscription_id":7}
+[payment-success] 2026-11-18 06:18:33 Saving payment row {"user_id":"vishalgoudar1435","subscription_id":7,"order_id":"","razorpay_subscription_id":"sub_U1WGznpSeeeBNM","payment_id":"pay_U1WIUnmKPfrQkM","payment_type":"upgrade"}
+[payment-success] 2026-11-18 06:18:33 Payment row saved {"payment_insert_id":21,"subscription_id":7}
+[payment-success] 2026-11-18 06:18:42 Returning success response {"subscription_id":7,"payment_id":"pay_U1WIUnmKPfrQkM","order_id":"","razorpay_subscription_id":"sub_U1WGznpSeeeBNM","email_sent":true}
+
+=============================
+2026-11-18 06:37:53
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_payment_id] => pay_U1WdAmOP5rFwZh
+    [razorpay_signature] => 8baf0d36e9ee3104915cc6e8a3872e3df412d36d26d7b0bc68b4cb785fa3a900
+    [mode] => upgrade
+    [subscription_id] => 8
+    [name] => Vishal Gouda Goudar
+    [email] => vishalgoudar143@gmail.com
+    [phone] => vishalgoudar1435
+    [razorpay_subscription_id] => sub_U1Wcp0ivqt4Rmt
+)
+
+RAW INPUT:
+razorpay_payment_id=pay_U1WdAmOP5rFwZh&razorpay_signature=8baf0d36e9ee3104915cc6e8a3872e3df412d36d26d7b0bc68b4cb785fa3a900&mode=upgrade&subscription_id=8&name=Vishal+Gouda+Goudar&email=vishalgoudar143%40gmail.com&phone=vishalgoudar1435&razorpay_subscription_id=sub_U1Wcp0ivqt4Rmt
+=============================
+[payment-success] 2026-11-18 06:37:53 Verifying Razorpay signature {"payment_mode":"auto","signature_payload_keys":["razorpay_payment_id","razorpay_signature","razorpay_subscription_id"],"order_id":"","razorpay_subscription_id":"sub_U1Wcp0ivqt4Rmt","payment_id":"pay_U1WdAmOP5rFwZh"}
+[payment-success] 2026-11-18 06:37:53 Razorpay signature verified
+[payment-success] 2026-11-18 06:37:53 Looking up subscription by local id {"subscription_id":8}
+[payment-success] 2026-11-18 06:37:55 Updating subscription {"subscription_id":8,"payment_type":"upgrade","order_id":"","razorpay_subscription_id":"sub_U1Wcp0ivqt4Rmt","payment_id":"pay_U1WdAmOP5rFwZh"}
+[payment-success] 2026-11-18 06:37:55 Subscription updated {"subscription_id":8}
+[payment-success] 2026-11-18 06:37:55 Saving payment row {"user_id":"vishalgoudar1435","subscription_id":8,"order_id":"","razorpay_subscription_id":"sub_U1Wcp0ivqt4Rmt","payment_id":"pay_U1WdAmOP5rFwZh","payment_type":"upgrade"}
+[payment-success] 2026-11-18 06:37:55 Payment row saved {"payment_insert_id":22,"subscription_id":8}
+[payment-success] 2026-11-18 06:38:01 Returning success response {"subscription_id":8,"payment_id":"pay_U1WdAmOP5rFwZh","order_id":"","razorpay_subscription_id":"sub_U1Wcp0ivqt4Rmt","email_sent":true}
+
+=============================
+2026-11-18 06:42:24
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_payment_id] => pay_U1Whxuym0hxX18
+    [razorpay_signature] => 02c3f3b228d1f783190120851a08185f331eefad63c74542ed0532c6ab42be4b
+    [mode] => upgrade
+    [subscription_id] => 9
+    [name] => Vishal Gouda Goudar
+    [email] => vishalgoudar143@gmail.com
+    [phone] => vishalgoudar1435
+    [razorpay_subscription_id] => sub_U1WhdjbyG76WXU
+)
+
+RAW INPUT:
+razorpay_payment_id=pay_U1Whxuym0hxX18&razorpay_signature=02c3f3b228d1f783190120851a08185f331eefad63c74542ed0532c6ab42be4b&mode=upgrade&subscription_id=9&name=Vishal+Gouda+Goudar&email=vishalgoudar143%40gmail.com&phone=vishalgoudar1435&razorpay_subscription_id=sub_U1WhdjbyG76WXU
+=============================
+[payment-success] 2026-11-18 06:42:24 Verifying Razorpay signature {"payment_mode":"auto","signature_payload_keys":["razorpay_payment_id","razorpay_signature","razorpay_subscription_id"],"order_id":"","razorpay_subscription_id":"sub_U1WhdjbyG76WXU","payment_id":"pay_U1Whxuym0hxX18"}
+[payment-success] 2026-11-18 06:42:24 Razorpay signature verified
+[payment-success] 2026-11-18 06:42:24 Looking up subscription by local id {"subscription_id":9}
+[payment-success] 2026-11-18 06:42:27 Updating subscription {"subscription_id":9,"payment_type":"upgrade","order_id":"","razorpay_subscription_id":"sub_U1WhdjbyG76WXU","payment_id":"pay_U1Whxuym0hxX18"}
+[payment-success] 2026-11-18 06:42:27 Subscription updated {"subscription_id":9}
+[payment-success] 2026-11-18 06:42:27 Saving payment row {"user_id":"vishalgoudar1435","subscription_id":9,"order_id":"","razorpay_subscription_id":"sub_U1WhdjbyG76WXU","payment_id":"pay_U1Whxuym0hxX18","payment_type":"upgrade"}
+[payment-success] 2026-11-18 06:42:27 Payment row saved {"payment_insert_id":23,"subscription_id":9}
+[payment-success] 2026-11-18 06:42:33 Returning success response {"subscription_id":9,"payment_id":"pay_U1Whxuym0hxX18","order_id":"","razorpay_subscription_id":"sub_U1WhdjbyG76WXU","email_sent":true}
+
+=============================
+2026-11-18 13:07:40
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_payment_id] => pay_U1dGvRzXmnjPZa
+    [razorpay_signature] => eb5981be5043f65b717929dd6762744ea281623fd5d0ff9bafce081aec2a7143
+    [mode] => new
+    [subscription_id] => 10
+    [name] => Vishal Gouda Goudar
+    [email] => vishalgoudar143@gmail.com
+    [phone] => vishalgoudar1435
+    [razorpay_subscription_id] => sub_U1dGRios5RyWs7
+)
+
+RAW INPUT:
+razorpay_payment_id=pay_U1dGvRzXmnjPZa&razorpay_signature=eb5981be5043f65b717929dd6762744ea281623fd5d0ff9bafce081aec2a7143&mode=new&subscription_id=10&name=Vishal+Gouda+Goudar&email=vishalgoudar143%40gmail.com&phone=vishalgoudar1435&razorpay_subscription_id=sub_U1dGRios5RyWs7
+=============================
+[payment-success] 2026-11-18 13:07:41 Verifying Razorpay signature {"payment_mode":"auto","signature_payload_keys":["razorpay_payment_id","razorpay_signature","razorpay_subscription_id"],"order_id":"","razorpay_subscription_id":"sub_U1dGRios5RyWs7","payment_id":"pay_U1dGvRzXmnjPZa"}
+[payment-success] 2026-11-18 13:07:41 Razorpay signature verified
+[payment-success] 2026-11-18 13:07:41 Looking up subscription by local id {"subscription_id":10}
+[payment-success] 2026-11-18 13:07:44 Updating subscription {"subscription_id":10,"payment_type":"upgrade","order_id":"","razorpay_subscription_id":"sub_U1dGRios5RyWs7","payment_id":"pay_U1dGvRzXmnjPZa"}
+[payment-success] 2026-11-18 13:07:44 Subscription updated {"subscription_id":10}
+[payment-success] 2026-11-18 13:07:44 Saving payment row {"user_id":"vishalgoudar1435","subscription_id":10,"order_id":"","razorpay_subscription_id":"sub_U1dGRios5RyWs7","payment_id":"pay_U1dGvRzXmnjPZa","payment_type":"upgrade"}
+[payment-success] 2026-11-18 13:07:44 Payment row saved {"payment_insert_id":24,"subscription_id":10}
+[payment-success] 2026-11-18 13:07:52 Returning success response {"subscription_id":10,"payment_id":"pay_U1dGvRzXmnjPZa","order_id":"","razorpay_subscription_id":"sub_U1dGRios5RyWs7","email_sent":true}
+
+=============================
+2026-11-18 13:15:10
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_payment_id] => pay_U1dOpjzoEZhREF
+    [razorpay_signature] => 3ddb70c5e2fbadb649eac2c0f38fe216b8c7b68fa9247e6373c21d5cc3bed187
+    [mode] => upgrade
+    [subscription_id] => 11
+    [name] => Vishal Gouda Goudar
+    [email] => vishalgoudar143@gmail.com
+    [phone] => vishalgoudar1435
+    [razorpay_subscription_id] => sub_U1dOXMLMOIkUuK
+)
+
+RAW INPUT:
+razorpay_payment_id=pay_U1dOpjzoEZhREF&razorpay_signature=3ddb70c5e2fbadb649eac2c0f38fe216b8c7b68fa9247e6373c21d5cc3bed187&mode=upgrade&subscription_id=11&name=Vishal+Gouda+Goudar&email=vishalgoudar143%40gmail.com&phone=vishalgoudar1435&razorpay_subscription_id=sub_U1dOXMLMOIkUuK
+=============================
+[payment-success] 2026-11-18 13:15:10 Verifying Razorpay signature {"payment_mode":"auto","signature_payload_keys":["razorpay_payment_id","razorpay_signature","razorpay_subscription_id"],"order_id":"","razorpay_subscription_id":"sub_U1dOXMLMOIkUuK","payment_id":"pay_U1dOpjzoEZhREF"}
+[payment-success] 2026-11-18 13:15:10 Razorpay signature verified
+[payment-success] 2026-11-18 13:15:10 Looking up subscription by local id {"subscription_id":11}
+[payment-success] 2026-11-18 13:15:13 Updating subscription {"subscription_id":11,"payment_type":"upgrade","order_id":"","razorpay_subscription_id":"sub_U1dOXMLMOIkUuK","payment_id":"pay_U1dOpjzoEZhREF"}
+[payment-success] 2026-11-18 13:15:13 Subscription updated {"subscription_id":11}
+[payment-success] 2026-11-18 13:15:13 Saving payment row {"user_id":"vishalgoudar1435","subscription_id":11,"order_id":"","razorpay_subscription_id":"sub_U1dOXMLMOIkUuK","payment_id":"pay_U1dOpjzoEZhREF","payment_type":"upgrade"}
+[payment-success] 2026-11-18 13:15:13 Payment row saved {"payment_insert_id":25,"subscription_id":11}
+[payment-success] 2026-11-18 13:15:23 Returning success response {"subscription_id":11,"payment_id":"pay_U1dOpjzoEZhREF","order_id":"","razorpay_subscription_id":"sub_U1dOXMLMOIkUuK","email_sent":true}
+
+=============================
+2026-11-18 13:16:50
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_payment_id] => pay_U1dQbane64mCua
+    [razorpay_signature] => 42efd358fe3024cbb75d60130edcd32d2fdbcc252e8e1344b0566689c3aa21e9
+    [mode] => upgrade
+    [subscription_id] => 12
+    [name] => Vishal Gouda Goudar
+    [email] => vishalgoudar143@gmail.com
+    [phone] => vishalgoudar1435
+    [razorpay_subscription_id] => sub_U1dQJwLXc34Yjz
+)
+
+RAW INPUT:
+razorpay_payment_id=pay_U1dQbane64mCua&razorpay_signature=42efd358fe3024cbb75d60130edcd32d2fdbcc252e8e1344b0566689c3aa21e9&mode=upgrade&subscription_id=12&name=Vishal+Gouda+Goudar&email=vishalgoudar143%40gmail.com&phone=vishalgoudar1435&razorpay_subscription_id=sub_U1dQJwLXc34Yjz
+=============================
+[payment-success] 2026-11-18 13:16:50 Verifying Razorpay signature {"payment_mode":"auto","signature_payload_keys":["razorpay_payment_id","razorpay_signature","razorpay_subscription_id"],"order_id":"","razorpay_subscription_id":"sub_U1dQJwLXc34Yjz","payment_id":"pay_U1dQbane64mCua"}
+[payment-success] 2026-11-18 13:16:50 Razorpay signature verified
+[payment-success] 2026-11-18 13:16:50 Looking up subscription by local id {"subscription_id":12}
+[payment-success] 2026-11-18 13:16:53 Updating subscription {"subscription_id":12,"payment_type":"upgrade","order_id":"","razorpay_subscription_id":"sub_U1dQJwLXc34Yjz","payment_id":"pay_U1dQbane64mCua"}
+[payment-success] 2026-11-18 13:16:53 Subscription updated {"subscription_id":12}
+[payment-success] 2026-11-18 13:16:53 Saving payment row {"user_id":"vishalgoudar1435","subscription_id":12,"order_id":"","razorpay_subscription_id":"sub_U1dQJwLXc34Yjz","payment_id":"pay_U1dQbane64mCua","payment_type":"upgrade"}
+[payment-success] 2026-11-18 13:16:53 Payment row saved {"payment_insert_id":26,"subscription_id":12}
+[payment-success] 2026-11-18 13:17:00 Returning success response {"subscription_id":12,"payment_id":"pay_U1dQbane64mCua","order_id":"","razorpay_subscription_id":"sub_U1dQJwLXc34Yjz","email_sent":true}
+[razorpay-webhook] 2026-11-19 05:22:15 Invalid webhook signature {"error":"Invalid signature passed"}
+[razorpay-webhook] 2026-11-20 06:29:06 Invalid webhook signature {"error":"Invalid signature passed"}
+[razorpay-webhook] 2026-11-21 09:29:40 Webhook verified {"event":"payment.captured"}
+
+=============================
+2026-11-21 09:29:50
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_payment_id] => pay_U2mBba8TAGmaPx
+    [razorpay_signature] => 0c8257e52135a6e5453c2ae76b433157a5cfa230b8b1908b9b507d7cdff72215
+    [mode] => new
+    [subscription_id] => 35
+    [name] => Vishal Gouda Goudar
+    [email] => vishalgoudar143@gmail.com
+    [phone] => vishalgoudar1435
+    [razorpay_order_id] => order_U2mBLc7u96dzUk
+)
+
+RAW INPUT:
+razorpay_payment_id=pay_U2mBba8TAGmaPx&razorpay_signature=0c8257e52135a6e5453c2ae76b433157a5cfa230b8b1908b9b507d7cdff72215&mode=new&subscription_id=35&name=Vishal+Gouda+Goudar&email=vishalgoudar143%40gmail.com&phone=vishalgoudar1435&razorpay_order_id=order_U2mBLc7u96dzUk
+=============================
+[payment-success] 2026-11-21 09:29:51 Verifying Razorpay signature {"payment_mode":"manual","signature_payload_keys":["razorpay_payment_id","razorpay_signature","razorpay_order_id"],"order_id":"order_U2mBLc7u96dzUk","razorpay_subscription_id":"","payment_id":"pay_U2mBba8TAGmaPx"}
+[payment-success] 2026-11-21 09:29:51 Razorpay signature verified
+[payment-success] 2026-11-21 09:29:51 Looking up subscription by local id {"subscription_id":35}
+[payment-success] 2026-11-21 09:29:53 Updating subscription {"subscription_id":35,"payment_type":"upgrade","order_id":"order_U2mBLc7u96dzUk","razorpay_subscription_id":"","payment_id":"pay_U2mBba8TAGmaPx"}
+[payment-success] 2026-11-21 09:29:53 Subscription updated {"subscription_id":35}
+[payment-success] 2026-11-21 09:29:53 Saving payment row {"user_id":"vishalgoudar1435","subscription_id":35,"order_id":"order_U2mBLc7u96dzUk","razorpay_subscription_id":"","payment_id":"pay_U2mBba8TAGmaPx","payment_type":"upgrade"}
+[payment-success] 2026-11-21 09:29:53 Payment row saved {"payment_insert_id":21,"subscription_id":35}
+[payment-success] 2026-11-21 09:29:56 Returning success response {"subscription_id":35,"payment_id":"pay_U2mBba8TAGmaPx","order_id":"order_U2mBLc7u96dzUk","razorpay_subscription_id":"","email_sent":true}
+[razorpay-webhook] 2026-11-21 09:48:32 Webhook verified {"event":"payment.captured"}
+[razorpay-webhook] 2026-11-21 09:48:38 Webhook verified {"event":"subscription.charged"}
+[subscription-charged] 2026-11-21 09:48:38 Webhook received {"event":"subscription.charged","razorpay_subscription_id":"sub_U2mV84vXYDrxhk","payment_id":"pay_U2mVSPz90lhhbj"}
+[subscription-charged] 2026-11-21 09:48:39 Drivault quota restored {"username":"vishalgoudar1435","quota":"600GB","response_code":200}
+[subscription-charged] 2026-11-21 09:48:39 Subscription renewed {"subscription_id":36,"new_expiry":"2026-12-21 00:00:00"}
+[subscription-charged] 2026-11-21 09:48:39 Payment row saved {"payment_insert_id":22,"subscription_id":36,"payment_id":"pay_U2mVSPz90lhhbj"}
+[subscription-charged] 2026-11-21 09:48:42 Webhook processed successfully {"subscription_id":36,"payment_id":"pay_U2mVSPz90lhhbj","email_sent":true}
+
+=============================
+2026-11-21 09:48:42
+REQUEST METHOD: POST
+POST DATA:
+Array
+(
+    [razorpay_payment_id] => pay_U2mVSPz90lhhbj
+    [razorpay_signature] => 7a1b80f13e89f895e136d03ce65f59d022dfdba1804f25861f0eb52bb860a487
+    [mode] => new
+    [subscription_id] => 36
+    [name] => Vishal Gouda Goudar
+    [email] => vishalgoudar143@gmail.com
+    [phone] => vishalgoudar1435
+    [razorpay_subscription_id] => sub_U2mV84vXYDrxhk
+)
+
+RAW INPUT:
+razorpay_payment_id=pay_U2mVSPz90lhhbj&razorpay_signature=7a1b80f13e89f895e136d03ce65f59d022dfdba1804f25861f0eb52bb860a487&mode=new&subscription_id=36&name=Vishal+Gouda+Goudar&email=vishalgoudar143%40gmail.com&phone=vishalgoudar1435&razorpay_subscription_id=sub_U2mV84vXYDrxhk
+=============================
+[payment-success] 2026-11-21 09:48:42 Verifying Razorpay signature {"payment_mode":"auto","signature_payload_keys":["razorpay_payment_id","razorpay_signature","razorpay_subscription_id"],"order_id":"","razorpay_subscription_id":"sub_U2mV84vXYDrxhk","payment_id":"pay_U2mVSPz90lhhbj"}
+[payment-success] 2026-11-21 09:48:42 Razorpay signature verified
+[payment-success] 2026-11-21 09:48:42 Looking up subscription by local id {"subscription_id":36}
+[payment-success] 2026-11-21 09:48:44 Updating subscription {"subscription_id":36,"payment_type":"upgrade","order_id":"","razorpay_subscription_id":"sub_U2mV84vXYDrxhk","payment_id":"pay_U2mVSPz90lhhbj"}
+[payment-success] 2026-11-21 09:48:44 Subscription updated {"subscription_id":36}
+[payment-success] 2026-11-21 09:48:44 Saving payment row {"user_id":"vishalgoudar1435","subscription_id":36,"order_id":"","razorpay_subscription_id":"sub_U2mV84vXYDrxhk","payment_id":"pay_U2mVSPz90lhhbj","payment_type":"upgrade"}
+[payment-success] 2026-11-21 09:48:44 Payment row saved {"payment_insert_id":23,"subscription_id":36}
+[payment-success] 2026-11-21 09:48:47 Returning success response {"subscription_id":36,"payment_id":"pay_U2mVSPz90lhhbj","order_id":"","razorpay_subscription_id":"sub_U2mV84vXYDrxhk","email_sent":true}
+[razorpay-webhook] 2026-11-21 09:58:01 Webhook verified {"event":"payment.captured"}
+[razorpay-webhook] 2026-11-21 09:58:03 Webhook verified {"event":"subscription.charged"}
+[subscription-charged] 2026-11-21 09:58:03 Webhook received {"event":"subscription.charged","razorpay_subscription_id":"sub_U2mV84vXYDrxhk","payment_id":"pay_U2ma8gLXxeLQHP"}
+[subscription-charged] 2026-11-21 09:58:04 Drivault quota restored {"username":"vishalgoudar1435","quota":"600GB","response_code":200}
+[subscription-charged] 2026-11-21 09:58:04 Subscription renewed {"subscription_id":36,"new_expiry":"2027-01-21 00:00:00"}
+[subscription-charged] 2026-11-21 09:58:04 Payment row saved {"payment_insert_id":24,"subscription_id":36,"payment_id":"pay_U2ma8gLXxeLQHP"}
+[subscription-charged] 2026-11-21 09:58:05 Renewal email error {"error":"Success notification already sent or currently claimed."}
+[subscription-charged] 2026-11-21 09:58:05 Webhook processed successfully {"subscription_id":36,"payment_id":"pay_U2ma8gLXxeLQHP","email_sent":false}
+[razorpay-webhook] 2026-11-21 10:02:45 Invalid webhook signature {"error":"Invalid signature passed"}
+[razorpay-webhook] 2026-11-21 10:11:32 Webhook verified {"event":"payment.failed"}
+[payment-failed-webhook] 2026-11-21 10:11:32 Webhook received {"event":"payment.failed","razorpay_subscription_id":"","payment_id":"pay_U2mtuVEGskcUD1"}
+[payment-failed-webhook] 2026-11-21 10:11:32 Webhook failed {"error":"Subscription not found."}
+[razorpay-webhook] 2026-11-21 10:11:32 Webhook verified {"event":"payment.failed"}
+[payment-failed-webhook] 2026-11-21 10:11:32 Webhook received {"event":"payment.failed","razorpay_subscription_id":"","payment_id":"pay_U2mtuVEGskcUD1"}
+[payment-failed-webhook] 2026-11-21 10:11:32 Webhook failed {"error":"Subscription not found."}
+[razorpay-webhook] 2026-11-21 10:11:37 Webhook verified {"event":"payment.failed"}
+[payment-failed-webhook] 2026-11-21 10:11:37 Webhook received {"event":"payment.failed","razorpay_subscription_id":"","payment_id":"pay_U2mtuVEGskcUD1"}
+[payment-failed-webhook] 2026-11-21 10:11:37 Webhook failed {"error":"Subscription not found."}
+[razorpay-webhook] 2026-11-21 10:11:48 Webhook verified {"event":"payment.failed"}
+[payment-failed-webhook] 2026-11-21 10:11:48 Webhook received {"event":"payment.failed","razorpay_subscription_id":"","payment_id":"pay_U2mtuVEGskcUD1"}
+[payment-failed-webhook] 2026-11-21 10:11:48 Webhook failed {"error":"Subscription not found."}
+[razorpay-webhook] 2026-11-21 10:12:09 Webhook verified {"event":"payment.failed"}
+[payment-failed-webhook] 2026-11-21 10:12:09 Webhook received {"event":"payment.failed","razorpay_subscription_id":"","payment_id":"pay_U2mtuVEGskcUD1"}
+[payment-failed-webhook] 2026-11-21 10:12:09 Webhook failed {"error":"Subscription not found."}
+[razorpay-webhook] 2026-11-21 10:12:51 Webhook verified {"event":"payment.failed"}
+[payment-failed-webhook] 2026-11-21 10:12:51 Webhook received {"event":"payment.failed","razorpay_subscription_id":"","payment_id":"pay_U2mtuVEGskcUD1"}
+[payment-failed-webhook] 2026-11-21 10:12:51 Webhook failed {"error":"Subscription not found."}
+[razorpay-webhook] 2026-11-21 10:14:13 Webhook verified {"event":"payment.failed"}
+[payment-failed-webhook] 2026-11-21 10:14:13 Webhook received {"event":"payment.failed","razorpay_subscription_id":"","payment_id":"pay_U2mtuVEGskcUD1"}
+[payment-failed-webhook] 2026-11-21 10:14:13 Webhook failed {"error":"Subscription not found."}
+[razorpay-webhook] 2026-11-21 10:16:59 Webhook verified {"event":"payment.failed"}
+[payment-failed-webhook] 2026-11-21 10:16:59 Webhook received {"event":"payment.failed","razorpay_subscription_id":"","payment_id":"pay_U2mtuVEGskcUD1"}
+[payment-failed-webhook] 2026-11-21 10:16:59 Webhook failed {"error":"Subscription not found."}
+[razorpay-webhook] 2026-11-21 10:22:22 Webhook verified {"event":"payment.failed"}
+[payment-failed-webhook] 2026-11-21 10:22:22 Webhook received {"event":"payment.failed","razorpay_subscription_id":"","payment_id":"pay_U2mtuVEGskcUD1"}
+[payment-failed-webhook] 2026-11-21 10:22:22 Webhook failed {"error":"Subscription not found."}
+[razorpay-webhook] 2026-11-21 10:33:03 Webhook verified {"event":"payment.failed"}
+[payment-failed-webhook] 2026-11-21 10:33:03 Webhook received {"event":"payment.failed","razorpay_subscription_id":"","payment_id":"pay_U2mtuVEGskcUD1"}
+[payment-failed-webhook] 2026-11-21 10:33:03 Webhook failed {"error":"Subscription not found."}
+[razorpay-webhook] 2026-11-21 10:47:18 Webhook verified {"event":"payment.failed"}
+[payment-failed-webhook] 2026-11-21 10:47:19 Subscription resolved from invoice {"invoice_id":"inv_U2mttKkpuYYYwa","razorpay_subscription_id":"sub_U2mV84vXYDrxhk"}
+[payment-failed-webhook] 2026-11-21 10:47:19 Webhook received {"event":"payment.failed","razorpay_subscription_id":"sub_U2mV84vXYDrxhk","payment_id":"pay_U2nVhvbOPJjevq"}
+[payment-failed-webhook] 2026-11-21 10:47:19 Paid subscription preserved after failed charge {"subscription_id":36,"payment_id":"pay_U2nVhvbOPJjevq","expiry_date":"2027-01-21 00:00:00"}
+[payment-failed-webhook] 2026-11-21 10:47:19 Failed payment row saved {"payment_insert_id":25,"subscription_id":36,"payment_id":"pay_U2nVhvbOPJjevq"}
+[payment-failed-webhook] 2026-11-21 10:47:21 Webhook processed successfully {"subscription_id":36,"payment_id":"pay_U2nVhvbOPJjevq","email_sent":true}
+[razorpay-webhook] 2026-11-21 10:54:23 Invalid webhook signature {"error":"Invalid signature passed"}
